@@ -9,8 +9,10 @@
     <version>0.4.1</version>
 
     <properties>
-        <maven.compiler.source>11</maven.compiler.source>
-        <maven.compiler.target>11</maven.compiler.target>
+        <encoding>UTF-8</encoding>
+
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
 
         <akka.http.version>10.1.15</akka.http.version>
         <akka.stream.version>2.5.31</akka.stream.version>
@@ -20,7 +22,10 @@
         <guava.version>20.0</guava.version>
         <logback.version>1.2.6</logback.version>
         <paho.version>1.2.2</paho.version>
+        <protobuf.version>3.5.1</protobuf.version>
         <rocksdb.version>6.6.4</rocksdb.version>
+        <spark.version>2.4.3</spark.version>
+        <zoo.version>0.8.1</zoo.version>
         <!--
         The Scala version that has been used for testing
         in 2.11.12
@@ -107,6 +112,78 @@
             <version>${rocksdb.version}</version>
         </dependency>
 
+        <!-- APACHE SPARK
+        -->
+        <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-sql_${scala.binary.version}</artifactId>
+            <version>${spark.version}</version>
+            <exclusions>
+                <!--
+                Apache Spark SQL depends on [[Protobuf]] version 2.5;
+                this version is not compliant with Analytics-Zoo
+                 -->
+                <exclusion>
+                    <groupId>com.google.protobuf</groupId>
+                    <artifactId>protobuf-java</artifactId>
+                </exclusion>
+                <!--
+                Logging is based on Logback
+                -->
+                <exclusion>
+                    <groupId>log4j</groupId>
+                    <artifactId>log4j</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-log4j12</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-mllib_${scala.binary.version}</artifactId>
+            <version>${spark.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>log4j-over-slf4j</artifactId>
+            <version>1.7.16</version>
+        </dependency>
+
+        <!-- ANALYTICS-ZOO
+        -->
+        <dependency>
+            <groupId>com.intel.analytics.zoo</groupId>
+            <artifactId>analytics-zoo-bigdl_0.10.0-spark_2.4.3</artifactId>
+            <version>${zoo.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>log4j</groupId>
+                    <artifactId>log4j</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-log4j12</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>com.intel.analytics.zoo</groupId>
+            <artifactId>zoo-core-tfnet-mac</artifactId>
+            <version>${zoo.version}</version>
+        </dependency>
+        <!-- PROTOBUF
+        -->
+        <dependency>
+            <groupId>com.google.protobuf</groupId>
+            <artifactId>protobuf-java</artifactId>
+            <version>${protobuf.version}</version>
+        </dependency>
+
     </dependencies>
 
     <build>
@@ -160,8 +237,8 @@
                         <arg>-deprecation</arg>
                     </args>
                     <addJavacArgs>-deprecation</addJavacArgs>
-                    <source>11</source>
-                    <target>11</target>
+                    <source>1.8</source>
+                    <target>1.8</target>
                 </configuration>
                 <executions>
                     <execution>
