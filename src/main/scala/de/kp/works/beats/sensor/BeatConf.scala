@@ -102,6 +102,28 @@ abstract class BeatConf {
    */
   def getLoggingCfg: Config = getCfg("logging")
   /**
+   * This method provides the RocksDB configuration of
+   * the Sensor Beat
+   */
+  def getRocksDBCfg: Config = getCfg("rocksdb")
+  /**
+   * Method to determine the RocksDB folder for the
+   * `SensorBeat` project
+   */
+  def getRocksFolder:String = {
+    /*
+     * Determine the RocksDB folder from the system
+     * property `rocksdb.dir`. If this property is
+     * not set, fallback to the logging configuration
+     */
+    val folder = System.getProperty("rocksdb.dir")
+    if (folder == null)
+      getRocksDBCfg.getString("folder")
+
+    else folder
+
+  }
+  /**
    * This method provides the SSL configuration of the
    * Sensor Beat (HTTP Server)
    */
