@@ -19,8 +19,9 @@ package de.kp.works.beats.sensor
  *
  */
 
-import org.rocksdb.{ColumnFamilyDescriptor, ColumnFamilyHandle, ColumnFamilyOptions, DBOptions, RocksDB}
+import org.rocksdb.{ColumnFamilyDescriptor, ColumnFamilyHandle, ColumnFamilyOptions, DBOptions, ReadOptions, RocksDB}
 
+import java.util
 import java.util.{List => JList}
 import java.util.Objects
 import scala.collection.JavaConversions.asScalaBuffer
@@ -169,7 +170,9 @@ object BeatRocks {
 
     val tableHandle = rocksHandles(table)
     val rocksIter = rocksDB.newIterator(tableHandle)
-
+    /*
+     * Start scan with the first entry
+     */
     rocksIter.seekToFirst()
 
     val result = mutable.ArrayBuffer.empty[(String,String)]
@@ -181,6 +184,56 @@ object BeatRocks {
 
       val kv = (k,v)
       result += kv
+
+    }
+
+    result
+
+  }
+
+  def scanTsRange(table:String, start:Long, end:Long):Seq[(Long, String)] = {
+
+    val skey = start.toString
+    val ekey = end.toString
+
+    val result = scanRange(table, skey, ekey)
+    result.map{case(k,v) => (k.toLong, v)}
+
+  }
+
+  def scanRange(table:String, skey:String, ekey:String):Seq[(String, String)] = {
+
+    validate(table)
+
+    val sbytes = skey.getBytes(CHARSET)
+    val ebytes = ekey.getBytes(CHARSET)
+
+    val tableHandle = rocksHandles(table)
+
+    val readOptions = new ReadOptions()
+    readOptions.setTotalOrderSeek(true)
+
+    val rocksIter = rocksDB.newIterator(tableHandle, readOptions)
+    /*
+     * Start scan with the provided `skey`
+     */
+    rocksIter.seek(sbytes)
+    var scan = true
+
+    val result = mutable.ArrayBuffer.empty[(String,String)]
+    while(rocksIter.isValid && scan) {
+      rocksIter.next()
+
+      val kbytes = rocksIter.key()
+      val vbytes = rocksIter.value()
+
+      val k = new String(rocksIter.key(), CHARSET)
+      val v = new String(rocksIter.value(), CHARSET)
+
+      val kv = (k,v)
+      result += kv
+
+      if (util.Arrays.equals(kbytes, ebytes)) scan = false
 
     }
 

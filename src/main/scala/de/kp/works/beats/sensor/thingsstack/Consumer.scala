@@ -22,9 +22,10 @@ package de.kp.works.beats.sensor.thingsstack
 import ch.qos.logback.classic.Logger
 import org.eclipse.paho.client.mqttv3.{IMqttDeliveryToken, MqttCallback, MqttClient, MqttMessage}
 
-abstract class Consumer(options:Options, logger:Logger) {
+abstract class Consumer(options:Options) {
 
   private val mqttClient: Option[MqttClient] = buildMqttClient
+  protected var logger:Logger
 
   /**
    * Internal method to build an Eclipse Paho
