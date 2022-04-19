@@ -19,20 +19,6 @@ package de.kp.works.beats.sensor
  *
  */
 
-/**
- * The [ThingsServer] is designed to connect to 3 different
- * data sources, EU Air Quality service, OpenWeather and The
- * Things Stack. The data are read either on a scheduled basis
- * or on demand as MQTT listening.
- *
- * This approach can be extended to other (real-time) data
- * sources as well like stock exchange rates.
- *
- * The current data destination or sink is the ThingsBoard
- * MQTT broker (community edition) that persists received
- * telemetry data in a Postgres database.
- */
-
 import ch.qos.logback.classic.{Level, Logger, LoggerContext}
 import ch.qos.logback.classic.encoder.PatternLayoutEncoder
 import ch.qos.logback.classic.spi.ILoggingEvent
