@@ -31,7 +31,7 @@ import scala.collection.JavaConversions.collectionAsScalaIterable
  * The current implementation of the MsConsumer supports
  * the Milesight EM-300 series
  */
-class MsConsumer(options: MsOptions) extends Consumer(options) {
+class MsThings(options: MsOptions) extends Consumer(options) {
 
   override protected var logger: Logger = MsLogger.getLogger
   /**

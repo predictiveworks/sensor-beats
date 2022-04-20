@@ -19,6 +19,7 @@ package de.kp.works.beats.sensor.milesight
  *
  */
 
+import com.google.gson.JsonObject
 import de.kp.works.beats.sensor.{BeatChannel, BeatRequest, BeatRocks}
 /**
  * Implementation of the RocksDB output channel
@@ -38,6 +39,32 @@ class MsRocks extends BeatChannel {
   private val tables = config.getRocksTables
   BeatRocks.getOrCreate(tables, config.getRocksFolder)
 
-  override def execute(request: BeatRequest): Unit = ???
+  override def execute(request: BeatRequest): Unit = {
+    /*
+     * The RocksDB output channel is restricted
+     * to `put` requests
+     */
+    val sensor = request.sensor
+    val time = sensor.sensorTime
+    /*
+     * Individual sensor attributes are mapped onto
+     * RocksDB
+     */
+    sensor.sensorAttrs.foreach(sensorAttr => {
+      /*
+       * The attribute name is used as the `table`
+       * name of the respective RocksDB
+       */
+      val table = sensorAttr.attrName
+
+      val value = new JsonObject
+      value.addProperty("type", sensorAttr.attrType)
+      value.addProperty("value", sensorAttr.attrValue)
+
+      BeatRocks.putTs(table, time, value.toString)
+
+    })
+
+  }
 
 }
