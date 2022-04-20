@@ -1,4 +1,4 @@
-package de.kp.works.beats.sensor.fiware
+package de.kp.works.beats.sensor.http
 
 /**
  * Copyright (c) 2019 - 2022 Dr. Krusche & Partner PartG. All rights reserved.
@@ -19,13 +19,6 @@ package de.kp.works.beats.sensor.fiware
  *
  */
 
-import akka.http.scaladsl.HttpsConnectionContext
-import de.kp.works.beats.sensor.BeatConf
+object FailedAfterMaxRetries extends Exception
+object TooManyRequests extends Exception
 
-class Options(config:BeatConf) {
-
-  def getBrokerUrl:String = ???
-
-  def getHttpsContext:Option[HttpsConnectionContext] = ???
-
-}

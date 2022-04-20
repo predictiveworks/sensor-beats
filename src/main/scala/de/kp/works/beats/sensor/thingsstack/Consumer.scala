@@ -20,9 +20,19 @@ package de.kp.works.beats.sensor.thingsstack
  */
 
 import ch.qos.logback.classic.Logger
+import com.google.gson.JsonObject
 import org.eclipse.paho.client.mqttv3.{IMqttDeliveryToken, MqttCallback, MqttClient, MqttMessage}
 
 abstract class Consumer(options:Options) {
+
+  /**
+   * FIELD NAMES of the TTN v3 uplink message format
+   */
+  protected val TTN_DECODED_PAYLOAD = "decoded_payload"
+  protected val TTN_DEVICE_ID       = "device_id"
+  protected val TTN_END_DEVICE_IDS  = "end_device_ids"
+  protected val TTN_RX_METADATA     = "rx_metadata"
+  protected val TTN_UPLINK_MESSAGE  = "uplink_message"
 
   private val mqttClient: Option[MqttClient] = buildMqttClient
   protected var logger:Logger
@@ -115,5 +125,16 @@ abstract class Consumer(options:Options) {
    * of the `SensorBeat`.
    */
   def publish(mqttMessage:MqttMessage):Unit
+  /**
+   * Public method to extract the common TTN uplink
+   * payload.
+   */
+  def extract(messageObj:JsonObject):Option[JsonObject] = {
 
+    ???
+  }
+  /*
+
+
+   */
 }

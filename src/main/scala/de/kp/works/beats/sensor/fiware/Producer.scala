@@ -1,5 +1,8 @@
 package de.kp.works.beats.sensor.fiware
 
+import de.kp.works.beats.sensor.BeatSensor
+import de.kp.works.beats.sensor.http.HttpConnect
+
 /**
  * Copyright (c) 2019 - 2022 Dr. Krusche & Partner PartG. All rights reserved.
  *
@@ -19,10 +22,7 @@ package de.kp.works.beats.sensor.fiware
  *
  */
 
-/*
- * https://fiware-orion.readthedocs.io/en/master/user/walkthrough_apiv2/index.html#context-management
- */
-class Producer(options:Options) {
+class Producer(options:Options) extends HttpConnect {
   /**
    * The address of the Fiware Context Broker
    */
@@ -32,14 +32,32 @@ class Producer(options:Options) {
    * entities (sensors)
    */
   private val entityCreateUrl = "/v2/entities"
+  private val entityGetUrl    = "/v2/entities/{id}"
   private val entityUpdateUrl = "/v2/entities/{id}/attrs"
+  /**
+   * Make sure that the HTTP connection is secured,
+   * if the respective configuration exists
+   */
+  private val httpsContext = options.getHttpsContext
+  if (httpsContext.nonEmpty)
+    setHttpsContext(httpsContext.get)
   /**
    * A public method to create a certain sensor
    * entity. The expected HTTP response code of
    * this POST request = 201 Created.
    */
-  def createSensor():Unit = {
-
+  def createSensor(sensor:BeatSensor):Boolean = {
+    /*
+     * STEP #1: Check whether the provided sensor
+     * already exists; if this is the case, switch
+     * to update request.
+     */
+    if (sensorExists(sensor))
+      patchSensor(sensor)
+    /*
+     * STEP #2: Create a non-existing sensor
+     */
+    postSensor(sensor)
   }
   /**
    * A public method to update the attributes of
@@ -47,7 +65,87 @@ class Producer(options:Options) {
    * response code of this PATCH request = 204
    * No Content.
    */
-  def updateSensor():Unit = {
+  def updateSensor(sensor:BeatSensor):Boolean = {
+    /*
+     * STEP #1: Check whether the provided sensor
+     * already exists; if this is the case, switch
+     * to create request.
+     */
+    if (!sensorExists(sensor))
+      postSensor(sensor)
+    /*
+     * STEP #2: Update attributes of an existing
+     * sensor
+     */
+    patchSensor(sensor)
+  }
+  /**
+   * Internal method to update a sensor without
+   * existence checks
+   */
+  private def patchSensor(sensor:BeatSensor):Boolean = {
+
+    val headers = Map.empty[String,String]
+    val endpoint = brokerUrl + entityUpdateUrl.replace("{id}", sensor.sensorId)
+
+    try {
+      /*
+       * Retrieve sensor in JSON format and restrict
+       * to the respective attributes
+       */
+      val json = sensor.toFiware
+      json.remove("id")
+      json.remove("type")
+      /*
+       * The expected response code = 204; in case of
+       * another code, an exception is thrown
+       */
+      patch(endpoint, headers, json)
+      true
+
+    } catch {
+      case _:Throwable => false
+    }
+
+  }
+  /**
+   * Internal method to create a sensor without
+   * existence checks
+   */
+  private def postSensor(sensor:BeatSensor):Boolean = {
+
+    val headers = Map.empty[String,String]
+    val endpoint = brokerUrl +  entityCreateUrl
+
+    try {
+      /*
+       * The expected response code = 201; in case of
+       * another code, an exception is thrown
+       */
+      post(endpoint, headers, sensor.toFiware)
+      true
+
+      } catch {
+      case _:Throwable => false
+    }
+
+  }
+
+  def sensorExists(sensor:BeatSensor):Boolean = {
+
+    val headers = Map.empty[String,String]
+    val endpoint = brokerUrl + entityGetUrl.replace("{id}", sensor.sensorId)
+
+    try {
+
+      val bytes = get(endpoint, headers, pooled = true)
+      extractJsonBody(bytes)
+
+      true
+
+    } catch {
+      case _:Throwable => false
+    }
 
   }
 }

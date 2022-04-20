@@ -33,7 +33,7 @@ object TATransform extends TACompute {
    * open, low, high, close price is set equal and to the provided
    * one
    */
-  def toSeries(input:List[BeatDot]):BarSeries = {
+  def toSeries(input:Seq[BeatDot]):BarSeries = {
 
     val series:BarSeries = new BaseBarSeriesBuilder()
       .withName("TimeSeries")

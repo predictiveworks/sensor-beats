@@ -1,4 +1,4 @@
-package de.kp.works.beats.sensor
+package de.kp.works.beats.sensor.http
 
 /**
  * Copyright (c) 2019 - 2022 Dr. Krusche & Partner PartG. All rights reserved.
@@ -19,4 +19,10 @@ package de.kp.works.beats.sensor
  *
  */
 
-case class BeatDot(time:Long, value:Double)
+import scala.concurrent.duration.{DurationInt, FiniteDuration}
+
+case class BackoffPolicy(
+  minBackoff:FiniteDuration = 20.milliseconds,
+  maxBackoff:FiniteDuration = 30.seconds,
+  randomFactor:Double = 0.2,
+  maxRestarts:Int = 10)
