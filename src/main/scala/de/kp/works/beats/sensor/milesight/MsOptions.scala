@@ -39,7 +39,7 @@ object MsProducts extends Enumeration {
 
 }
 
-class MsOptions extends Options(MsConf) {
+class MsOptions extends Options(MsConf.getInstance) {
   /**
    * Channels in the context of a `SensorBeat` are
    * actors that receive a `BeatSensor` message and

@@ -21,7 +21,18 @@ package de.kp.works.beats.sensor.milesight
 
 import de.kp.works.beats.sensor.BeatConf
 
-object MsConf extends BeatConf {
+object MsConf {
+
+  private var instance:Option[MsConf] = None
+
+  def getInstance:MsConf = {
+    if (instance.isEmpty) instance = Some(new MsConf())
+    instance.get
+  }
+
+}
+
+class MsConf extends BeatConf {
   /**
    * The (internal) resource folder file name
    */

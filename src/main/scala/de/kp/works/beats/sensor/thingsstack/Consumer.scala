@@ -24,7 +24,6 @@ import com.google.gson.JsonObject
 import org.eclipse.paho.client.mqttv3.{IMqttDeliveryToken, MqttCallback, MqttClient, MqttMessage}
 
 abstract class Consumer(options:Options) {
-
   /**
    * FIELD NAMES of the TTN v3 uplink message format
    */

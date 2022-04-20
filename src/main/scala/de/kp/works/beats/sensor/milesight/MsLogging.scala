@@ -25,16 +25,18 @@ import de.kp.works.beats.sensor.BeatLogger
 object MsLogger extends BeatLogger {
 
   override protected var loggerName = "MsLogger"
+
+  private val config = MsConf.getInstance
   /**
    * The internal configuration is used, if the current
    * configuration is not set here
    */
-  if (!MsConf.isInit) MsConf.init()
+  if (!config.isInit) config.init()
 
   private val logger = buildLogger
   def getLogger: Logger = logger
 
-  override def getFolder: String = MsConf.getLogFolder
+  override def getFolder: String = config.getLogFolder
 
 }
 

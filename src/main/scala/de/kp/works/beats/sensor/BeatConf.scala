@@ -51,6 +51,11 @@ abstract class BeatConf {
   var cfg: Option[Config] = None
   /**
    * This method provides the configuration of the
+   * API actors of the Sensor Beat
+   */
+  def getActorCfg: Config = getCfg("actor")
+  /**
+   * This method provides the configuration of the
    * HTTP Binding of the Sensor Beat
    */
   def getBindingCfg: Config = getCfg("binding")
@@ -123,6 +128,8 @@ abstract class BeatConf {
     else folder
 
   }
+  def getRocksTables:Seq[String] = ???
+
   /**
    * This method provides the SSL configuration of the
    * Sensor Beat (HTTP Server)

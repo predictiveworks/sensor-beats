@@ -34,7 +34,6 @@ import scala.collection.JavaConversions.collectionAsScalaIterable
 class MsConsumer(options: MsOptions) extends Consumer(options) {
 
   override protected var logger: Logger = MsLogger.getLogger
-
   /**
    * Public method to persist the content of the
    * received MQTT message in the internal RocksDB

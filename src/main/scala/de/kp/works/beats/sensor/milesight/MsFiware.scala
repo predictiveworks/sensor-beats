@@ -26,13 +26,15 @@ import de.kp.works.beats.sensor.{BeatChannel, BeatRequest}
  * Implementation of the FIWARE output channel
  */
 class MsFiware extends BeatChannel {
+
+  private val config = MsConf.getInstance
   /**
    * The internal configuration is used, if the current
    * configuration is not set here
    */
-  if (!MsConf.isInit) MsConf.init()
+  if (!config.isInit) config.init()
 
-  private val fiwareOptions = new Options(MsConf)
+  private val fiwareOptions = new Options(config)
   private val fiwareProducer = new Producer(fiwareOptions)
 
   override def execute(request: BeatRequest): Unit = {

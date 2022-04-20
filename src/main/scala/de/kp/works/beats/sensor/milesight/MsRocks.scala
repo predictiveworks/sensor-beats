@@ -19,18 +19,25 @@ package de.kp.works.beats.sensor.milesight
  *
  */
 
-import de.kp.works.beats.sensor.BeatRocks
+import de.kp.works.beats.sensor.{BeatChannel, BeatRequest, BeatRocks}
+/**
+ * Implementation of the RocksDB output channel
+ */
+class MsRocks extends BeatChannel {
 
-class MsRocks(tables:Seq[String]) {
+  private val config = MsConf.getInstance
   /**
    * The internal configuration is used, if the current
    * configuration is not set here
    */
-  if (!MsConf.isInit) MsConf.init()
+  if (!config.isInit) config.init()
   /**
    * Initialize RocksDB with provided tables; every table
    * refers to a certain column family.
    */
-  BeatRocks.getOrCreate(tables, MsConf.getRocksFolder)
+  private val tables = config.getRocksTables
+  BeatRocks.getOrCreate(tables, config.getRocksFolder)
+
+  override def execute(request: BeatRequest): Unit = ???
 
 }

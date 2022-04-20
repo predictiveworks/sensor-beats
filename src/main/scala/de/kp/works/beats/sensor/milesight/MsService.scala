@@ -23,15 +23,23 @@ import akka.NotUsed
 import akka.http.scaladsl.model.sse.ServerSentEvent
 import akka.http.scaladsl.server.Route
 import akka.stream.scaladsl.{Source, SourceQueueWithComplete}
-import de.kp.works.beats.sensor.{BeatConf, BeatService}
+import de.kp.works.beats.sensor.{BeatConf, BeatRoute, BeatService}
 
 class MsService extends BeatService {
 
-  override protected var config:BeatConf = MsConf
+  override protected var config:BeatConf = MsConf.getInstance
   override protected var serviceName: String = "MsService"
 
   override def buildRoute(queue: SourceQueueWithComplete[String],
-                          source: Source[ServerSentEvent, NotUsed]):Route = ???
+                          source: Source[ServerSentEvent, NotUsed]):Route = {
+    /*
+     * A common route for all `SensorBeat`s is
+     * the SSE based event route
+     */
+    val eventRoute = new BeatRoute(source).event
+
+    ???
+  }
 
 
   override def onStart(queue:SourceQueueWithComplete[String]): Unit = ???
