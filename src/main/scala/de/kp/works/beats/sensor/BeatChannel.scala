@@ -26,6 +26,18 @@ import akka.util.Timeout
 import scala.collection.mutable
 import scala.concurrent.ExecutionContextExecutor
 import scala.concurrent.duration.DurationInt
+/**
+ * The number of channels that can be configured to
+ * publish consumed sensor events.
+ */
+object Channels extends Enumeration {
+  type Channel = Value
+
+  val FIWARE: Channels.Value   = Value(1, "FIWARE")
+  val ROCKS_DB: Channels.Value = Value(2, "ROCKS_DB")
+  val SSE: Channels.Value      = Value(3, "SSE")
+
+}
 
 abstract class BeatChannel extends Actor {
 

@@ -21,7 +21,6 @@ package de.kp.works.beats.sensor
 
 import com.google.gson.JsonObject
 
-
 object BeatActions extends Enumeration {
   type BeatAction = Value
 
@@ -54,6 +53,16 @@ case class BeatAttr(
  * a (time, value) pair
  */
 case class BeatDot(time:Long, value:Double)
+
+object BeatInfos extends Enumeration {
+  type BeatInfo = Value
+
+  val ANOMALY: BeatInfos.Value  = Value(1, "anomaly")
+  val FORECAST: BeatInfos.Value = Value(2, "forecast")
+  val MONITOR: BeatInfos.Value  = Value(3, "monitor")
+
+}
+
 /**
  * A unique definition of a BeatChannel
  * request
@@ -80,6 +89,11 @@ case class BeatSensor(
    */
   sensorBrand:String,
   /*
+   * The information type, this sensor event
+   * refers to
+   */
+  sensorInfo:BeatInfos.Value,
+  /*
    * The timestamp, this sensor representation
    * was created
    */
@@ -89,17 +103,28 @@ case class BeatSensor(
    */
   sensorAttrs:Seq[BeatAttr]) {
 
-  def toFiware:JsonObject = {
+  def toJson:JsonObject = {
 
     val json = new JsonObject
     json.addProperty("id", sensorId)
     json.addProperty("type", sensorType)
-
+    /*
+     * Brand as a regular NGSI attribute
+     */
     val brand = new JsonObject
     brand.addProperty("type", "String")
     brand.addProperty("value", sensorBrand)
 
     json.add("brand", brand)
+    /*
+     * Information type as a regular NGSI attribute
+     */
+    val infoType = new JsonObject
+    infoType.addProperty("type", "String")
+    infoType.addProperty("value", sensorInfo.toString)
+
+    json.add("infoType", infoType)
+
     sensorAttrs.foreach(sensorAttr => {
 
       val attr = new JsonObject

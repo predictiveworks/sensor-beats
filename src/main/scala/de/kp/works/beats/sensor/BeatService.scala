@@ -20,7 +20,7 @@ package de.kp.works.beats.sensor
  */
 
 import akka.NotUsed
-import akka.actor.ActorSystem
+import akka.actor.{ActorRef, ActorSystem}
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.sse.ServerSentEvent
 import akka.http.scaladsl.server.Route
@@ -54,6 +54,11 @@ trait BeatService {
    */
   protected var config:BeatConf
   protected var serviceName:String
+  /**
+   * Public method to build the micro services (actors)
+   * that refer to the REST API of the `SensorBeat`
+   */
+  def buildApiActors:Map[String,ActorRef]
   /**
    * Public method to build sensor specific HTTP routes.
    * It leverages SSE `queue` & `source` and defines the

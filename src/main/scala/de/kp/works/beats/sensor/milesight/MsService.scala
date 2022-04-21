@@ -20,6 +20,7 @@ package de.kp.works.beats.sensor.milesight
  */
 
 import akka.NotUsed
+import akka.actor.ActorRef
 import akka.http.scaladsl.model.sse.ServerSentEvent
 import akka.http.scaladsl.server.Route
 import akka.stream.scaladsl.{Source, SourceQueueWithComplete}
@@ -27,21 +28,31 @@ import de.kp.works.beats.sensor.{BeatConf, BeatRoute, BeatService}
 
 class MsService extends BeatService {
 
-  override protected var config:BeatConf = MsConf.getInstance
+  override protected var config: BeatConf = MsConf.getInstance
   override protected var serviceName: String = "MsService"
 
   override def buildRoute(queue: SourceQueueWithComplete[String],
-                          source: Source[ServerSentEvent, NotUsed]):Route = {
+                          source: Source[ServerSentEvent, NotUsed]): Route = {
+
+    val actors = buildApiActors
+    val beatRoute = new BeatRoute(actors, source)
+
+    beatRoute.getRoutes
+
+  }
+
+  /**
+   * Public method to build the micro services (actors)
+   * that refer to the REST API of the `SensorBeat`
+   */
+  override def buildApiActors: Map[String, ActorRef] = ???
+
+  override def onStart(queue: SourceQueueWithComplete[String]): Unit = {
     /*
-     * A common route for all `SensorBeat`s is
-     * the SSE based event route
+     * Create the micro services that control the
+     * publishing of the incoming events
      */
-    val eventRoute = new BeatRoute(source).event
 
     ???
   }
-
-
-  override def onStart(queue:SourceQueueWithComplete[String]): Unit = ???
-
 }

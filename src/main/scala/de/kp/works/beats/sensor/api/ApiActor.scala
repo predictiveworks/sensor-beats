@@ -26,6 +26,8 @@ import akka.http.scaladsl.model.headers.HttpEncodings
 import akka.stream.ActorMaterializer
 import akka.util.{ByteString, Timeout}
 import ch.qos.logback.classic.Logger
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import com.google.gson._
 import com.typesafe.config.Config
 import de.kp.works.beats.sensor.BeatConf
@@ -34,12 +36,16 @@ import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContextExecutor}
 import scala.util.Try
 
-abstract class BaseActor extends Actor {
+abstract class ApiActor extends Actor {
 
   protected var logger:Logger
   protected var config:BeatConf
 
-  import BaseActor._
+  import ApiActor._
+
+  protected val mapper = new ObjectMapper()
+  mapper.registerModule(DefaultScalaModule)
+
   /**
    * The actor system is implicitly accompanied by a materializer,
    * and this materializer is required to retrieve the ByteString
@@ -162,7 +168,7 @@ abstract class BaseActor extends Actor {
 
 }
 
-object BaseActor {
+object ApiActor {
 
   case class Response(status: Try[_])
 

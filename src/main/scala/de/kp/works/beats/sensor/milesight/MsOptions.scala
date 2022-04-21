@@ -19,7 +19,6 @@ package de.kp.works.beats.sensor.milesight
  *
  */
 
-import de.kp.works.beats.sensor.BeatChannel
 import de.kp.works.beats.sensor.thingsstack.Options
 
 object MsFields {
@@ -46,7 +45,7 @@ class MsOptions extends Options(MsConf.getInstance) {
    * perform specific data operations like sending
    * to RocksDB, a FIWARE Context Broker and more
    */
-  def getChannels:Seq[BeatChannel] = ???
+  def getChannels:Seq[String] = ???
 
   def getProduct:MsProducts.Value = ???
 

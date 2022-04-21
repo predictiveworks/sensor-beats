@@ -19,31 +19,59 @@ package de.kp.works.beats.sensor
  */
 
 import akka.NotUsed
+import akka.actor.{ActorRef, ActorSystem}
 import akka.http.scaladsl.marshalling.sse.EventStreamMarshalling._
 import akka.http.scaladsl.model.sse.ServerSentEvent
 import akka.http.scaladsl.model.{HttpProtocols, HttpResponse, StatusCodes}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
+import akka.pattern.ask
 import akka.stream.scaladsl.Source
-import akka.util.Timeout
+import akka.util.{ByteString, Timeout}
+import de.kp.works.beats.sensor.api.ApiActor.Response
 
-import scala.concurrent.Future
-import scala.concurrent.duration.DurationInt
+import scala.concurrent.{Await, ExecutionContextExecutor, Future}
+import scala.concurrent.duration.{DurationInt, FiniteDuration}
+import scala.util.{Failure, Success}
 
-class BeatRoute(source:Source[ServerSentEvent, NotUsed]) extends CORS {
+object BeatRoute {
+
+  val BEAT_ANOMALY_ACTOR  = "beat_anomaly_actor"
+  val BEAT_FORECAST_ACTOR = "beat_forecast_actor"
+  val BEAT_MONITOR_ACTOR  = "beat_monitor_actor"
+
+}
+
+class BeatRoute(
+  actors:Map[String, ActorRef], source:Source[ServerSentEvent, NotUsed])
+  (implicit system: ActorSystem) extends CORS {
+
+  implicit lazy val context: ExecutionContextExecutor = system.dispatcher
   /**
- 	 * Common timeout for all Akka connections
+   * Common timeout for all Akka connections
    */
-  implicit val timeout: Timeout = Timeout(5.seconds)
+  val duration: FiniteDuration = 15.seconds
+  implicit val timeout: Timeout = Timeout(duration)
+
+  import BeatRoute._
+
+  def getRoutes: Route = {
+
+    getAnomaly ~
+    getEvent ~
+    getForecast ~
+    getMonitor
+
+  }
 
   /** EVENT **/
 
   /*
    * This is the Server Sent Event route
    */
-  def event:Route = {
+  def getEvent:Route = {
 
-    path("event") {
+    path("beat" / "v1" / "event") {
       options {
         extractOptions
       } ~
@@ -56,8 +84,68 @@ class BeatRoute(source:Source[ServerSentEvent, NotUsed]) extends CORS {
       }
     }
   }
+  /**
+   * `SensorBeat` API route to invoke anomaly
+   * detection and inference
+   */
+  private def getAnomaly:Route = routePost("beat/v1/anomaly", actors(BEAT_ANOMALY_ACTOR))
+  /**
+   * `SensorBeat` API route to invoke time series
+   * forecasts and inference
+   */
+  private def getForecast:Route = routePost("beat/v1/forecast", actors(BEAT_FORECAST_ACTOR))
+  /**
+   * `SensorBeat` API route to invoke monitoring
+   * time series
+   */
+  private def getMonitor:Route = routePost("beat/v1/monitor", actors(BEAT_MONITOR_ACTOR))
 
-  protected def extractOptions: RequestContext => Future[RouteResult] = {
+  /*******************************
+   *
+   * HELPER METHODS
+   *
+   */
+  private def routePost(url:String, actor:ActorRef):Route = {
+    val matcher = separateOnSlashes(url)
+    path(matcher) {
+      post {
+        /*
+         * The client sends sporadic [HttpEntity.Default]
+         * requests; the [BaseActor] is not able to extract
+         * the respective JSON body from.
+         *
+         * As a workaround, the (small) request is made
+         * explicitly strict
+         */
+        toStrictEntity(duration) {
+          extract(actor)
+        }
+      }
+    }
+  }
+
+  private def extract(actor:ActorRef) = {
+    extractRequest { request =>
+      complete {
+        /*
+         * The Http(s) request is sent to the respective
+         * actor and the actor' response is sent to the
+         * requester as response.
+         */
+        val future = actor ? request
+        Await.result(future, timeout.duration) match {
+          case Response(Failure(e)) =>
+            val message = e.getMessage
+            jsonResponse(message)
+          case Response(Success(answer)) =>
+            val message = answer.asInstanceOf[String]
+            jsonResponse(message)
+        }
+      }
+    }
+  }
+
+  private def extractOptions: RequestContext => Future[RouteResult] = {
     extractRequest { _ =>
       complete {
         baseResponse
@@ -65,7 +153,7 @@ class BeatRoute(source:Source[ServerSentEvent, NotUsed]) extends CORS {
     }
   }
 
-  protected def baseResponse: HttpResponse = {
+  private def baseResponse: HttpResponse = {
 
     val response = HttpResponse(
       status=StatusCodes.OK,
@@ -74,5 +162,15 @@ class BeatRoute(source:Source[ServerSentEvent, NotUsed]) extends CORS {
     addCorsHeaders(response)
 
   }
+
+  private def jsonResponse(message:String) = {
+
+    HttpResponse(
+      status=StatusCodes.OK,
+      entity = ByteString(message),
+      protocol = HttpProtocols.`HTTP/1.1`)
+
+  }
+
 
 }

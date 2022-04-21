@@ -21,7 +21,7 @@ package de.kp.works.beats.sensor.milesight
 
 import ch.qos.logback.classic.Logger
 import com.google.gson.JsonParser
-import de.kp.works.beats.sensor.BeatAttr
+import de.kp.works.beats.sensor.{BeatActions, BeatAttr, BeatChannels, BeatInfos, BeatRequest, BeatSensor}
 import de.kp.works.beats.sensor.milesight.MsProducts.EM_300
 import de.kp.works.beats.sensor.thingsstack.Consumer
 import org.eclipse.paho.client.mqttv3.MqttMessage
@@ -29,15 +29,17 @@ import org.eclipse.paho.client.mqttv3.MqttMessage
 import scala.collection.JavaConversions.collectionAsScalaIterable
 /**
  * The current implementation of the MsConsumer supports
- * the Milesight EM-300 series
+ * the Milesight EM-300 series. [MsThings] is designed as
+ * the common consumer for all Milesight sensors, and the
+ * publishing of their readings to various output channels.
  */
 class MsThings(options: MsOptions) extends Consumer(options) {
 
+  private val BRAND_NAME = "Milesight"
   override protected var logger: Logger = MsLogger.getLogger
   /**
-   * Public method to persist the content of the
-   * received MQTT message in the internal RocksDB
-   * of the `SensorBeat`.
+   * Public method to persist the content of the received MQTT message
+   * from the Things Stack in the internal RocksDB of the Milesight Beat.
    */
   override def publish(mqttMessage: MqttMessage): Unit = {
 
@@ -49,7 +51,6 @@ class MsThings(options: MsOptions) extends Consumer(options) {
        * Extract uplink message and associated
        * decoded payload
        */
-      val now = new java.util.Date()
       val messageObj = json.getAsJsonObject
       /*
        * STEP #1: Extract the unique TTN device identifier,
@@ -71,7 +72,7 @@ class MsThings(options: MsOptions) extends Consumer(options) {
       val endDeviceIds = messageObj
         .get(TTN_END_DEVICE_IDS).getAsJsonObject
 
-      val ttnDeviceId = endDeviceIds
+      val deviceId = endDeviceIds
         .get(TTN_DEVICE_ID).getAsString
       /*
        * STEP #2: Extract the decoded payload from the
@@ -109,23 +110,45 @@ class MsThings(options: MsOptions) extends Consumer(options) {
            * "temperature": 30.8
            * }
            *
-           * The battery is an optional parameter
+           * The battery is an optional parameter; the parameter names
+           * are directly used as field names for further processing.
            */
-          val beatAttrs = decodedPayload.entrySet().map(entry => {
+          val sensorAttrs = decodedPayload.entrySet().map(entry => {
             val attrName = entry.getKey
             val attrType = "Double"
             val attrValue = entry.getValue.getAsNumber
 
             BeatAttr(attrName, attrType, attrValue)
 
-          })
-        /*
+          }).toSeq
+          /*
+           * Build sensor specification for output channel processing.
+           * For use cases, where various `SensorBeat`s are used, the
+           * product and also the brand name are published to distinguish
+           * different beats.
+           */
+          val sensor = BeatSensor(
+            sensorId = deviceId,
+            sensorType = product.toString,
+            sensorBrand = BRAND_NAME,
+            sensorInfo  = BeatInfos.MONITOR,
+            sensorTime = System.currentTimeMillis,
+            sensorAttrs = sensorAttrs)
+
+          val request = BeatRequest(action = BeatActions.WRITE, sensor = sensor)
+          /*
            * Build sensor beat and send to configured output channels
            * for further processing; note, the MsRocks channel is always
            * defined.
            */
+          options.getChannels.foreach(channelName => {
+            /*
+             * Note, a `BeatChannel` is implemented as an Akka actor
+             */
+            val beatChannel = BeatChannels.getChannel(channelName)
+            if (beatChannel.nonEmpty) beatChannel.get ! request
 
-        // TODO
+          })
 
         case _ =>
           val message = s"The specified Milesight sensor product is not supported."

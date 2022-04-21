@@ -93,7 +93,7 @@ class Producer(options:Options) extends HttpConnect {
        * Retrieve sensor in JSON format and restrict
        * to the respective attributes
        */
-      val json = sensor.toFiware
+      val json = sensor.toJson
       json.remove("id")
       json.remove("type")
       /*
@@ -122,7 +122,7 @@ class Producer(options:Options) extends HttpConnect {
        * The expected response code = 201; in case of
        * another code, an exception is thrown
        */
-      post(endpoint, headers, sensor.toFiware)
+      post(endpoint, headers, sensor.toJson)
       true
 
       } catch {
