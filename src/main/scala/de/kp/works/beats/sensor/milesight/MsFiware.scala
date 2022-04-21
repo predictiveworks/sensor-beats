@@ -20,31 +20,22 @@ package de.kp.works.beats.sensor.milesight
  */
 
 import de.kp.works.beats.sensor.BeatActions.{CREATE, UPDATE}
-import de.kp.works.beats.sensor.fiware.{Options, Producer}
+import de.kp.works.beats.sensor.fiware
 import de.kp.works.beats.sensor.{BeatChannel, BeatRequest}
 /**
  * Implementation of the FIWARE output channel
  */
-class MsFiware extends BeatChannel {
-
-  private val config = MsConf.getInstance
-  /**
-   * The internal configuration is used, if the current
-   * configuration is not set here
-   */
-  if (!config.isInit) config.init()
-
-  private val fiwareOptions = new Options(config)
-  private val fiwareProducer = new Producer(fiwareOptions)
+class MsFiware(options:MsOptions)
+  extends fiware.Producer[MsConf](options.toFiware) with BeatChannel {
 
   override def execute(request: BeatRequest): Unit = {
 
     request.action match {
       case CREATE =>
-        fiwareProducer.createSensor(request.sensor)
+        createSensor(request.sensor)
 
       case UPDATE =>
-        fiwareProducer.updateSensor(request.sensor)
+        updateSensor(request.sensor)
 
       case _ => /* Do nothing */
     }

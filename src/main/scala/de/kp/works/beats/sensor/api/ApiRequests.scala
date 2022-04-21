@@ -19,9 +19,21 @@ package de.kp.works.beats.sensor.api
  *
  */
 
-case class AnomalyReq()
+case class AnomalyReq(
+  /*
+   * An anomaly request distinguishes between
+   * training & inference phase
+   */
+  action:String
+)
 
-case class ForecastReq()
+case class ForecastReq(
+  /*
+   * An anomaly request distinguishes between
+   * training & inference phase
+   */
+  action:String
+)
 /**
  * Request format for SQL based read requests
  * for non-inferred sensor information

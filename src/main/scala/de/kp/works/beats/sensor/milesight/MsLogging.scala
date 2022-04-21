@@ -25,12 +25,11 @@ import de.kp.works.beats.sensor.BeatLogger
 object MsLogger extends BeatLogger {
 
   override protected var loggerName = "MsLogger"
-
-  private val config = MsConf.getInstance
   /**
-   * The internal configuration is used, if the current
-   * configuration is not set here
+   * Initialize the overall `SensorBeat` configuration
+   * that is specific for Milesight Sensors
    */
+  private val config = MsConf.getInstance
   if (!config.isInit) config.init()
 
   private val logger = buildLogger

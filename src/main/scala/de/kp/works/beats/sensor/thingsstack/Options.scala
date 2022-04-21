@@ -23,7 +23,7 @@ import de.kp.works.beats.sensor.BeatConf
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 
-class Options(config:BeatConf) {
+class Options[T <: BeatConf](config:T) {
 
   def getBrokerUrl:String = ???
 

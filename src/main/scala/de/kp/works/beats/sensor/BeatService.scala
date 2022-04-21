@@ -31,7 +31,7 @@ import akka.util.Timeout
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ExecutionContextExecutor, Future}
 
-trait BeatService {
+abstract class BeatService[T <: BeatConf](config:T) {
 
   private var server:Option[Future[Http.ServerBinding]] = None
   private val uuid = java.util.UUID.randomUUID().toString
@@ -52,13 +52,12 @@ trait BeatService {
   /**
    * Adjust subsequent variable to the sensor specific service
    */
-  protected var config:BeatConf
   protected var serviceName:String
   /**
    * Public method to build the micro services (actors)
    * that refer to the REST API of the `SensorBeat`
    */
-  def buildApiActors:Map[String,ActorRef]
+  def buildApiActors(queue: SourceQueueWithComplete[String]):Map[String,ActorRef]
   /**
    * Public method to build sensor specific HTTP routes.
    * It leverages SSE `queue` & `source` and defines the

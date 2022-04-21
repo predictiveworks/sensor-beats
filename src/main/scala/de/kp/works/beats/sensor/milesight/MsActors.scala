@@ -20,21 +20,41 @@ package de.kp.works.beats.sensor.milesight
  */
 
 import akka.http.scaladsl.model.HttpRequest
+import akka.stream.scaladsl.SourceQueueWithComplete
 import ch.qos.logback.classic.Logger
-import com.google.gson.JsonArray
+import com.google.gson.{JsonArray, JsonObject}
 import de.kp.works.beats.sensor.{BeatConf, BeatMessages}
-import de.kp.works.beats.sensor.api.{ApiActor, MonitorReq}
+import de.kp.works.beats.sensor.api.{AnomalyReq, ApiActor, ForecastReq, MonitorReq}
 /**
  * The [AnomalyActor] supports the re-training
  * of the SensorBeat's anomaly detection model,
  * and also the provisioning of detected anomalies
  */
-class AnomalyActor extends ApiActor {
+class AnomalyActor(queue: SourceQueueWithComplete[String]) extends ApiActor {
 
   override protected var logger: Logger = MsLogger.getLogger
   override protected var config: BeatConf = MsConf.getInstance
 
-  override def execute(request: HttpRequest): String = ???
+  override def execute(request: HttpRequest): String = {
+
+    val json = getBodyAsJson(request)
+    if (json == null) {
+
+      logger.warn(BeatMessages.invalidJson())
+      /*
+       * The response of this request is a JsonArray;
+       * in case of an invalid request, an empty response
+       * is returned
+       */
+      val empty = new JsonArray
+      return empty.toString
+
+    }
+
+    val req = mapper.readValue(json.toString, classOf[AnomalyReq])
+
+    ???
+  }
 
 }
 /**
@@ -42,12 +62,31 @@ class AnomalyActor extends ApiActor {
  * of the SensorBeat's timeseries forecast model,
  * and also the provisioning of forecasted values.
  */
-class ForecastActor extends ApiActor {
+class ForecastActor(queue: SourceQueueWithComplete[String]) extends ApiActor {
 
   override protected var logger: Logger = MsLogger.getLogger
   override protected var config: BeatConf = MsConf.getInstance
 
-  override def execute(request: HttpRequest): String = ???
+  override def execute(request: HttpRequest): String = {
+
+    val json = getBodyAsJson(request)
+    if (json == null) {
+
+      logger.warn(BeatMessages.invalidJson())
+      /*
+       * The response of this request is a JsonArray;
+       * in case of an invalid request, an empty response
+       * is returned
+       */
+      val empty = new JsonArray
+      return empty.toString
+
+    }
+
+    val req = mapper.readValue(json.toString, classOf[ForecastReq])
+
+    ???
+  }
 
 }
 /**
@@ -55,7 +94,7 @@ class ForecastActor extends ApiActor {
  * sensor events based on a SQL statement. This actor
  * is part of the `Sensor as a Table` approach.
  */
-class MonitorActor extends ApiActor {
+class MonitorActor(queue: SourceQueueWithComplete[String]) extends ApiActor {
 
   override protected var logger: Logger = MsLogger.getLogger
   override protected var config: BeatConf = MsConf.getInstance

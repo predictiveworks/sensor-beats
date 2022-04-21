@@ -22,7 +22,7 @@ package de.kp.works.beats.sensor.fiware
 import akka.http.scaladsl.HttpsConnectionContext
 import de.kp.works.beats.sensor.BeatConf
 
-class Options(config:BeatConf) {
+class Options[T <: BeatConf](config:T) {
 
   def getBrokerUrl:String = ???
 

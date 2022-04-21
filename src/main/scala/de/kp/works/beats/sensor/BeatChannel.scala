@@ -39,7 +39,7 @@ object Channels extends Enumeration {
 
 }
 
-abstract class BeatChannel extends Actor {
+trait BeatChannel extends Actor {
 
   override def receive: Receive = {
     case request:BeatRequest =>

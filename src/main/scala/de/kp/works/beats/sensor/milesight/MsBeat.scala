@@ -24,6 +24,7 @@ object MsBeat extends MsLogging {
   val programName: String = "MsBeat"
   val programDesc: String = "Digital twin of a Milesight EM-300 sensor."
 
+  private val config = MsConf.getInstance
   private val line = s"------------------------------------------------"
 
   def main(args:Array[String]):Unit = {
@@ -32,7 +33,7 @@ object MsBeat extends MsLogging {
 
       info(line)
 
-      val service = new MsService()
+      val service = new MsService(config)
       service.start()
 
       info(s"$programName service started.")

@@ -19,7 +19,8 @@ package de.kp.works.beats.sensor.milesight
  *
  */
 
-import de.kp.works.beats.sensor.thingsstack.Options
+import de.kp.works.beats.sensor.fiware.{Options => FiwareOptions}
+import de.kp.works.beats.sensor.thingsstack.{Options => ThingsOptions}
 
 object MsFields {
   /**
@@ -38,7 +39,8 @@ object MsProducts extends Enumeration {
 
 }
 
-class MsOptions extends Options(MsConf.getInstance) {
+class MsOptions(config:MsConf) extends ThingsOptions(config) {
+
   /**
    * Channels in the context of a `SensorBeat` are
    * actors that receive a `BeatSensor` message and
@@ -48,5 +50,13 @@ class MsOptions extends Options(MsConf.getInstance) {
   def getChannels:Seq[String] = ???
 
   def getProduct:MsProducts.Value = ???
+
+  def getRocksFolder:String = ???
+
+  def getRocksTables:Seq[String] = ???
+
+  def toFiware:FiwareOptions[MsConf] = new FiwareOptions[MsConf](config)
+
+  def toThings:ThingsOptions[MsConf] = new ThingsOptions[MsConf](config)
 
 }

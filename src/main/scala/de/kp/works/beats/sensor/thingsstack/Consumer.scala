@@ -20,10 +20,10 @@ package de.kp.works.beats.sensor.thingsstack
  */
 
 import ch.qos.logback.classic.Logger
-import com.google.gson.JsonObject
+import de.kp.works.beats.sensor.BeatConf
 import org.eclipse.paho.client.mqttv3.{IMqttDeliveryToken, MqttCallback, MqttClient, MqttMessage}
 
-abstract class Consumer(options:Options) {
+abstract class Consumer[T <: BeatConf](options:Options[T]) {
   /**
    * FIELD NAMES of the TTN v3 uplink message format
    */
@@ -124,16 +124,5 @@ abstract class Consumer(options:Options) {
    * of the `SensorBeat`.
    */
   def publish(mqttMessage:MqttMessage):Unit
-  /**
-   * Public method to extract the common TTN uplink
-   * payload.
-   */
-  def extract(messageObj:JsonObject):Option[JsonObject] = {
 
-    ???
-  }
-  /*
-
-
-   */
 }

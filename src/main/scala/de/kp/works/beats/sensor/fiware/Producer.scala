@@ -1,8 +1,5 @@
 package de.kp.works.beats.sensor.fiware
 
-import de.kp.works.beats.sensor.BeatSensor
-import de.kp.works.beats.sensor.http.HttpConnect
-
 /**
  * Copyright (c) 2019 - 2022 Dr. Krusche & Partner PartG. All rights reserved.
  *
@@ -22,7 +19,10 @@ import de.kp.works.beats.sensor.http.HttpConnect
  *
  */
 
-class Producer(options:Options) extends HttpConnect {
+import de.kp.works.beats.sensor.{BeatConf, BeatSensor}
+import de.kp.works.beats.sensor.http.HttpConnect
+
+abstract class Producer[T <: BeatConf](options:Options[T]) extends HttpConnect {
   /**
    * The address of the Fiware Context Broker
    */

@@ -24,20 +24,13 @@ import de.kp.works.beats.sensor.{BeatChannel, BeatRequest, BeatRocks}
 /**
  * Implementation of the RocksDB output channel
  */
-class MsRocks extends BeatChannel {
-
-  private val config = MsConf.getInstance
-  /**
-   * The internal configuration is used, if the current
-   * configuration is not set here
-   */
-  if (!config.isInit) config.init()
+class MsRocks(options:MsOptions) extends BeatChannel {
   /**
    * Initialize RocksDB with provided tables; every table
    * refers to a certain column family.
    */
-  private val tables = config.getRocksTables
-  BeatRocks.getOrCreate(tables, config.getRocksFolder)
+  private val tables = options.getRocksTables
+  BeatRocks.getOrCreate(tables, options.getRocksFolder)
 
   override def execute(request: BeatRequest): Unit = {
     /*

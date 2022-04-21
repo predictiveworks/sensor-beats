@@ -33,7 +33,7 @@ import scala.collection.JavaConversions.collectionAsScalaIterable
  * the common consumer for all Milesight sensors, and the
  * publishing of their readings to various output channels.
  */
-class MsThings(options: MsOptions) extends Consumer(options) {
+class MsThings(options: MsOptions) extends Consumer[MsConf](options.toThings) {
 
   private val BRAND_NAME = "Milesight"
   override protected var logger: Logger = MsLogger.getLogger
@@ -155,6 +155,10 @@ class MsThings(options: MsOptions) extends Consumer(options) {
           logger.warn(message)
       }
 
+    } catch {
+      case t:Throwable =>
+        val message = s"Publishing Milesight event failed: ${t.getLocalizedMessage}"
+        logger.error(message)
     }
   }
 }
