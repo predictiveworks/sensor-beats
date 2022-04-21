@@ -21,16 +21,46 @@ package de.kp.works.beats.sensor.milesight
 
 import com.google.gson.JsonObject
 import de.kp.works.beats.sensor.{BeatChannel, BeatRequest, BeatRocks}
-/**
- * Implementation of the RocksDB output channel
- */
-class MsRocks(options:MsOptions) extends BeatChannel {
+
+object MsRocksApi {
+
+  private var instance:Option[MsRocksApi] = None
+
+  def getInstance: MsRocksApi = instance.get
+
+  def getInstance(options:MsOptions):MsRocksApi = {
+    if (instance.isEmpty) instance = Some(new MsRocksApi(options))
+    instance.get
+  }
+
+  def isInstance:Boolean = instance.nonEmpty
+
+}
+
+class MsRocksApi(options:MsOptions) {
   /**
    * Initialize RocksDB with provided tables; every table
    * refers to a certain column family.
    */
-  private val tables = options.getRocksTables
+  val tables: Seq[String] = options.getRocksTables
   BeatRocks.getOrCreate(tables, options.getRocksFolder)
+
+  def put(table:String, time:Long, value:String):Unit = {
+    BeatRocks.putTs(table, time, value)
+  }
+
+}
+
+/**
+ * Implementation of the RocksDB output channel
+ */
+class MsRocks(options:MsOptions) extends BeatChannel {
+
+  private val rocksDB =
+    if (MsRocksApi.isInstance)
+      MsRocksApi.getInstance
+    else
+      MsRocksApi.getInstance(options)
 
   override def execute(request: BeatRequest): Unit = {
     /*
@@ -54,7 +84,7 @@ class MsRocks(options:MsOptions) extends BeatChannel {
       value.addProperty("type", sensorAttr.attrType)
       value.addProperty("value", sensorAttr.attrValue)
 
-      BeatRocks.putTs(table, time, value.toString)
+      rocksDB.put(table, time, value.toString)
 
     })
 

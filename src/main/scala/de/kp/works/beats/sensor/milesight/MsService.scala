@@ -34,6 +34,11 @@ import de.kp.works.beats.sensor.{BeatChannels, BeatRoute, BeatService, BeatSse, 
 class MsService(config:MsConf) extends BeatService[MsConf](config) {
 
   override protected var serviceName: String = "MsService"
+  /**
+   * Initialize the local RocksDB storage
+   */
+  private val options = new MsOptions(config)
+  MsRocksApi.getInstance(options)
 
   import BeatRoute._
   override def buildRoute(queue: SourceQueueWithComplete[String],
@@ -45,20 +50,43 @@ class MsService(config:MsConf) extends BeatService[MsConf](config) {
     beatRoute.getRoutes
 
   }
-
   /**
    * Public method to build the micro services (actors)
    * that refer to the REST API of the `SensorBeat`
+   *
+   * +---------- REST API ----------
+   * :
+   * : - train anomaly detection model &
+   * :   retrieve anomalies
+   * :
+   * : - train time series prediction model &
+   * :   retrieve forecasts
+   * :
+   * : - retrieve sensor readings via SQL query
+   * :
+   * : - provide sensor events & inferred info
+   * :   via Server Sent Event listing
+   * :
+   * +------------------------------
    */
   override def buildApiActors(queue: SourceQueueWithComplete[String]): Map[String, ActorRef] = {
 
     Map(
+      /*
+       * Train anomaly detection model &
+       * retrieve anomalies
+       */
       BEAT_ANOMALY_ACTOR ->
         system.actorOf(Props(new AnomalyActor(queue)), BEAT_ANOMALY_ACTOR),
-
+      /*
+       * Train time series prediction model
+       * & retrieve forecasts
+       */
       BEAT_FORECAST_ACTOR ->
         system.actorOf(Props(new ForecastActor(queue)), BEAT_FORECAST_ACTOR),
-
+      /*
+       * Retrieve sensor readings via SQL query
+       */
       BEAT_MONITOR_ACTOR ->
         system.actorOf(Props(new MonitorActor(queue)), BEAT_MONITOR_ACTOR)
 
@@ -68,6 +96,18 @@ class MsService(config:MsConf) extends BeatService[MsConf](config) {
   /**
    * Public method to register the micro services that
    * provided the configured output channels
+   *
+   * +---------- Output Channels ----------
+   * :
+   * : - Send NGSIv2 compliant sensor event
+   * :   to Fiware Context Broker
+   * :
+   * : - Send NGSIv2 compliant sensor event
+   * :   to the local storage engine
+   * :
+   * : - Send NGSIv2 compliant sensor event
+   * :   to Server-Sent-Event queue
+   *
    */
   override def onStart(queue: SourceQueueWithComplete[String]): Unit = {
     /*
@@ -78,7 +118,6 @@ class MsService(config:MsConf) extends BeatService[MsConf](config) {
      * Fiware Context Broker (Fiware), the RocksDB
      * local storage, and Server Sent Events.
      */
-    val options = new MsOptions(config)
     options.getChannels.foreach(channelName => {
       Channels.withName(channelName) match {
         case FIWARE =>
@@ -90,7 +129,9 @@ class MsService(config:MsConf) extends BeatService[MsConf](config) {
 
         case ROCKS_DB =>
           /*
-           * Build RocksDB specific output channel
+           * Build RocksDB specific output channel;
+           * note, the storage should be initialized
+           * at this stage already
            */
           val props = Props(new MsRocks(options))
           BeatChannels.registerChannel(channelName, props)
