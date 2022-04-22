@@ -129,7 +129,12 @@ abstract class BeatConf {
 
   }
   def getRocksTables:Seq[String] = ???
-
+  /**
+   * The scheduler intervals for the deep learning
+   * jobs for anomaly detection as well as time series
+   * forecasting
+   */
+  def getSchedulerIntervals:Map[String, Int] = ???
   /**
    * This method provides the SSL configuration of the
    * Sensor Beat (HTTP Server)

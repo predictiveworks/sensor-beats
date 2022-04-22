@@ -49,6 +49,10 @@ class MsRocksApi(options:MsOptions) {
     BeatRocks.putTs(table, time, value)
   }
 
+  def scan(table:String):Seq[(Long, String)] = {
+    BeatRocks.scanTs(table)
+  }
+
 }
 
 /**

@@ -49,6 +49,9 @@ class BeatSql(session:SparkSession, logger:Logger) {
     if (condition != null)
       obj.add("condition", condition)
 
+    else
+      obj.add("condition", JsonNull.INSTANCE)
+
     obj
 
   }

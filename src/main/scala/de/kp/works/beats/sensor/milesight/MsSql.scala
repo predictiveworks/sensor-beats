@@ -21,8 +21,10 @@ package de.kp.works.beats.sensor.milesight
 
 import akka.stream.scaladsl.SourceQueueWithComplete
 import ch.qos.logback.classic.Logger
-import com.google.gson.JsonArray
+import com.google.gson.{JsonArray, JsonObject}
 import org.apache.spark.sql.{BeatSession, BeatSql}
+
+import scala.collection.JavaConversions.iterableAsScalaIterable
 
 class MsSql(queue: SourceQueueWithComplete[String], logger:Logger) {
   /**
@@ -32,7 +34,11 @@ class MsSql(queue: SourceQueueWithComplete[String], logger:Logger) {
    */
   private val session = BeatSession.getSession
   private val beatSql = new BeatSql(session, logger)
-
+  /**
+   * At this stage, the RocksDB must be initialized
+   * already, therefore no `options` are provided
+   */
+  private val msRocksApi = MsRocksApi.getInstance
   private val emptyResponse = new JsonArray
 
   def read(sql:String):String = {
@@ -50,9 +56,92 @@ class MsSql(queue: SourceQueueWithComplete[String], logger:Logger) {
     }
     /*
      * STEP #2: Check whether the extracted table,
-     * columns and (optional) conditions refers to
+     * columns and (optional) conditions refer to
      * an existing database specification
      */
-    ???
+    val obj = json.getAsJsonObject
+
+    val table  = obj.get("table").getAsString
+    checkTable(table)
+
+    val output = obj.get("output").getAsJsonArray
+      .map(_.getAsString).toSeq
+    checkOutput(output)
+
+    val condition = obj.get("condition")
+    /*
+     * STEP #3: Map SQL statement onto RockDB
+     * commands
+     */
+    if (condition.isJsonNull) {
+      /*
+       * Return the full range of available
+       * dots from the specified `table`
+       */
+      val response = new JsonArray
+      msRocksApi.scan(table).foreach{case(time, value) =>
+
+        val dot = new JsonObject
+        dot.addProperty("time", time)
+        dot.addProperty("value", value.toDouble)
+
+        response.add(dot)
+      }
+
+      response.toString
+
+    } else {
+      /*
+       * Reminder: The (filter) condition is a JsonObject
+       * and is defined as a tree with left & right nodes
+       */
+      val response = new JsonArray
+      // TODO
+      response.toString
+
+    }
+
+  }
+
+  private def checkColumn(column:String):Unit = {
+
+    try {
+      MsAttrs.withName(column)
+
+    } catch {
+      case _:Throwable =>
+        val message = s"Unknown column `$column` detected."
+        logger.error(message)
+
+        new IllegalArgumentException(message)
+    }
+
+  }
+
+  private def checkOutput(output:Seq[String]):Unit = {
+
+    if (output.head == "*") {
+      /* Do nothing */
+
+    } else {
+      output.foreach(checkColumn)
+
+    }
+
+  }
+
+  private def checkTable(table:String):Unit = {
+
+    try {
+      MsTables.withName(table)
+
+    } catch {
+      case _:Throwable =>
+        val message = s"Unknown table `$table` detected."
+        logger.error(message)
+
+        new IllegalArgumentException(message)
+    }
+
   }
 }
