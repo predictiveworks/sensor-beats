@@ -99,7 +99,7 @@ class BeatSql(session:SparkSession, logger:Logger) {
 
     } catch {
       case t:Throwable =>
-        val message = s"[BeatSql] The provided SQL statement '$sql' cannot be resolved. Validation failed with: ${t.getLocalizedMessage}"
+        val message = s"[BeatSql] The provided SQL statement '$sql' cannot be resolved: ${t.getLocalizedMessage}"
         logger.error(message)
 
         throw new IllegalArgumentException(message)

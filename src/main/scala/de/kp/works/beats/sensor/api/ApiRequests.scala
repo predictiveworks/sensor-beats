@@ -24,7 +24,17 @@ case class AnomalyReq(
    * An anomaly request distinguishes between
    * training & inference phase
    */
-  action:String
+  action:String,
+  /*
+   * The start time of the time series that is
+   * involved in the anomaly request
+   */
+  startTime:Long = 0L,
+  /*
+   * The end time of the time series that is
+   * involved in the anomaly request
+   */
+  endTime:Long = 0L
 )
 
 case class ForecastReq(
@@ -32,7 +42,17 @@ case class ForecastReq(
    * An anomaly request distinguishes between
    * training & inference phase
    */
-  action:String
+  action:String,
+  /*
+   * The start time of the time series that is
+   * involved in the forecast request
+   */
+  startTime:Long = 0L,
+  /*
+   * The end time of the time series that is
+   * involved in the forecast request
+   */
+  endTime:Long = 0L
 )
 /**
  * Request format for SQL based read requests

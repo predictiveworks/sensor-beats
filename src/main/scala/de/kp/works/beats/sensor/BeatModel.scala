@@ -24,12 +24,16 @@ import com.google.gson.JsonObject
 object BeatActions extends Enumeration {
   type BeatAction = Value
 
-  val READ: BeatActions.Value   = Value(1, "read")
-  val WRITE: BeatActions.Value  = Value(2, "write")
-  val CREATE: BeatActions.Value = Value(3, "create")
-  val UPDATE: BeatActions.Value = Value(4, "update")
-  val DELETE: BeatActions.Value = Value(5, "delete")
-
+  val READ: BeatActions.Value    = Value(1, "read")
+  val WRITE: BeatActions.Value   = Value(2, "write")
+  val CREATE: BeatActions.Value  = Value(3, "create")
+  val UPDATE: BeatActions.Value  = Value(4, "update")
+  val DELETE: BeatActions.Value  = Value(5, "delete")
+  /*
+   * `compute` specifies API requests that start
+   * training either an anomaly or a forecast model
+   */
+  val COMPUTE: BeatActions.Value = Value(6, "compute")
 }
 
 /**

@@ -1,4 +1,4 @@
-package de.kp.works.beats.sensor
+package de.kp.works.beats.sensor.milesight
 
 /**
  * Copyright (c) 2019 - 2022 Dr. Krusche & Partner PartG. All rights reserved.
@@ -19,12 +19,22 @@ package de.kp.works.beats.sensor
  *
  */
 
-object BeatMessages {
+import akka.stream.scaladsl.SourceQueueWithComplete
+import ch.qos.logback.classic.Logger
 
-  def emptySql():String =
-    s"Request contains empty SQL query."
+class MsInsight(queue: SourceQueueWithComplete[String], logger:Logger) {
 
-  def invalidJson(): String =
-    s"Request did not contain valid JSON."
+  def computeAnomalies(startTime:Long = 0L, endTime:Long = 0L):String = {
+    ???
+  }
+  def readAnomalies(startTime:Long = 0L, endTime:Long = 0L):String = {
+    ???
+  }
 
+  def computeForecasts(startTime:Long = 0L, endTime:Long = 0L):String = {
+    ???
+  }
+  def readForecasts(startTime:Long = 0L, endTime:Long = 0L):String = {
+    ???
+  }
 }
