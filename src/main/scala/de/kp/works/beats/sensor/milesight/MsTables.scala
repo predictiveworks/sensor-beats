@@ -19,14 +19,6 @@ package de.kp.works.beats.sensor.milesight
  *
  */
 
-object MsAttrs extends Enumeration {
-  type MsAttr = Value
-
-  val TIME:MsAttrs.Value  = Value(1, "time")
-  val VALUE:MsAttrs.Value = Value(2, "value")
-
-}
-
 object MsTables extends Enumeration {
   type MsTable = Value
   /*

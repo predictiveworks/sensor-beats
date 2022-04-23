@@ -22,10 +22,16 @@ package de.kp.works.beats.sensor.milesight
 import akka.stream.scaladsl.SourceQueueWithComplete
 import ch.qos.logback.classic.Logger
 import com.google.gson.{JsonArray, JsonObject}
-import org.apache.spark.sql.{BeatSession, BeatSql}
+import de.kp.works.beats.sensor.{BeatAttrs, BeatSql}
+import de.kp.works.beats.sensor.BeatAttrs.{TIME, VALUE}
+import de.kp.works.beats.sensor.{TimeFilter, TimeValueFilter, ValueFilter}
+import org.apache.spark.sql.BeatSession
 
 import scala.collection.JavaConversions.iterableAsScalaIterable
-
+/**
+ * [MsSql] supports the `Sensor as a Table` concept,
+ * that is taken from Osquery.
+ */
 class MsSql(queue: SourceQueueWithComplete[String], logger:Logger) {
   /**
    * Validating the SQL statement is performed
@@ -73,21 +79,10 @@ class MsSql(queue: SourceQueueWithComplete[String], logger:Logger) {
      * STEP #3: Map SQL statement onto RockDB
      * commands
      */
+    var response = new JsonArray
     if (condition.isJsonNull) {
-      /*
-       * Return the full range of available
-       * dots from the specified `table`
-       */
-      val response = new JsonArray
-      msRocksApi.scan(table).foreach{case(time, value) =>
 
-        val dot = new JsonObject
-        dot.addProperty("time", time)
-        dot.addProperty("value", value.toDouble)
-
-        response.add(dot)
-      }
-
+      response = scanToJson(table)
       response.toString
 
     } else {
@@ -95,18 +90,88 @@ class MsSql(queue: SourceQueueWithComplete[String], logger:Logger) {
        * Reminder: The (filter) condition is a JsonObject
        * and is defined as a tree with left & right nodes
        */
+      val expression = condition.getAsJsonObject
       val response = new JsonArray
-      // TODO
+
+      val columns = obj.get("columns").getAsJsonArray
+        .map(_.getAsString).toSeq
+
+      /*
+       * Check whether one or more than one columns
+       * are referenced
+       */
+      val rows = scanToFilter(table)
+      val filtered = if (columns.size == 1) {
+
+        BeatAttrs.withName(columns.head) match {
+          case TIME =>
+            rows.filter { case (time, _) =>
+              TimeFilter.filter(time, expression)
+            }
+
+          case VALUE =>
+            rows.filter { case (_, value) =>
+              ValueFilter.filter(value, expression)
+            }
+
+          case _ => rows
+
+        }
+
+      } else {
+        rows.filter { case (time, value) =>
+          TimeValueFilter.filter(time, value, expression)
+        }
+
+      }
+
+      filtered.foreach { case (time, value) =>
+        val dot = new JsonObject
+        dot.addProperty("time", time)
+        dot.addProperty("value", value)
+
+        response.add(dot)
+      }
+
       response.toString
 
     }
+
+  }
+  /**
+   * Private scan method to support the application
+   * of filter conditions
+   */
+  private def scanToFilter(table:String):Seq[(Long, Double)] = {
+    msRocksApi.scan(table)
+      .map { case (time, value) => (time, value.toDouble) }
+  }
+
+  private def scanToJson(table: String): JsonArray = {
+
+    val response = new JsonArray
+    /*
+     * Return the full range of available dots
+     * from the specified `table`
+     */
+    msRocksApi.scan(table).foreach { case (time, value) =>
+
+      val dot = new JsonObject
+      dot.addProperty("time", time)
+      dot.addProperty("value", value.toDouble)
+
+      response.add(dot)
+
+    }
+
+    response
 
   }
 
   private def checkColumn(column:String):Unit = {
 
     try {
-      MsAttrs.withName(column)
+      BeatAttrs.withName(column)
 
     } catch {
       case _:Throwable =>
