@@ -35,6 +35,8 @@ object BeatRocks {
 
   private val CHARSET = "UTF-8"
 
+  def isInit:Boolean =  !Objects.isNull(rocksDB)
+
   def getOrCreate(tables:Seq[String], path: String): Unit = {
 
     if (Objects.isNull(rocksDB)) {

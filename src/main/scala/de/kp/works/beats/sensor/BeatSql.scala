@@ -84,7 +84,7 @@ trait SingleFilter[T] {
     /*
      * Combine left & right filter conditions
      */
-    leftFilter && rightFilter
+    leftFilter & rightFilter
 
   }
 
@@ -104,7 +104,7 @@ trait SingleFilter[T] {
     /*
      * Combine left & right filter conditions
      */
-    leftFilter || rightFilter
+    leftFilter | rightFilter
 
   }
 
@@ -229,7 +229,7 @@ object TimeValueFilter {
     /*
      * Combine left & right filter conditions
      */
-    leftFilter && rightFilter
+    leftFilter & rightFilter
 
   }
 
@@ -249,7 +249,7 @@ object TimeValueFilter {
     /*
      * Combine left & right filter conditions
      */
-    leftFilter || rightFilter
+    leftFilter | rightFilter
 
 
   }
