@@ -85,6 +85,12 @@ abstract class BeatConf {
 
   }
   /**
+   * FIWARE is one of the output channels of a
+   * `SensorBeat` and this configuration describes
+   * respective access parameters
+   */
+  def getFiwareCfg: Config = getCfg("fiware")
+  /**
    * Method to determine the logging folder for the
    * `SensorBeat` project
    */
@@ -128,18 +134,28 @@ abstract class BeatConf {
     else folder
 
   }
-  def getRocksTables:Seq[String] = ???
+  /**
+   * Retrieve the sensor specific table names of
+   * the `SensorBeat` database
+   */
+  def getRocksTables:Seq[String]
   /**
    * The scheduler intervals for the deep learning
    * jobs for anomaly detection as well as time series
    * forecasting
    */
-  def getSchedulerIntervals:Map[String, Int] = ???
+  def getSchedulerIntervals:Map[String, Int]
   /**
    * This method provides the SSL configuration of the
    * Sensor Beat (HTTP Server)
    */
   def getSecurityCfg: Config = getCfg("security")
+  /**
+   * The Things Stack is one of the input channels of a
+   * `SensorBeat` and this configuration describes
+   * respective access parameters
+   */
+  def getThingsStackCfg: Config = getCfg("thingsstack")
 
   def init(): Boolean = {
 

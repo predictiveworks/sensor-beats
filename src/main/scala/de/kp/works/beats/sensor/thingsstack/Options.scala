@@ -22,15 +22,60 @@ package de.kp.works.beats.sensor.thingsstack
 import de.kp.works.beats.sensor.BeatConf
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
-
+/**
+ * [Options] is a Things Stack specific wrapper of
+ * the sensor specific configuration.
+ */
 class Options[T <: BeatConf](config:T) {
 
-  def getBrokerUrl:String = ???
+  private val thingsStackCfg = config.getThingsStackCfg
 
-  def getClientId:String = ???
+  def getBrokerUrl:String =
+    thingsStackCfg.getString("brokerUrl")
 
-  def getMqttOptions:MqttConnectOptions = ???
+  def getClientId:String =
+    thingsStackCfg.getString("clientId")
 
+  def getMqttOptions:MqttConnectOptions = {
+    /*
+     * The MQTT connection is configured to
+     * enable automatic re-connection
+     */
+    val options = new MqttConnectOptions()
+    options.setAutomaticReconnect(true)
+
+    options.setCleanSession(true)
+
+    val timeout = thingsStackCfg.getInt("timeout")
+    options.setConnectionTimeout(timeout)
+
+    val keepAlive = thingsStackCfg.getInt("keepAlive")
+    options.setKeepAliveInterval(keepAlive)
+    /*
+     * Authentication
+     */
+    val mqttUser = thingsStackCfg.getString("mqttUser")
+    options.setUserName(mqttUser)
+
+    val mqttPass = thingsStackCfg.getString("mqttPass")
+    options.setPassword(mqttPass.toCharArray)
+    /*
+     * Connect with MQTT 3.1 or MQTT 3.1.1
+     *
+     * Depending which MQTT broker you are using, you may want to explicitly
+     * connect with a specific MQTT version.
+     *
+     * By default, Paho tries to connect with MQTT 3.1.1 and falls back to
+     * MQTT 3.1 if it’s not possible to connect with 3.1.1.
+     *
+     * We therefore do not specify a certain MQTT version.
+     */
+    val mqttVersion = thingsStackCfg.getInt("mqttVersion")
+    options.setMqttVersion(mqttVersion)
+
+    options
+
+  }
   /** 						MESSAGE PERSISTENCE
    *
    * Since we don’t want to persist the state of pending
@@ -40,8 +85,10 @@ class Options[T <: BeatConf](config:T) {
    */
   def getMqttPersistence:MemoryPersistence = new MemoryPersistence()
 
-  def getMqttQos:Int = ???
+  def getMqttQos:Int =
+    thingsStackCfg.getInt("mqttQoS")
 
-  def getMqttTopic:String = ???
+  def getMqttTopic:String =
+    thingsStackCfg.getString("mqttTopic")
 
 }

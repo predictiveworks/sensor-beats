@@ -20,12 +20,39 @@ package de.kp.works.beats.sensor.fiware
  */
 
 import akka.http.scaladsl.HttpsConnectionContext
+import com.typesafe.config.Config
 import de.kp.works.beats.sensor.BeatConf
-
+import de.kp.works.beats.sensor.ssl.SslOptions
+/**
+ * [Options] is a FIWARE specific wrapper of
+ * the sensor specific configuration.
+ */
 class Options[T <: BeatConf](config:T) {
+  /**
+   * Configuration of the access parameters
+   * of a FIWARE Context Broker
+   */
+  private val fiwareConfig = config.getFiwareCfg
+  /**
+   * HTTP(s) address of the FIWARE Context Broker
+   */
+  def getBrokerUrl:String =
+    fiwareConfig.getString("brokerUrl")
+  /**
+   * Retrieve the HTTPS connection context for the
+   * FIWARE Context Broker
+   */
+  def getHttpsContext:Option[HttpsConnectionContext] = {
 
-  def getBrokerUrl:String = ???
+    val security = getSecurityCfg
+    if (security.getString("ssl") == "false") None
 
-  def getHttpsContext:Option[HttpsConnectionContext] = ???
+    else
+      Some(SslOptions.buildConnectionContext(security))
+
+  }
+
+  private def getSecurityCfg: Config =
+    fiwareConfig.getConfig("security")
 
 }

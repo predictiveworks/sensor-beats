@@ -26,6 +26,7 @@ import akka.http.scaladsl.server.Route
 import akka.stream.scaladsl.{Source, SourceQueueWithComplete}
 import de.kp.works.beats.sensor.Channels.{FIWARE, ROCKS_DB, SSE}
 import de.kp.works.beats.sensor._
+import de.kp.works.beats.sensor.milesight.channel.{MsFiware, MsRocks}
 /**
  * [MsService] is built to manage the various micro
  * services used to provide the REST API and also

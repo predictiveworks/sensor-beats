@@ -42,4 +42,20 @@ class MsConf extends BeatConf {
    * with logging
    */
   override var logname: String = "Beat"
+  /**
+   * Retrieve the sensor specific table names of
+   * the `SensorBeat` database; these are coded
+   * within `MsTables`.
+   */
+  override def getRocksTables: Seq[String] = {
+    MsTables.values
+      .map(value => value.toString)
+      .toSeq
+  }
+  /**
+   * The scheduler intervals for the deep learning
+   * jobs for anomaly detection as well as time series
+   * forecasting
+   */
+  override def getSchedulerIntervals: Map[String, Int] = ???
 }

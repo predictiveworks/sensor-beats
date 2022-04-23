@@ -1,4 +1,4 @@
-package de.kp.works.beats.sensor.milesight
+package de.kp.works.beats.sensor.milesight.channel
 
 /**
  * Copyright (c) 2019 - 2022 Dr. Krusche & Partner PartG. All rights reserved.
@@ -20,8 +20,8 @@ package de.kp.works.beats.sensor.milesight
  */
 
 import de.kp.works.beats.sensor.BeatActions.{CREATE, UPDATE}
-import de.kp.works.beats.sensor.fiware
-import de.kp.works.beats.sensor.{BeatChannel, BeatRequest}
+import de.kp.works.beats.sensor.milesight.{MsConf, MsOptions}
+import de.kp.works.beats.sensor.{BeatChannel, BeatRequest, fiware}
 /**
  * Implementation of the FIWARE output channel
  */

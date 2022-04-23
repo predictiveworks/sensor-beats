@@ -1,4 +1,4 @@
-package de.kp.works.beats.sensor.milesight
+package de.kp.works.beats.sensor.milesight.channel
 
 /**
  * Copyright (c) 2019 - 2022 Dr. Krusche & Partner PartG. All rights reserved.
@@ -21,9 +21,10 @@ package de.kp.works.beats.sensor.milesight
 
 import ch.qos.logback.classic.Logger
 import com.google.gson.JsonParser
-import de.kp.works.beats.sensor.{BeatActions, BeatAttr, BeatChannels, BeatInfos, BeatRequest, BeatSensor}
 import de.kp.works.beats.sensor.milesight.MsProducts.EM_300
+import de.kp.works.beats.sensor.milesight.{MsConf, MsLogger, MsOptions}
 import de.kp.works.beats.sensor.thingsstack.Consumer
+import de.kp.works.beats.sensor._
 import org.eclipse.paho.client.mqttv3.MqttMessage
 
 import scala.collection.JavaConversions.collectionAsScalaIterable

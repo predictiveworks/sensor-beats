@@ -1,4 +1,4 @@
-package de.kp.works.beats.sensor.milesight
+package de.kp.works.beats.sensor.milesight.channel
 
 /**
  * Copyright (c) 2019 - 2022 Dr. Krusche & Partner PartG. All rights reserved.
@@ -20,40 +20,8 @@ package de.kp.works.beats.sensor.milesight
  */
 
 import com.google.gson.JsonObject
-import de.kp.works.beats.sensor.{BeatChannel, BeatRequest, BeatRocks}
-
-object MsRocksApi {
-
-  private var instance:Option[MsRocksApi] = None
-
-  def getInstance: MsRocksApi = instance.get
-
-  def getInstance(options:MsOptions):MsRocksApi = {
-    if (instance.isEmpty) instance = Some(new MsRocksApi(options))
-    instance.get
-  }
-
-  def isInstance:Boolean = instance.nonEmpty
-
-}
-
-class MsRocksApi(options:MsOptions) {
-  /**
-   * Initialize RocksDB with provided tables; every table
-   * refers to a certain column family.
-   */
-  val tables: Seq[String] = options.getRocksTables
-  BeatRocks.getOrCreate(tables, options.getRocksFolder)
-
-  def put(table:String, time:Long, value:String):Unit = {
-    BeatRocks.putTs(table, time, value)
-  }
-
-  def scan(table:String):Seq[(Long, String)] = {
-    BeatRocks.scanTs(table)
-  }
-
-}
+import de.kp.works.beats.sensor.milesight.{MsOptions, MsRocksApi}
+import de.kp.works.beats.sensor.{BeatChannel, BeatRequest}
 
 /**
  * Implementation of the RocksDB output channel
