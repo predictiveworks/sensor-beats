@@ -39,6 +39,7 @@ object BeatRoute {
   val BEAT_ANOMALY_ACTOR  = "beat_anomaly_actor"
   val BEAT_FORECAST_ACTOR = "beat_forecast_actor"
   val BEAT_MONITOR_ACTOR  = "beat_monitor_actor"
+  val BEAT_TREND_ACTOR    = "beat_trend_actor"
 
 }
 
@@ -60,7 +61,8 @@ class BeatRoute(
     getAnomaly ~
     getEvent ~
     getForecast ~
-    getMonitor
+    getMonitor ~
+    getTrend
 
   }
 
@@ -99,6 +101,11 @@ class BeatRoute(
    * time series
    */
   private def getMonitor:Route = routePost("beat/v1/monitor", actors(BEAT_MONITOR_ACTOR))
+  /**
+   * `SensorBeat` API route to invoke technical
+   * trend analysis of the time series
+   */
+  private def getTrend:Route = routePost("beat/v1/trend", actors(BEAT_TREND_ACTOR))
 
   /*******************************
    *

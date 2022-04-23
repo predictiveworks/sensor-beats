@@ -65,3 +65,24 @@ case class MonitorReq(
    */
   sql:String
 )
+/**
+ * Request format for SQL based trend requests
+ * for non-inferred sensor information
+ */
+case class TrendReq(
+  /*
+   * The SQL statement that is defined to read
+   * data from the sensor's Rocks DB.
+   */
+  sql:String,
+  /*
+   * The name of the technical indicator that
+   * is used for computing moving average
+   */
+  indicator:String,
+  /*
+   * The timeframe used for computing the
+   * moving average
+   */
+  timeframe:Int = 5
+)

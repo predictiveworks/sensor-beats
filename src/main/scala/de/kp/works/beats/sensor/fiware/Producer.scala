@@ -21,7 +21,11 @@ package de.kp.works.beats.sensor.fiware
 
 import de.kp.works.beats.sensor.{BeatConf, BeatSensor}
 import de.kp.works.beats.sensor.http.HttpConnect
-
+/**
+ * Base output channel to a FIWARE Context Broker;
+ * this producer leverages the Broker REST API to
+ * publish sensor readings.
+ */
 abstract class Producer[T <: BeatConf](options:Options[T]) extends HttpConnect {
   /**
    * The address of the Fiware Context Broker

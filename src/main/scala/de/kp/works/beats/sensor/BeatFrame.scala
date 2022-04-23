@@ -21,6 +21,7 @@ package de.kp.works.beats.sensor
 
 import ch.qos.logback.classic.Logger
 import de.kp.works.beats.sensor.BeatAttrs.{TIME, VALUE}
+import de.kp.works.beats.sensor.ta4j.TATrend
 import org.apache.spark.sql.{DataFrame, SparkSession}
 
 import scala.collection.JavaConversions.iterableAsScalaIterable
@@ -29,7 +30,7 @@ import scala.collection.JavaConversions.iterableAsScalaIterable
  * and time series forecasting by transforming a certain RocksDB
  * column family (table) into a Spark compliant [DataFrame]
  */
-class BeatFrame(session:SparkSession, logger:Logger) {
+class BeatFrame(session:SparkSession, logger:Logger) extends TATrend {
 
   import session.implicits._
   private val beatSql = new BeatSql(session, logger)
@@ -43,12 +44,7 @@ class BeatFrame(session:SparkSession, logger:Logger) {
     /*
      * STEP #1: Check whether RocksDB is initialized
      */
-    if (!BeatRocks.isInit) {
-      val message = "RocksDB is not initialized."
-      logger.error(message)
-
-      return session.emptyDataFrame
-    }
+    if (!isInit) return session.emptyDataFrame
     /*
      * STEP #2: Scan entire RocksDB table and
      * transform result into [DataFrame]
@@ -66,14 +62,98 @@ class BeatFrame(session:SparkSession, logger:Logger) {
     /*
      * STEP #1: Check whether RocksDB is initialized
      */
-   if (!BeatRocks.isInit) {
+   if (!isInit) return session.emptyDataFrame
+    /*
+     * STEP #2: Scan entire RocksDB table, apply
+     * SQL query and transform result into [DataFrame]
+     */
+    val rows = toSqlRows(sql)
+    toDF(rows)
+
+  }
+  /**
+   * Public method to analyze the entire result of
+   * a certain RocksDB column family (table) by
+   * applying a specific technical indicator and
+   * respective timeframe
+   */
+  def trendAll(table:String, indicator:String, timeframe:Int=5):DataFrame = {
+    /*
+     * STEP #1: Check whether RocksDB is initialized
+     */
+    if (!isInit) return session.emptyDataFrame
+    /*
+     * STEP #2: Scan entire RocksDB table and
+     * transform result into dots
+     */
+    val dots = toDots(table)
+    /*
+     * STEP #3: Compute trend with provided technical
+     * indicator
+     */
+    val trend = analyze(dots, indicator, timeframe)
+      .map(dot => (dot.time, dot.value))
+
+    toDF(trend)
+
+  }
+  /**
+   * Public method to analyze the filtered result of
+   * a certain RocksDB column family (table) by
+   * applying a specific technical indicator and
+   * respective timeframe
+   */
+  def trendSql(sql:String, indicator:String, timeframe:Int=5):DataFrame = {
+    /*
+     * STEP #1: Check whether RocksDB is initialized
+     */
+    if (!isInit) return session.emptyDataFrame
+    /*
+     * STEP #2: Scan entire RocksDB table and
+     * transform result into dots
+     */
+    val dots = toSqlDots(sql)
+    /*
+     * STEP #3: Compute trend with provided technical
+     * indicator
+     */
+    val trend = analyze(dots, indicator, timeframe)
+      .map(dot => (dot.time, dot.value))
+
+    toDF(trend)
+
+  }
+  /******************************
+   *
+   *       HELPER METHODS
+   *
+   */
+  private def isInit:Boolean = {
+
+    if (!BeatRocks.isInit) {
       val message = "RocksDB is not initialized."
       logger.error(message)
 
-      return session.emptyDataFrame
+      return false
     }
+
+    true
+
+  }
+
+  private def toDots(table:String):Seq[BeatDot] = {
+    BeatRocks.scanTs(table)
+      .map { case (time, value) => BeatDot(time, value.toDouble) }
+  }
+
+  private def toSqlDots(sql:String):Seq[BeatDot] = {
+    toSqlRows(sql)
+      .map { case (time, value) => BeatDot(time, value.toDouble) }
+  }
+
+  private def toSqlRows(sql:String):Seq[(Long,Double)] = {
     /*
-     * STEP #2: Validate & extract provided SQL
+     * STEP #1: Validate & extract provided SQL
      * statement; [BeatSql] throws an invalid
      * argument exception if something went wrong
      */
@@ -82,7 +162,7 @@ class BeatFrame(session:SparkSession, logger:Logger) {
       val message = s"Provided SQL statement is not complete."
       logger.warn(message)
 
-      return session.emptyDataFrame
+      return Seq.empty[(Long,Double)]
     }
 
     val obj = json.getAsJsonObject
@@ -90,10 +170,10 @@ class BeatFrame(session:SparkSession, logger:Logger) {
     val table  = obj.get("table").getAsString
     val condition = obj.get("condition")
     /*
-     * STEP #3: Map SQL statement onto RockDB
+     * STEP #2: Map SQL statement onto RockDB
      * commands
      */
-    if (condition.isJsonNull) return readAll(table)
+    if (condition.isJsonNull) return toRows(table)
     /*
      * Reminder: The (filter) condition is a JsonObject
      * and is defined as a tree with left & right nodes
@@ -130,7 +210,7 @@ class BeatFrame(session:SparkSession, logger:Logger) {
 
     }
 
-    toDF(filtered)
+    filtered
 
   }
 

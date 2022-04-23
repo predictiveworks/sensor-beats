@@ -25,7 +25,7 @@ import akka.http.scaladsl.model.sse.ServerSentEvent
 import akka.http.scaladsl.server.Route
 import akka.stream.scaladsl.{Source, SourceQueueWithComplete}
 import de.kp.works.beats.sensor.Channels.{FIWARE, ROCKS_DB, SSE}
-import de.kp.works.beats.sensor.{BeatChannels, BeatRoute, BeatService, BeatSse, Channels}
+import de.kp.works.beats.sensor._
 /**
  * [MsService] is built to manage the various micro
  * services used to provide the REST API and also
@@ -64,6 +64,8 @@ class MsService(config:MsConf) extends BeatService[MsConf](config) {
    * :
    * : - retrieve sensor readings via SQL query
    * :
+   * : - retrieve sensor trends via SQL query
+   * :
    * : - provide sensor events & inferred info
    * :   via Server Sent Event listing
    * :
@@ -88,7 +90,12 @@ class MsService(config:MsConf) extends BeatService[MsConf](config) {
        * Retrieve sensor readings via SQL query
        */
       BEAT_MONITOR_ACTOR ->
-        system.actorOf(Props(new MonitorActor(queue)), BEAT_MONITOR_ACTOR)
+        system.actorOf(Props(new MonitorActor(queue)), BEAT_MONITOR_ACTOR),
+      /*
+       * Retrieve sensor trend via SQL query
+       */
+      BEAT_TREND_ACTOR ->
+      system.actorOf(Props(new TrendActor(queue)), BEAT_TREND_ACTOR)
 
     )
 

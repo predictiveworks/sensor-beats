@@ -21,6 +21,9 @@ package de.kp.works.beats.sensor
 
 object BeatMessages {
 
+  def emptyIndicator():String =
+    s"Request contains no technical indicator."
+
   def emptySql():String =
     s"Request contains empty SQL query."
 

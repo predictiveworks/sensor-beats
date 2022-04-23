@@ -21,10 +21,10 @@ package de.kp.works.beats.sensor.milesight
 
 import akka.stream.scaladsl.SourceQueueWithComplete
 import ch.qos.logback.classic.Logger
-import com.google.gson.{JsonArray, JsonObject}
-import de.kp.works.beats.sensor.{BeatAttrs, BeatSql}
+import com.google.gson.{JsonArray, JsonElement, JsonObject}
+import de.kp.works.beats.sensor.{BeatAttrs, BeatDot, BeatSql, TimeFilter, TimeValueFilter, ValueFilter}
 import de.kp.works.beats.sensor.BeatAttrs.{TIME, VALUE}
-import de.kp.works.beats.sensor.{TimeFilter, TimeValueFilter, ValueFilter}
+import de.kp.works.beats.sensor.ta4j.TATrend
 import org.apache.spark.sql.BeatSession
 
 import scala.collection.JavaConversions.iterableAsScalaIterable
@@ -32,7 +32,7 @@ import scala.collection.JavaConversions.iterableAsScalaIterable
  * [MsSql] supports the `Sensor as a Table` concept,
  * that is taken from Osquery.
  */
-class MsSql(queue: SourceQueueWithComplete[String], logger:Logger) {
+class MsSql(queue: SourceQueueWithComplete[String], logger:Logger) extends TATrend {
   /**
    * Validating the SQL statement is performed
    * using the Apache Spark SqlParser, which is
@@ -47,90 +47,42 @@ class MsSql(queue: SourceQueueWithComplete[String], logger:Logger) {
   private val msRocksApi = MsRocksApi.getInstance
   private val emptyResponse = new JsonArray
 
+  private var table:String = _
+  private var output:Seq[String] = _
+
+  private var columns:Seq[String] = _
+  private var condition:JsonElement = _
+
   def read(sql:String):String = {
+
+    clear()
     /*
      * STEP #1: Validate & extract provided SQL
      * statement; [BeatSql] throws an invalid
      * argument exception if something went wrong
      */
     val json = beatSql.parse(sql)
-    if (json.isJsonNull) {
-      val message = s"Provided SQL statement is not complete."
-      logger.warn(message)
-
+    if (!isValid(json))
       return emptyResponse.toString
-    }
     /*
-     * STEP #2: Check whether the extracted table,
-     * columns and (optional) conditions refer to
-     * an existing database specification
-     */
-    val obj = json.getAsJsonObject
-
-    val table  = obj.get("table").getAsString
-    checkTable(table)
-
-    val output = obj.get("output").getAsJsonArray
-      .map(_.getAsString).toSeq
-    checkOutput(output)
-
-    val condition = obj.get("condition")
-    /*
-     * STEP #3: Map SQL statement onto RockDB
+     * STEP #2: Map SQL statement onto RockDB
      * commands
      */
     var response = new JsonArray
     if (condition.isJsonNull) {
 
-      response = scanToJson(table)
+      response = toJson
       response.toString
 
     } else {
-      /*
-       * Reminder: The (filter) condition is a JsonObject
-       * and is defined as a tree with left & right nodes
-       */
-      val expression = condition.getAsJsonObject
+
       val response = new JsonArray
+      toSqlRows.foreach { case (time, value) =>
+        val jo = new JsonObject
+        jo.addProperty("time", time)
+        jo.addProperty("value", value)
 
-      val columns = obj.get("columns").getAsJsonArray
-        .map(_.getAsString).toSeq
-
-      /*
-       * Check whether one or more than one columns
-       * are referenced
-       */
-      val rows = scanToFilter(table)
-      val filtered = if (columns.size == 1) {
-
-        BeatAttrs.withName(columns.head) match {
-          case TIME =>
-            rows.filter { case (time, _) =>
-              TimeFilter.filter(time, expression)
-            }
-
-          case VALUE =>
-            rows.filter { case (_, value) =>
-              ValueFilter.filter(value, expression)
-            }
-
-          case _ => rows
-
-        }
-
-      } else {
-        rows.filter { case (time, value) =>
-          TimeValueFilter.filter(time, value, expression)
-        }
-
-      }
-
-      filtered.foreach { case (time, value) =>
-        val dot = new JsonObject
-        dot.addProperty("time", time)
-        dot.addProperty("value", value)
-
-        response.add(dot)
+        response.add(jo)
       }
 
       response.toString
@@ -138,16 +90,146 @@ class MsSql(queue: SourceQueueWithComplete[String], logger:Logger) {
     }
 
   }
+
+  def trend(sql:String, indicator:String, timeframe:Int=5):String = {
+
+    clear()
+    /*
+     * STEP #1: Validate & extract provided SQL
+     * statement; [BeatSql] throws an invalid
+     * argument exception if something went wrong
+     */
+    val json = beatSql.parse(sql)
+    if (!isValid(json))
+      return emptyResponse.toString
+    /*
+     * STEP #2: Map SQL statement onto RockDB
+     * commands and compute dots
+     */
+    val dots =
+      if (condition.isJsonNull) toDots else toSqlDots
+    /*
+     * STEP #3: Compute trend with provided technical
+     * indicator
+     */
+    val trend = analyze(dots, indicator, timeframe)
+
+    val response = new JsonArray
+    trend.foreach { dot =>
+      val jo = new JsonObject
+      jo.addProperty("time", dot.time)
+      jo.addProperty("value", dot.value)
+
+      response.add(jo)
+    }
+
+    response.toString
+
+  }
   /**
-   * Private scan method to support the application
-   * of filter conditions
+   * Private helper method to reset the metadata
+   * extracted from the SQL query.
    */
-  private def scanToFilter(table:String):Seq[(Long, Double)] = {
+  private def clear():Unit = {
+
+    table = null
+    output = null
+
+    columns = null
+    condition = null
+
+  }
+
+  private def isValid(json:JsonElement):Boolean = {
+
+    if (json.isJsonNull) {
+      val message = s"Provided SQL statement is not complete."
+      logger.warn(message)
+
+      return false
+    }
+    /*
+     * Check whether the extracted table, columns and
+     * (optional) conditions refer to an existing database
+     * specification
+     */
+    val obj = json.getAsJsonObject
+
+    val sqlTable  = obj.get("table").getAsString
+    checkTable(sqlTable)
+
+    table = sqlTable
+
+    val sqlOutput = obj.get("output").getAsJsonArray
+      .map(_.getAsString).toSeq
+    checkOutput(sqlOutput)
+
+    output = sqlOutput
+    condition = obj.get("condition")
+
+    if (!obj.get("columns").isJsonNull)
+      columns = obj.get("columns").getAsJsonArray
+        .map(_.getAsString).toSeq
+
+    true
+
+  }
+
+  private def toDots:Seq[BeatDot] = {
+    msRocksApi.scan(table)
+      .map { case (time, value) => BeatDot(time, value.toDouble) }
+  }
+
+  private def toSqlDots:Seq[BeatDot] = {
+    toSqlRows
+      .map { case (time, value) => BeatDot(time, value) }
+  }
+
+  private def toRows:Seq[(Long,Double)] = {
     msRocksApi.scan(table)
       .map { case (time, value) => (time, value.toDouble) }
   }
 
-  private def scanToJson(table: String): JsonArray = {
+  private def toSqlRows:Seq[(Long,Double)] = {
+    /*
+     * Reminder: The (filter) condition is a JsonObject
+     * and is defined as a tree with left & right nodes
+     */
+    val expression = condition.getAsJsonObject
+    /*
+     * Check whether one or more than one columns
+     * are referenced
+     */
+    val rows = toRows
+    val sqlRows = if (columns.size == 1) {
+
+      BeatAttrs.withName(columns.head) match {
+        case TIME =>
+          rows.filter { case (time, _) =>
+            TimeFilter.filter(time, expression)
+          }
+
+        case VALUE =>
+          rows.filter { case (_, value) =>
+            ValueFilter.filter(value, expression)
+          }
+
+        case _ => rows
+
+      }
+
+    } else {
+      rows.filter { case (time, value) =>
+        TimeValueFilter.filter(time, value, expression)
+      }
+
+    }
+
+    sqlRows
+
+  }
+
+  private def toJson: JsonArray = {
 
     val response = new JsonArray
     /*

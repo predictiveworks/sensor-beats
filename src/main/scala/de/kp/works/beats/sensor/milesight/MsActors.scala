@@ -24,7 +24,7 @@ import akka.stream.scaladsl.SourceQueueWithComplete
 import ch.qos.logback.classic.Logger
 import com.google.gson.JsonArray
 import de.kp.works.beats.sensor.BeatActions.{COMPUTE, READ}
-import de.kp.works.beats.sensor.api.{AnomalyReq, ApiActor, ForecastReq, MonitorReq}
+import de.kp.works.beats.sensor.api.{AnomalyReq, ApiActor, ForecastReq, MonitorReq, TrendReq}
 import de.kp.works.beats.sensor.{BeatActions, BeatConf, BeatMessages}
 /**
  * The [AnomalyActor] supports the re-training
@@ -188,8 +188,69 @@ class MonitorActor(queue: SourceQueueWithComplete[String]) extends ApiActor {
         emptyResponse.toString
     }
 
+  }
+
+}
+/**
+ * The [TrendActor] supports the provisioning of
+ * sensor event trends based on a SQL statement.
+ * This actor is part of the `Sensor as a Table`
+ * approach.
+ */
+class TrendActor(queue: SourceQueueWithComplete[String]) extends ApiActor {
+
+  override protected var logger: Logger = MsLogger.getLogger
+  override protected var config: BeatConf = MsConf.getInstance
+  /**
+   * [MsSql] is used to do the SQL query interpretation,
+   * transformation to RocksDB commands and returning
+   * the respective entries
+   */
+  private val msSql = new MsSql(queue, logger)
+  /**
+   * The response of this request is a JsonArray;
+   * in case of an invalid request, an empty response
+   * is returned
+   */
+  private val emptyResponse = new JsonArray
+
+  override def execute(request: HttpRequest): String = {
+
+    val json = getBodyAsJson(request)
+    if (json == null) {
+      logger.warn(BeatMessages.invalidJson())
+      return emptyResponse.toString
+    }
+
+    val req = mapper.readValue(json.toString, classOf[TrendReq])
+    val sql = req.sql
+    /*
+     * Validate SQL query
+     */
+    if (sql.isEmpty) {
+      logger.warn(BeatMessages.emptySql())
+      return emptyResponse.toString
+    }
+    val indicator = req.indicator
+    /*
+     * Validate technical indicator
+     */
+    if (indicator.isEmpty) {
+      logger.warn(BeatMessages.emptyIndicator())
+      return emptyResponse.toString
+    }
+
+    try {
+      msSql.trend(sql, indicator, req.timeframe)
+
+    } catch {
+      case t:Throwable =>
+        val message = s"Trend request failed: ${t.getLocalizedMessage}"
+        logger.error(message)
+
+        emptyResponse.toString
+    }
 
   }
 
 }
-
