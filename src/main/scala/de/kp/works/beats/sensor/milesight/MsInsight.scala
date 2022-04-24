@@ -21,20 +21,55 @@ package de.kp.works.beats.sensor.milesight
 
 import akka.stream.scaladsl.SourceQueueWithComplete
 import ch.qos.logback.classic.Logger
+import de.kp.works.beats.sensor.BeatTasks.{ANOMALY, FORECAST}
+import de.kp.works.beats.sensor.{BeatMessages, BeatRocks, BeatTasks}
+import de.kp.works.beats.sensor.api.DeepReq
+import de.kp.works.beats.sensor.dl.anomaly.AnomalyWorker
+import de.kp.works.beats.sensor.dl.forecast.ForecastWorker
 
 class MsInsight(queue: SourceQueueWithComplete[String], logger:Logger) {
+  /**
+   * The deep learning workers for the anomaly detection
+   * and time series forecasting tasks. These worker are
+   * invoked on an adhoc basis here.
+   */
+  private def anomalyWorker = new AnomalyWorker(queue, logger)
+  private def forecastWorker = new ForecastWorker(queue, logger)
 
-  def computeAnomalies(startTime:Long = 0L, endTime:Long = 0L):String = {
-    ???
-  }
-  def readAnomalies(startTime:Long = 0L, endTime:Long = 0L):String = {
-    ???
+  def execute(request:DeepReq):Unit = {
+    /*
+     * Note, adhoc deep learning tasks are queued, to be in
+     * sync with the scheduled tasks; the current implementation
+     * supports environments where only a small number of DL
+     * tasks can be executed simultaneously.
+     */
+    try {
+      /*
+       * Check whether the provided table name
+       * is defined
+       */
+      MsTables.withName(request.table)
+      /*
+       * Check whether the RocksDB is initialized
+       */
+      if (!BeatRocks.isInit)
+        throw new Exception(BeatMessages.rocksNotInitialized())
+      /*
+       * Check and distinguish between the supported
+       * deep learning tasks and execute task.
+       */
+      BeatTasks.withName(request.task) match {
+        case ANOMALY =>
+          anomalyWorker.execute(request.table, request.startTime, request.endTime)
+
+        case FORECAST =>
+          forecastWorker.execute(request.table, request.startTime, request.endTime)
+      }
+
+    } catch {
+      case t:Throwable =>
+        logger.error(BeatMessages.deepFailed(t))
+    }
   }
 
-  def computeForecasts(startTime:Long = 0L, endTime:Long = 0L):String = {
-    ???
-  }
-  def readForecasts(startTime:Long = 0L, endTime:Long = 0L):String = {
-    ???
-  }
 }

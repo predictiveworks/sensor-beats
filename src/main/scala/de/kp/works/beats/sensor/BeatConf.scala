@@ -144,7 +144,7 @@ abstract class BeatConf {
    * jobs for anomaly detection as well as time series
    * forecasting
    */
-  def getSchedulerIntervals:Map[String, Int]
+  def getSchedulerIntervals:Map[BeatTasks.Value, Int]
   /**
    * This method provides the SSL configuration of the
    * Sensor Beat (HTTP Server)

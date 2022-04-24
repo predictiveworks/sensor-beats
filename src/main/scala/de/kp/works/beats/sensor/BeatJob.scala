@@ -66,4 +66,5 @@ object BeatJobs {
   def register(job:BeatJob):Unit = {
     registry += job.id -> job
   }
+
 }

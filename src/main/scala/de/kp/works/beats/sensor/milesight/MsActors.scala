@@ -19,17 +19,31 @@ package de.kp.works.beats.sensor.milesight
  *
  */
 
+import akka.actor.{Actor, ActorRef, Props}
 import akka.http.scaladsl.model.HttpRequest
+import akka.routing.RoundRobinPool
 import akka.stream.scaladsl.SourceQueueWithComplete
 import ch.qos.logback.classic.Logger
-import com.google.gson.JsonArray
-import de.kp.works.beats.sensor.BeatActions.{COMPUTE, READ}
-import de.kp.works.beats.sensor.api.{AnomalyReq, ApiActor, ForecastReq, MonitorReq, TrendReq}
-import de.kp.works.beats.sensor.{BeatActions, BeatConf, BeatMessages}
+import com.google.gson.{JsonArray, JsonObject}
+import de.kp.works.beats.sensor.api._
+import de.kp.works.beats.sensor.{BeatConf, BeatMessages}
+
+class DeepWorker(queue: SourceQueueWithComplete[String], logger:Logger) extends Actor {
+  /**
+   * [MsInsight] is used to detect anomalies
+   * and compute timeseries forecasts.
+   */
+  private val msInsight = new MsInsight(queue, logger)
+
+  override def receive: Receive = {
+    case request:DeepReq =>
+      msInsight.execute(request)
+  }
+
+}
 /**
  * The [AnomalyActor] supports the re-training
- * of the SensorBeat's anomaly detection model,
- * and also the provisioning of detected anomalies.
+ * of the SensorBeat's anomaly detection model.
  *
  * Note, computing anomalies is regularly performed
  * on a scheduled basis, but can also be executed on
@@ -39,17 +53,19 @@ class AnomalyActor(queue: SourceQueueWithComplete[String]) extends ApiActor {
 
   override protected var logger: Logger = MsLogger.getLogger
   override protected var config: BeatConf = MsConf.getInstance
-  /**
-   * [MsInsight] is used to retrieve anomalies as
-   * well as performing anomaly detection on demand
-   */
-  private val msInsight = new MsInsight(queue, logger)
+
+  private val worker:ActorRef =
+    system
+      .actorOf(RoundRobinPool(instances)
+        .withResizer(resizer)
+        .props(Props(new DeepWorker(queue, logger))), "AnomalyWorker")
+
   /**
    * The response of this request is a JsonArray;
    * in case of an invalid request, an empty response
    * is returned
    */
-  private val emptyResponse = new JsonArray
+  private val emptyResponse = new JsonObject
 
   override def execute(request: HttpRequest): String = {
 
@@ -59,25 +75,14 @@ class AnomalyActor(queue: SourceQueueWithComplete[String]) extends ApiActor {
       return emptyResponse.toString
     }
 
-    val req = mapper.readValue(json.toString, classOf[AnomalyReq])
-    try {
-      BeatActions.withName(req.action) match {
-        case COMPUTE =>
-          msInsight.computeAnomalies(req.startTime, req.endTime)
+    val req = mapper.readValue(json.toString, classOf[DeepReq])
+    worker ! req
 
-        case READ =>
-          msInsight.readAnomalies(req.startTime, req.endTime)
+    val response = new JsonObject
+    response.addProperty("message", BeatMessages.anomalyStarted())
 
-        case _ => throw new Exception(s"Unknown action detected.")
-      }
+    response.toString
 
-    } catch {
-      case t:Throwable =>
-        val message = s"Anomaly request failed: ${t.getLocalizedMessage}"
-        logger.error(message)
-
-        emptyResponse.toString
-    }
   }
 
 }
@@ -94,11 +99,55 @@ class ForecastActor(queue: SourceQueueWithComplete[String]) extends ApiActor {
 
   override protected var logger: Logger = MsLogger.getLogger
   override protected var config: BeatConf = MsConf.getInstance
+
+  private val worker:ActorRef =
+    system
+      .actorOf(RoundRobinPool(instances)
+        .withResizer(resizer)
+        .props(Props(new DeepWorker(queue, logger))), "ForecastWorker")
+
   /**
-   * [MsInsight] is used to retrieve time series forecasts
-   * as well as performing time series predictions on demand
+   * The response of this request is a JsonArray;
+   * in case of an invalid request, an empty response
+   * is returned
    */
-  private val msInsight = new MsInsight(queue, logger)
+  private val emptyResponse = new JsonObject
+
+  override def execute(request: HttpRequest): String = {
+
+    val json = getBodyAsJson(request)
+    if (json == null) {
+      logger.warn(BeatMessages.invalidJson())
+      return emptyResponse.toString
+    }
+
+    val req = mapper.readValue(json.toString, classOf[DeepReq])
+    worker ! req
+
+    val response = new JsonObject
+    response.addProperty("message", BeatMessages.forecastStarted())
+
+    response.toString
+
+  }
+
+}
+/**
+ * The [InsightActor] supports the provisioning of
+ * sensor event insights based on a SQL statement.
+ * This actor is part of the `Sensor as a Table`
+ * approach.
+ */
+class InsightActor(queue: SourceQueueWithComplete[String]) extends ApiActor {
+
+  override protected var logger: Logger = MsLogger.getLogger
+  override protected var config: BeatConf = MsConf.getInstance
+  /**
+   * [MsSql] is used to do the SQL query interpretation,
+   * transformation to RocksDB commands and returning
+   * the respective entries
+   */
+  private val msSql = new MsSql(queue, logger)
   /**
    * The response of this request is a JsonArray;
    * in case of an invalid request, an empty response
@@ -114,29 +163,29 @@ class ForecastActor(queue: SourceQueueWithComplete[String]) extends ApiActor {
       return emptyResponse.toString
     }
 
-    val req = mapper.readValue(json.toString, classOf[ForecastReq])
+    val req = mapper.readValue(json.toString, classOf[InsightReq])
+    val sql = req.sql
+    /*
+     * Validate SQL query
+     */
+    if (sql.isEmpty) {
+      logger.warn(BeatMessages.emptySql())
+      return emptyResponse.toString
+    }
+
     try {
-      BeatActions.withName(req.action) match {
-        case COMPUTE =>
-          msInsight.computeForecasts(req.startTime, req.endTime)
-
-        case READ =>
-          msInsight.readForecasts(req.startTime, req.endTime)
-
-        case _ => throw new Exception(s"Unknown action detected.")
-      }
+      msSql.read(sql)
 
     } catch {
       case t:Throwable =>
-        val message = s"Forecast request failed: ${t.getLocalizedMessage}"
-        logger.error(message)
-
+        logger.error(BeatMessages.insightFailed(t))
         emptyResponse.toString
     }
 
   }
 
 }
+
 /**
  * The [MonitorActor] supports the provisioning of
  * sensor events based on a SQL statement. This actor
@@ -182,9 +231,7 @@ class MonitorActor(queue: SourceQueueWithComplete[String]) extends ApiActor {
 
     } catch {
       case t:Throwable =>
-        val message = s"Monitor request failed: ${t.getLocalizedMessage}"
-        logger.error(message)
-
+        logger.error(BeatMessages.monitorFailed(t))
         emptyResponse.toString
     }
 

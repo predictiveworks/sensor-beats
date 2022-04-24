@@ -88,6 +88,11 @@ class MsService(config:MsConf) extends BeatService[MsConf](config) {
       BEAT_FORECAST_ACTOR ->
         system.actorOf(Props(new ForecastActor(queue)), BEAT_FORECAST_ACTOR),
       /*
+       * Retrieve sensor inferred readings via SQL query
+       */
+      BEAT_INSIGHT_ACTOR ->
+        system.actorOf(Props(new InsightActor(queue)), BEAT_INSIGHT_ACTOR),
+      /*
        * Retrieve sensor readings via SQL query
        */
       BEAT_MONITOR_ACTOR ->
@@ -155,6 +160,12 @@ class MsService(config:MsConf) extends BeatService[MsConf](config) {
       }
 
     })
+    /*
+     * Start the scheduled anomaly detection and
+     * timeseries forecasting tasks
+     */
+
+    // TODO
 
   }
 }

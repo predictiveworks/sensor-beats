@@ -143,3 +143,11 @@ case class BeatSensor(
 
   }
 }
+
+object BeatTasks extends Enumeration {
+  type BeatTask = Value
+
+  val ANOMALY: BeatTasks.Value  = Value(1, "anomaly")
+  val FORECAST: BeatTasks.Value = Value(2, "forecast")
+
+}

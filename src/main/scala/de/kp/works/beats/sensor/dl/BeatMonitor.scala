@@ -1,4 +1,4 @@
-package de.kp.works.beats.sensor
+package de.kp.works.beats.sensor.dl
 
 /**
  * Copyright (c) 2019 - 2022 Dr. Krusche & Partner PartG. All rights reserved.
@@ -20,15 +20,15 @@ package de.kp.works.beats.sensor
  */
 
 import ch.qos.logback.classic.Logger
+import de.kp.works.beats.sensor.{BeatConf, BeatTasks}
+
 import java.util.concurrent.{Executors, ScheduledExecutorService, TimeUnit}
-
-trait BeatTask {
-
-  def execute():Unit
-
-}
-
-abstract class BeatMonitor[C <: BeatConf](config:C, task:String, numThreads:Int = 1) {
+/**
+ * The [BeatMonitor] controls anomaly detection and
+ * timeseries forecasting tasks, and, in combination
+ * with the [BeatQueue] executes the respective tasks
+ */
+abstract class BeatMonitor[C <: BeatConf](config:C, task:BeatTasks.Value, numThreads:Int = 1) {
 
   private var logger:Logger = _
   /**
@@ -46,24 +46,37 @@ abstract class BeatMonitor[C <: BeatConf](config:C, task:String, numThreads:Int 
     this.logger = logger
   }
 
-  def start[T <: BeatTask](beatTask:T):Unit = {
+  def start[T <: BeatWorker](worker:T):Unit = {
     /*
-     * Define worker to execute the provided
+     * Define runnable to execute the provided
      * deep learning task
      */
-    val worker = new Runnable {
+    val runnable = new Runnable {
       override def run(): Unit = {
-        if (logger != null)
-          logger.info(s"Deep learning task `$task` is started.")
+        /*
+         * STEP #1: Determine whether there is a
+         * deep learning task in the respective
+         * queue (anomaly & forecast)
+         */
+        val qe = getQueueEntry
+        /*
+         * STEP #2: Execute the deep learning task
+         * that refers to a non-empty queue entry
+         */
+        if (qe.nonEmpty) {
+          if (logger != null)
+            logger.info(s"Deep learning task `${task.toString}` started.")
 
-        beatTask.execute()
+          worker.execute(qe.get.table, qe.get.startTime, qe.get.endTime)
+
+        }
       }
     }
 
     try {
 
       executorService = Executors.newScheduledThreadPool(numThreads)
-      executorService.scheduleAtFixedRate(worker, 0, interval, TimeUnit.SECONDS)
+      executorService.scheduleAtFixedRate(runnable, 0, interval, TimeUnit.SECONDS)
 
 
     } catch {
@@ -75,6 +88,11 @@ abstract class BeatMonitor[C <: BeatConf](config:C, task:String, numThreads:Int 
     }
 
   }
+  /**
+   * Public method to retrieve the next
+   * deep learning queue entry
+   */
+  def getQueueEntry:Option[QueueEntry]
 
   def stop(): Unit = {
 

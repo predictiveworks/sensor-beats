@@ -23,6 +23,7 @@ import akka.actor.{Actor, ActorSystem, OneForOneStrategy}
 import akka.http.scaladsl.coding.{Gzip, NoCoding}
 import akka.http.scaladsl.model.HttpRequest
 import akka.http.scaladsl.model.headers.HttpEncodings
+import akka.routing.DefaultResizer
 import akka.stream.ActorMaterializer
 import akka.util.{ByteString, Timeout}
 import ch.qos.logback.classic.Logger
@@ -81,6 +82,10 @@ abstract class ApiActor extends Actor {
    */
   protected val lower: Int = actorCfg.getInt("lower")
   protected val upper: Int = actorCfg.getInt("upper")
+
+  /* We define a common resizer for all children pools */
+  protected val resizer = new DefaultResizer(lower, upper)
+
   /**
    * The number of instances for the RoundRobin pool
    */

@@ -19,7 +19,7 @@ package de.kp.works.beats.sensor.milesight
  *
  */
 
-import de.kp.works.beats.sensor.BeatConf
+import de.kp.works.beats.sensor.{BeatConf, BeatTasks}
 
 object MsConf {
 
@@ -57,5 +57,5 @@ class MsConf extends BeatConf {
    * jobs for anomaly detection as well as time series
    * forecasting
    */
-  override def getSchedulerIntervals: Map[String, Int] = ???
+  override def getSchedulerIntervals: Map[BeatTasks.Value, Int] = ???
 }

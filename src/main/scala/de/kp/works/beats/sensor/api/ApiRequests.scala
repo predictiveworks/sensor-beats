@@ -19,12 +19,16 @@ package de.kp.works.beats.sensor.api
  *
  */
 
-case class AnomalyReq(
+case class DeepReq(
+ /*
+  * The name of the table that contains the
+  * input data for deep learning task
+  */
+  table:String,
   /*
-   * An anomaly request distinguishes between
-   * training & inference phase
+   * The name of the deep learning task
    */
-  action:String,
+  task:String,
   /*
    * The start time of the time series that is
    * involved in the anomaly request
@@ -37,23 +41,18 @@ case class AnomalyReq(
   endTime:Long = 0L
 )
 
-case class ForecastReq(
+/**
+ * Request format for SQL based read requests
+ * for inferred sensor information
+ */
+case class InsightReq(
   /*
-   * An anomaly request distinguishes between
-   * training & inference phase
+   * The SQL statement that is defined to read
+   * data from the sensor's Rocks DB.
    */
-  action:String,
-  /*
-   * The start time of the time series that is
-   * involved in the forecast request
-   */
-  startTime:Long = 0L,
-  /*
-   * The end time of the time series that is
-   * involved in the forecast request
-   */
-  endTime:Long = 0L
+  sql:String
 )
+
 /**
  * Request format for SQL based read requests
  * for non-inferred sensor information

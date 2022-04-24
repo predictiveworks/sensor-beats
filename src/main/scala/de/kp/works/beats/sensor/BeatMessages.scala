@@ -21,13 +21,36 @@ package de.kp.works.beats.sensor
 
 object BeatMessages {
 
+  def anomalyStarted():String =
+    "Anomaly detection started."
+
+  def anomalyFailed(t:Throwable):String =
+     s"Anomaly request failed: ${t.getLocalizedMessage}"
+
+  def deepFailed(t:Throwable):String =
+    s"Deep learning task failed: ${t.getLocalizedMessage}"
+
   def emptyIndicator():String =
     s"Request contains no technical indicator."
 
   def emptySql():String =
     s"Request contains empty SQL query."
 
+  def forecastStarted():String =
+    "Forecast computing started."
+
+  def forecastFailed(t:Throwable):String =
+    s"Forecast request failed: ${t.getLocalizedMessage}"
+
+  def insightFailed(t:Throwable):String =
+    s"Insight request failed: ${t.getLocalizedMessage}"
+
   def invalidJson(): String =
     s"Request did not contain valid JSON."
 
+  def monitorFailed(t:Throwable):String =
+    s"Monitor request failed: ${t.getLocalizedMessage}"
+
+  def rocksNotInitialized():String =
+    s"The RocksDB is not initialized yet."
 }
