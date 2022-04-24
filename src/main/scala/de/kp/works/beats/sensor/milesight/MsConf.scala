@@ -43,6 +43,11 @@ class MsConf extends BeatConf {
    */
   override var logname: String = "Beat"
   /**
+   * This method provides the number of threads used
+   * to build the deep learning monitors
+   */
+  override def getNumThreads: Int = ???
+  /**
    * Retrieve the sensor specific table names of
    * the `SensorBeat` database; these are coded
    * within `MsTables`.

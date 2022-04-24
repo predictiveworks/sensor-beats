@@ -25,19 +25,59 @@ import akka.routing.RoundRobinPool
 import akka.stream.scaladsl.SourceQueueWithComplete
 import ch.qos.logback.classic.Logger
 import com.google.gson.{JsonArray, JsonObject}
+import de.kp.works.beats.sensor.BeatTasks.{ANOMALY, FORECAST}
 import de.kp.works.beats.sensor.api._
-import de.kp.works.beats.sensor.{BeatConf, BeatMessages}
+import de.kp.works.beats.sensor.dl.{BeatQueue, QueueEntry}
+import de.kp.works.beats.sensor.{BeatConf, BeatMessages, BeatRocks, BeatTasks}
 
-class DeepWorker(queue: SourceQueueWithComplete[String], logger:Logger) extends Actor {
-  /**
-   * [MsInsight] is used to detect anomalies
-   * and compute timeseries forecasts.
-   */
-  private val msInsight = new MsInsight(queue, logger)
+class DeepWorker(logger:Logger) extends Actor {
 
   override def receive: Receive = {
+
     case request:DeepReq =>
-      msInsight.execute(request)
+      /*
+       * Note, adhoc deep learning tasks are queued, to be in
+       * sync with the scheduled tasks; the current implementation
+       * supports environments where only a small number of DL
+       * tasks can be executed simultaneously.
+       */
+      try {
+        /*
+         * Check whether the provided table name
+         * is defined
+         */
+        MsTables.withName(request.table)
+        /*
+         * Check whether the RocksDB is initialized
+         */
+        if (!BeatRocks.isInit)
+          throw new Exception(BeatMessages.rocksNotInitialized())
+        /*
+         * Build queue entry
+         */
+        val qe = QueueEntry(
+          createdAt = System.currentTimeMillis,
+          table     = request.table,
+          startTime = request.startTime,
+          endTime   = request.endTime)
+        /*
+         * Check and distinguish between the supported
+         * deep learning tasks. Specific task is added
+         * to the respective deep learning queue, that
+         * executed tasks on a scheduled basis
+         */
+        BeatTasks.withName(request.task) match {
+          case ANOMALY =>
+            BeatQueue.addAnomaly(qe)
+
+          case FORECAST =>
+            BeatQueue.addForecast(qe)
+        }
+
+      } catch {
+        case t:Throwable =>
+          logger.error(BeatMessages.deepFailed(t))
+      }
   }
 
 }
@@ -49,7 +89,7 @@ class DeepWorker(queue: SourceQueueWithComplete[String], logger:Logger) extends 
  * on a scheduled basis, but can also be executed on
  * demand as well.
  */
-class AnomalyActor(queue: SourceQueueWithComplete[String]) extends ApiActor {
+class AnomalyActor extends ApiActor {
 
   override protected var logger: Logger = MsLogger.getLogger
   override protected var config: BeatConf = MsConf.getInstance
@@ -58,7 +98,7 @@ class AnomalyActor(queue: SourceQueueWithComplete[String]) extends ApiActor {
     system
       .actorOf(RoundRobinPool(instances)
         .withResizer(resizer)
-        .props(Props(new DeepWorker(queue, logger))), "AnomalyWorker")
+        .props(Props(new DeepWorker(logger))), "AnomalyWorker")
 
   /**
    * The response of this request is a JsonArray;
@@ -95,7 +135,7 @@ class AnomalyActor(queue: SourceQueueWithComplete[String]) extends ApiActor {
  * performed on a scheduled basis, but can also be
  * executed on demand as well.
  */
-class ForecastActor(queue: SourceQueueWithComplete[String]) extends ApiActor {
+class ForecastActor extends ApiActor {
 
   override protected var logger: Logger = MsLogger.getLogger
   override protected var config: BeatConf = MsConf.getInstance
@@ -104,7 +144,7 @@ class ForecastActor(queue: SourceQueueWithComplete[String]) extends ApiActor {
     system
       .actorOf(RoundRobinPool(instances)
         .withResizer(resizer)
-        .props(Props(new DeepWorker(queue, logger))), "ForecastWorker")
+        .props(Props(new DeepWorker(logger))), "ForecastWorker")
 
   /**
    * The response of this request is a JsonArray;

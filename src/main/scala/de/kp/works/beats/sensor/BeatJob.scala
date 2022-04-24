@@ -41,7 +41,7 @@ case class BeatJob(
    * The current status of the deep
    * learning job
    */
-  status:String
+  status:BeatStatuses.Value
 )
 /**
  * This object defines the deep learning job

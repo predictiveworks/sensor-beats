@@ -22,7 +22,6 @@ import scala.collection.mutable
  */
 
 case class QueueEntry(
-  task:String,
   createdAt:Long,
   /*
    * Database table specification
@@ -45,6 +44,15 @@ case class QueueEntry(
  */
 object BeatQueue {
 
-  private val queue = new mutable.Queue[QueueEntry]()
+  private val anomalies = new mutable.Queue[QueueEntry]()
+  private val forecasts = new mutable.Queue[QueueEntry]()
+
+  def addAnomaly(qe:QueueEntry):Unit = {
+    anomalies += qe
+  }
+
+  def addForecast(qe:QueueEntry):Unit = {
+    forecasts += qe
+  }
 
 }

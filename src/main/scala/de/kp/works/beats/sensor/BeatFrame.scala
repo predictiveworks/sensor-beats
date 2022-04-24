@@ -53,6 +53,19 @@ class BeatFrame(session:SparkSession, logger:Logger) extends TATrend {
     toDF(rows)
 
   }
+  def readRange(table:String, start:Long, end:Long):DataFrame = {
+    /*
+     * STEP #1: Check whether RocksDB is initialized
+     */
+    if (!isInit) return session.emptyDataFrame
+    /*
+     * STEP #2: Scan row range ofRocksDB table and
+     * transform result into [DataFrame]
+     */
+    val rows = toRowsRange(table, start, end)
+    toDF(rows)
+
+  }
   /**
    * Public method to retrieve the filtered result
    * of a certain RocksDB column family (table) as
@@ -216,6 +229,11 @@ class BeatFrame(session:SparkSession, logger:Logger) extends TATrend {
 
   private def toRows(table:String):Seq[(Long,Double)] = {
     BeatRocks.scanTs(table)
+      .map { case (time, value) => (time, value.toDouble) }
+  }
+
+  private def toRowsRange(table:String, start:Long, end:Long):Seq[(Long,Double)] = {
+    BeatRocks.scanTsRange(table, start, end)
       .map { case (time, value) => (time, value.toDouble) }
   }
 

@@ -20,19 +20,22 @@ package de.kp.works.beats.sensor.milesight.channel
  */
 
 import com.google.gson.JsonObject
-import de.kp.works.beats.sensor.milesight.{MsOptions, MsRocksApi}
-import de.kp.works.beats.sensor.{BeatChannel, BeatRequest}
+import de.kp.works.beats.sensor.milesight.MsOptions
+import de.kp.works.beats.sensor.{BeatChannel, BeatRequest, BeatRocksApi}
 
 /**
  * Implementation of the RocksDB output channel
  */
 class MsRocks(options:MsOptions) extends BeatChannel {
 
-  private val rocksDB =
-    if (MsRocksApi.isInstance)
-      MsRocksApi.getInstance
+  private val rocksApi =
+    if (BeatRocksApi.isInstance)
+      BeatRocksApi
+        .getInstance
+
     else
-      MsRocksApi.getInstance(options)
+      BeatRocksApi
+        .getInstance(options.getRocksTables, options.getRocksFolder)
 
   override def execute(request: BeatRequest): Unit = {
     /*
@@ -56,7 +59,7 @@ class MsRocks(options:MsOptions) extends BeatChannel {
       value.addProperty("type", sensorAttr.attrType)
       value.addProperty("value", sensorAttr.attrValue)
 
-      rocksDB.put(table, time, value.toString)
+      rocksApi.put(table, time, value.toString)
 
     })
 

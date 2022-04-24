@@ -19,8 +19,48 @@ package de.kp.works.beats.sensor.dl
  *
  */
 
-abstract class BeatWorker {
+import akka.stream.scaladsl.SourceQueueWithComplete
+import ch.qos.logback.classic.Logger
+import de.kp.works.beats.sensor.BeatFrame
+import de.kp.works.beats.sensor.publish.Publisher
+import org.apache.spark.sql.{DataFrame, SparkSession}
+
+abstract class BeatWorker(
+  queue:SourceQueueWithComplete[String],
+  session:SparkSession,
+  logger:Logger) {
+  /**
+   * Time management
+   */
+  protected var startts:Long = -1
+
+  protected var currts:Long = -1
+  protected var nextts:Long = -1
+  /**
+   * [DataFrame] interface of RocksDB
+   */
+  protected val beatFrame = new BeatFrame(session, logger)
+  /**
+   * SSE queue publisher
+   */
+  protected val publisher: Publisher = Publisher.getInstance(queue)
+
+  protected var verbose = true
+
+  def setVerbose(verbose:Boolean):Unit = {
+    this.verbose = verbose
+  }
 
   def execute(table:String, start:Long, end:Long):Unit
+
+  def loadDataset(table:String, start:Long, end:Long):DataFrame = {
+
+    if (start == 0L || end == 0L)
+      beatFrame.readAll(table)
+
+    else
+      beatFrame.readRange(table, start, end)
+
+  }
 
 }

@@ -28,6 +28,38 @@ import scala.collection.JavaConversions.asScalaBuffer
 import scala.collection.JavaConverters.seqAsJavaListConverter
 import scala.collection.mutable
 
+object BeatRocksApi {
+
+  private var instance:Option[BeatRocksApi] = None
+
+  def getInstance: BeatRocksApi = instance.get
+
+  def getInstance(tables:Seq[String], folder:String):BeatRocksApi = {
+    if (instance.isEmpty) instance = Some(new BeatRocksApi(tables, folder))
+    instance.get
+  }
+
+  def isInstance:Boolean = instance.nonEmpty
+
+}
+
+class BeatRocksApi(tables:Seq[String], folder:String) {
+  /**
+   * Initialize RocksDB with provided tables; every table
+   * refers to a certain column family.
+   */
+  BeatRocks.getOrCreate(tables, folder)
+
+  def put(table:String, time:Long, value:String):Unit = {
+    BeatRocks.putTs(table, time, value)
+  }
+
+  def scan(table:String):Seq[(Long, String)] = {
+    BeatRocks.scanTs(table)
+  }
+
+}
+
 object BeatRocks {
 
   private var rocksDB: RocksDB = _
@@ -229,8 +261,8 @@ object BeatRocks {
       val kbytes = rocksIter.key()
       val vbytes = rocksIter.value()
 
-      val k = new String(rocksIter.key(), CHARSET)
-      val v = new String(rocksIter.value(), CHARSET)
+      val k = new String(kbytes, CHARSET)
+      val v = new String(vbytes, CHARSET)
 
       val kv = (k,v)
       result += kv

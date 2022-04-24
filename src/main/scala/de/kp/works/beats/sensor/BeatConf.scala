@@ -113,6 +113,12 @@ abstract class BeatConf {
    */
   def getLoggingCfg: Config = getCfg("logging")
   /**
+   * This method provides the number of threads used
+   * to build the deep learning monitors
+   */
+  def getNumThreads:Int
+
+  /**
    * This method provides the RocksDB configuration of
    * the Sensor Beat
    */

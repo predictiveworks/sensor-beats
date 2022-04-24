@@ -26,20 +26,24 @@ import akka.http.scaladsl.server.Route
 import akka.stream.scaladsl.{Source, SourceQueueWithComplete}
 import de.kp.works.beats.sensor.Channels.{FIWARE, ROCKS_DB, SSE}
 import de.kp.works.beats.sensor._
+import de.kp.works.beats.sensor.dl.anomaly.{AnomalyMonitor, AnomalyWorker}
+import de.kp.works.beats.sensor.dl.forecast.{ForecastMonitor, ForecastWorker}
 import de.kp.works.beats.sensor.milesight.channel.{MsFiware, MsRocks}
+import org.apache.spark.sql.BeatSession
 /**
  * [MsService] is built to manage the various micro
  * services used to provide the REST API and also
  * the multiple output channels
  */
-class MsService(config:MsConf) extends BeatService[MsConf](config) {
+class MsService(config:MsConf) extends BeatService[MsConf](config) with MsLogging {
 
   override protected var serviceName: String = "MsService"
   /**
    * Initialize the local RocksDB storage
    */
   private val options = new MsOptions(config)
-  MsRocksApi.getInstance(options)
+  BeatRocksApi
+    .getInstance(options.getRocksTables, options.getRocksFolder)
 
   import BeatRoute._
   override def buildRoute(queue: SourceQueueWithComplete[String],
@@ -80,13 +84,13 @@ class MsService(config:MsConf) extends BeatService[MsConf](config) {
        * retrieve anomalies
        */
       BEAT_ANOMALY_ACTOR ->
-        system.actorOf(Props(new AnomalyActor(queue)), BEAT_ANOMALY_ACTOR),
+        system.actorOf(Props(new AnomalyActor()), BEAT_ANOMALY_ACTOR),
       /*
        * Train time series prediction model
        * & retrieve forecasts
        */
       BEAT_FORECAST_ACTOR ->
-        system.actorOf(Props(new ForecastActor(queue)), BEAT_FORECAST_ACTOR),
+        system.actorOf(Props(new ForecastActor()), BEAT_FORECAST_ACTOR),
       /*
        * Retrieve sensor inferred readings via SQL query
        */
@@ -162,10 +166,25 @@ class MsService(config:MsConf) extends BeatService[MsConf](config) {
     })
     /*
      * Start the scheduled anomaly detection and
-     * timeseries forecasting tasks
+     * timeseries forecasting monitors
      */
+    val numThreads = config.getNumThreads
+    val session = BeatSession.getSession
+    /*
+     * Build & initialize the `AnomalyWorker` and
+     * the respective monitor
+     */
+    val anomalyWorker = new AnomalyWorker(queue, session, logger)
+    val anomalyMonitor = new AnomalyMonitor[MsConf](config, numThreads)
+    /*
+     * Build & initialize the `ForecastWorker` and
+     * the respective monitor
+     */
+    val forecastWorker = new ForecastWorker(queue, session, logger)
+    val forecastMonitor = new ForecastMonitor[MsConf](config, numThreads)
 
-    // TODO
+    anomalyMonitor.start[AnomalyWorker](anomalyWorker)
+    forecastMonitor.start[ForecastWorker](forecastWorker)
 
   }
 }

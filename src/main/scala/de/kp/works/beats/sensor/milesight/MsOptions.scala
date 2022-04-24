@@ -38,7 +38,10 @@ object MsProducts extends Enumeration {
   val EM_300: MsProducts.Value = Value(1, "EM_300")
 
 }
-
+/**
+ * Wrapper for Milesight sensors specific
+ * service configuration
+ */
 class MsOptions(config:MsConf) extends ThingsOptions(config) {
 
   /**

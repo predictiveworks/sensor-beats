@@ -151,3 +151,11 @@ object BeatTasks extends Enumeration {
   val FORECAST: BeatTasks.Value = Value(2, "forecast")
 
 }
+
+object BeatStatuses extends Enumeration {
+  type BeatStatus = Value
+
+  val STARTED: BeatStatuses.Value  = Value(1, "started")
+  val FINISHED: BeatStatuses.Value = Value(2, "finished")
+
+}

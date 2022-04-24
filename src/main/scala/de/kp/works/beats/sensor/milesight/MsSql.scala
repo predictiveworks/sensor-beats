@@ -22,7 +22,7 @@ package de.kp.works.beats.sensor.milesight
 import akka.stream.scaladsl.SourceQueueWithComplete
 import ch.qos.logback.classic.Logger
 import com.google.gson.{JsonArray, JsonElement, JsonObject}
-import de.kp.works.beats.sensor.{BeatAttrs, BeatDot, BeatSql, TimeFilter, TimeValueFilter, ValueFilter}
+import de.kp.works.beats.sensor.{BeatAttrs, BeatDot, BeatRocksApi, BeatSql, TimeFilter, TimeValueFilter, ValueFilter}
 import de.kp.works.beats.sensor.BeatAttrs.{TIME, VALUE}
 import de.kp.works.beats.sensor.ta4j.TATrend
 import org.apache.spark.sql.BeatSession
@@ -44,7 +44,7 @@ class MsSql(queue: SourceQueueWithComplete[String], logger:Logger) extends TATre
    * At this stage, the RocksDB must be initialized
    * already, therefore no `options` are provided
    */
-  private val msRocksApi = MsRocksApi.getInstance
+  private val rocksApi = BeatRocksApi.getInstance
   private val emptyResponse = new JsonArray
 
   private var table:String = _
@@ -176,7 +176,7 @@ class MsSql(queue: SourceQueueWithComplete[String], logger:Logger) extends TATre
   }
 
   private def toDots:Seq[BeatDot] = {
-    msRocksApi.scan(table)
+    rocksApi.scan(table)
       .map { case (time, value) => BeatDot(time, value.toDouble) }
   }
 
@@ -186,7 +186,7 @@ class MsSql(queue: SourceQueueWithComplete[String], logger:Logger) extends TATre
   }
 
   private def toRows:Seq[(Long,Double)] = {
-    msRocksApi.scan(table)
+    rocksApi.scan(table)
       .map { case (time, value) => (time, value.toDouble) }
   }
 
@@ -236,7 +236,7 @@ class MsSql(queue: SourceQueueWithComplete[String], logger:Logger) extends TATre
      * Return the full range of available dots
      * from the specified `table`
      */
-    msRocksApi.scan(table).foreach { case (time, value) =>
+    rocksApi.scan(table).foreach { case (time, value) =>
 
       val dot = new JsonObject
       dot.addProperty("time", time)

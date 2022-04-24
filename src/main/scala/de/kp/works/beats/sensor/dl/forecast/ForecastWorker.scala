@@ -21,7 +21,9 @@ package de.kp.works.beats.sensor.dl.forecast
 
 import akka.stream.scaladsl.SourceQueueWithComplete
 import ch.qos.logback.classic.Logger
+import de.kp.works.beats.sensor.{BeatJob, BeatJobs, BeatStatuses}
 import de.kp.works.beats.sensor.dl.BeatWorker
+import org.apache.spark.sql.SparkSession
 
 /**
  * [ForecastWorker] is responsible for executing the
@@ -29,8 +31,37 @@ import de.kp.works.beats.sensor.dl.BeatWorker
  * can be executed either on an adhoc basis (API) or
  * scheduled
  */
-class ForecastWorker(queue: SourceQueueWithComplete[String], logger:Logger) extends BeatWorker {
+class ForecastWorker(
+  queue:SourceQueueWithComplete[String], session:SparkSession, logger:Logger)
+  extends BeatWorker(queue, session, logger) {
 
-  override def execute(table:String, start:Long, end:Long): Unit = ???
+  private val provider = "ForecastWorker"
+  private val FORECAST_10_EVENT = "Dataset loaded."
+
+  override def execute(table:String, start:Long, end:Long): Unit = {
+
+    startts = System.currentTimeMillis
+    currts  = startts
+    /*
+     * STEP #1: Inform the [BeatJobs] that the respective
+     * deep learning task was started.
+     */
+    val jobId = s"fore-${java.util.UUID.randomUUID.toString}"
+    val beatJob = BeatJob(
+      id = jobId, createdAt = startts, updatedAt = 0L, status = BeatStatuses.STARTED)
+
+    BeatJobs.register(beatJob)
+    /*
+     * STEP #2: Load specified dataframe
+     */
+    val dataframe = loadDataset(table, start, end)
+
+    nextts = System.currentTimeMillis
+    if (verbose) println(s"Dataset loaded in ${nextts - currts} ms.")
+
+    if (queue != null) publisher.pushEvent(FORECAST_10_EVENT, provider, "train", 0.1)
+
+    ???
+  }
 
 }
