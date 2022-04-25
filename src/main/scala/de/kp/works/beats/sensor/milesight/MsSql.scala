@@ -19,12 +19,10 @@ package de.kp.works.beats.sensor.milesight
  *
  */
 
-import akka.stream.scaladsl.SourceQueueWithComplete
-import ch.qos.logback.classic.Logger
 import com.google.gson.{JsonArray, JsonElement, JsonObject}
-import de.kp.works.beats.sensor.{BeatAttrs, BeatDot, BeatRocksApi, BeatSql, TimeFilter, TimeValueFilter, ValueFilter}
 import de.kp.works.beats.sensor.BeatAttrs.{TIME, VALUE}
 import de.kp.works.beats.sensor.ta4j.TATrend
+import de.kp.works.beats.sensor._
 import org.apache.spark.sql.BeatSession
 
 import scala.collection.JavaConversions.iterableAsScalaIterable
@@ -32,7 +30,7 @@ import scala.collection.JavaConversions.iterableAsScalaIterable
  * [MsSql] supports the `Sensor as a Table` concept,
  * that is taken from Osquery.
  */
-class MsSql(queue: SourceQueueWithComplete[String], logger:Logger) extends TATrend {
+class MsSql extends TATrend with MsLogging {
   /**
    * Validating the SQL statement is performed
    * using the Apache Spark SqlParser, which is

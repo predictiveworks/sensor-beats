@@ -22,13 +22,12 @@ package de.kp.works.beats.sensor.milesight
 import akka.actor.{Actor, ActorRef, Props}
 import akka.http.scaladsl.model.HttpRequest
 import akka.routing.RoundRobinPool
-import akka.stream.scaladsl.SourceQueueWithComplete
 import ch.qos.logback.classic.Logger
 import com.google.gson.{JsonArray, JsonObject}
 import de.kp.works.beats.sensor.BeatTasks.{ANOMALY, FORECAST}
 import de.kp.works.beats.sensor.api._
 import de.kp.works.beats.sensor.dl.{BeatQueue, QueueEntry}
-import de.kp.works.beats.sensor.{BeatConf, BeatMessages, BeatRocks, BeatTasks}
+import de.kp.works.beats.sensor.{BeatMessages, BeatRocks, BeatTasks}
 
 class DeepWorker(logger:Logger) extends Actor {
 
@@ -89,16 +88,13 @@ class DeepWorker(logger:Logger) extends Actor {
  * on a scheduled basis, but can also be executed on
  * demand as well.
  */
-class AnomalyActor extends ApiActor {
-
-  override protected var logger: Logger = MsLogger.getLogger
-  override protected var config: BeatConf = MsConf.getInstance
+class AnomalyActor(config:MsConf) extends ApiActor(config) with MsLogging {
 
   private val worker:ActorRef =
     system
       .actorOf(RoundRobinPool(instances)
         .withResizer(resizer)
-        .props(Props(new DeepWorker(logger))), "AnomalyWorker")
+        .props(Props(new DeepWorker(logger))), "AnomWorker")
 
   /**
    * The response of this request is a JsonArray;
@@ -125,6 +121,8 @@ class AnomalyActor extends ApiActor {
 
   }
 
+  override def getLogger: Logger = logger
+
 }
 /**
  * The [ForecastActor] supports the re-training
@@ -135,16 +133,13 @@ class AnomalyActor extends ApiActor {
  * performed on a scheduled basis, but can also be
  * executed on demand as well.
  */
-class ForecastActor extends ApiActor {
-
-  override protected var logger: Logger = MsLogger.getLogger
-  override protected var config: BeatConf = MsConf.getInstance
+class ForecastActor(config:MsConf) extends ApiActor(config) with MsLogging {
 
   private val worker:ActorRef =
     system
       .actorOf(RoundRobinPool(instances)
         .withResizer(resizer)
-        .props(Props(new DeepWorker(logger))), "ForecastWorker")
+        .props(Props(new DeepWorker(logger))), "ForeWorker")
 
   /**
    * The response of this request is a JsonArray;
@@ -171,6 +166,8 @@ class ForecastActor extends ApiActor {
 
   }
 
+  override def getLogger: Logger = logger
+
 }
 /**
  * The [InsightActor] supports the provisioning of
@@ -178,16 +175,13 @@ class ForecastActor extends ApiActor {
  * This actor is part of the `Sensor as a Table`
  * approach.
  */
-class InsightActor(queue: SourceQueueWithComplete[String]) extends ApiActor {
-
-  override protected var logger: Logger = MsLogger.getLogger
-  override protected var config: BeatConf = MsConf.getInstance
+class InsightActor(config:MsConf) extends ApiActor(config) with MsLogging {
   /**
    * [MsSql] is used to do the SQL query interpretation,
    * transformation to RocksDB commands and returning
    * the respective entries
    */
-  private val msSql = new MsSql(queue, logger)
+  private val msSql = new MsSql()
   /**
    * The response of this request is a JsonArray;
    * in case of an invalid request, an empty response
@@ -224,6 +218,8 @@ class InsightActor(queue: SourceQueueWithComplete[String]) extends ApiActor {
 
   }
 
+  override def getLogger: Logger = logger
+
 }
 
 /**
@@ -231,16 +227,13 @@ class InsightActor(queue: SourceQueueWithComplete[String]) extends ApiActor {
  * sensor events based on a SQL statement. This actor
  * is part of the `Sensor as a Table` approach.
  */
-class MonitorActor(queue: SourceQueueWithComplete[String]) extends ApiActor {
-
-  override protected var logger: Logger = MsLogger.getLogger
-  override protected var config: BeatConf = MsConf.getInstance
+class MonitorActor(config:MsConf) extends ApiActor(config) with MsLogging {
   /**
    * [MsSql] is used to do the SQL query interpretation,
    * transformation to RocksDB commands and returning
    * the respective entries
    */
-  private val msSql = new MsSql(queue, logger)
+  private val msSql = new MsSql()
   /**
    * The response of this request is a JsonArray;
    * in case of an invalid request, an empty response
@@ -277,6 +270,8 @@ class MonitorActor(queue: SourceQueueWithComplete[String]) extends ApiActor {
 
   }
 
+  override def getLogger: Logger = logger
+
 }
 /**
  * The [TrendActor] supports the provisioning of
@@ -284,16 +279,13 @@ class MonitorActor(queue: SourceQueueWithComplete[String]) extends ApiActor {
  * This actor is part of the `Sensor as a Table`
  * approach.
  */
-class TrendActor(queue: SourceQueueWithComplete[String]) extends ApiActor {
-
-  override protected var logger: Logger = MsLogger.getLogger
-  override protected var config: BeatConf = MsConf.getInstance
+class TrendActor(config:MsConf) extends ApiActor(config) with MsLogging {
   /**
    * [MsSql] is used to do the SQL query interpretation,
    * transformation to RocksDB commands and returning
    * the respective entries
    */
-  private val msSql = new MsSql(queue, logger)
+  private val msSql = new MsSql()
   /**
    * The response of this request is a JsonArray;
    * in case of an invalid request, an empty response
@@ -339,5 +331,7 @@ class TrendActor(queue: SourceQueueWithComplete[String]) extends ApiActor {
     }
 
   }
+
+  override def getLogger: Logger = logger
 
 }

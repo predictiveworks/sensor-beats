@@ -37,10 +37,7 @@ import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContextExecutor}
 import scala.util.Try
 
-abstract class ApiActor extends Actor {
-
-  protected var logger:Logger
-  protected var config:BeatConf
+abstract class ApiActor[C <: BeatConf](config:C) extends Actor {
 
   import ApiActor._
 
@@ -109,6 +106,8 @@ abstract class ApiActor extends Actor {
       case _: Exception                => Escalate
     }
 
+  def getLogger:Logger
+
   override def receive: Receive = {
 
     case request:HttpRequest =>
@@ -120,7 +119,7 @@ abstract class ApiActor extends Actor {
             /*
              * Send invalid message as response
              */
-            logger.error(t.getLocalizedMessage)
+            getLogger.error(t.getLocalizedMessage)
             throw new Exception(t.getLocalizedMessage)
         })
 
@@ -165,7 +164,7 @@ abstract class ApiActor extends Actor {
 
     } catch {
       case t:Throwable =>
-        logger.error(t.getLocalizedMessage)
+        getLogger.error(t.getLocalizedMessage)
         null
     }
 

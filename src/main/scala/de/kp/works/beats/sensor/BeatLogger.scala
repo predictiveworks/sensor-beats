@@ -27,16 +27,33 @@ import ch.qos.logback.core.rolling.{RollingFileAppender, SizeAndTimeBasedRolling
 import ch.qos.logback.core.util.FileSize
 import org.slf4j.LoggerFactory
 
-trait BeatLogger {
+object BeatLogger {
 
-  protected def getFolder:String
-  protected var loggerName:String
+  private var instance:Option[BeatLogger] = None
+  private var logger:Option[Logger] = None
+
+  def getInstance(name:String,path:String):BeatLogger = {
+    if (instance.isEmpty) {
+      val beatLogger = new BeatLogger(name, path)
+      logger = Some(beatLogger.buildLogger)
+
+      instance = Some(beatLogger)
+    }
+
+    instance.get
+  }
+
+  def getLogger:Logger = logger.get
+
+}
+
+class BeatLogger(name:String,path:String) {
 
   /**
    * This method build the Logback logger including
    * a rolling file appender programmatically
    */
-  protected def buildLogger:Logger = {
+  def buildLogger:Logger = {
 
     val logCtx = LoggerFactory.getILoggerFactory.asInstanceOf[LoggerContext]
 
@@ -58,7 +75,7 @@ trait BeatLogger {
     logFileAppender.setEncoder(logEncoder.asInstanceOf[Encoder[ILoggingEvent]])
 
     logFileAppender.setAppend(true)
-    logFileAppender.setFile(s"${getFolder}beat.log")
+    logFileAppender.setFile(s"$path/beat.log")
     /*
      * Set time- and size-based rolling policy
      */
@@ -66,7 +83,7 @@ trait BeatLogger {
     logFilePolicy.setContext(logCtx)
 
     logFilePolicy.setParent(logFileAppender)
-    logFilePolicy.setFileNamePattern(s"${getFolder}beat.%d{yyyy-MM-dd}.%i.log")
+    logFilePolicy.setFileNamePattern(s"$path/beat.%d{yyyy-MM-dd}.%i.log")
 
     logFilePolicy.setMaxFileSize(FileSize.valueOf("100mb"))
     logFilePolicy.setTotalSizeCap(FileSize.valueOf("3GB"))
@@ -79,7 +96,7 @@ trait BeatLogger {
     /*
      * Finally builder logger
      */
-    val logger = logCtx.getLogger(loggerName)
+    val logger = logCtx.getLogger(name)
     logger.setAdditive(false)
 
     logger.setLevel(Level.INFO)

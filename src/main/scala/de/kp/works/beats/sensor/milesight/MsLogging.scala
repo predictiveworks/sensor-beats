@@ -22,9 +22,7 @@ package de.kp.works.beats.sensor.milesight
 import ch.qos.logback.classic.Logger
 import de.kp.works.beats.sensor.BeatLogger
 
-object MsLogger extends BeatLogger {
-
-  override protected var loggerName = "MsLogger"
+trait MsLogging {
   /**
    * Initialize the overall `SensorBeat` configuration
    * that is specific for Milesight Sensors
@@ -32,16 +30,14 @@ object MsLogger extends BeatLogger {
   private val config = MsConf.getInstance
   if (!config.isInit) config.init()
 
-  private val logger = buildLogger
-  def getLogger: Logger = logger
-
-  override def getFolder: String = config.getLogFolder
-
-}
-
-trait MsLogging {
-
-  val logger: Logger = MsLogger.getLogger
+  private val loggerName = "MsLogger"
+  private val loggerPath = config.getLogFolder
+  /*
+   * Initialize the [BeatLogger]; this is the first
+   * step to retrieve the [Logger]
+   */
+  BeatLogger.getInstance(loggerName, loggerPath)
+  val logger: Logger = BeatLogger.getLogger
 
   def info(message: String): Unit = {
     logger.info(s"$message")
