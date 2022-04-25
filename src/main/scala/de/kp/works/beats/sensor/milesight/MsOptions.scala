@@ -43,7 +43,11 @@ object MsProducts extends Enumeration {
  * Wrapper for Milesight sensors specific
  * service configuration
  */
-class MsOptions(config:MsConf) extends ThingsOptions(config) {
+class MsOptions(config:MsConf) {
+
+  private val fiwareOptions = new FiwareOptions[MsConf](config)
+  private val thingsOptions = new ThingsOptions[MsConf](config)
+
   /**
    * Channels in the context of a `SensorBeat` are
    * actors that receive a `BeatSensor` message and
@@ -63,11 +67,15 @@ class MsOptions(config:MsConf) extends ThingsOptions(config) {
   def getProduct:MsProducts.Value = ???
 
   def getRocksFolder:String = ???
+  /**
+   * Public wrapper method to retrieve the RocksDB
+   * column families that are specified for the
+   * Milesight sensor.
+   */
+  def getRocksTables:Seq[String] = config.getRocksTables
 
-  def getRocksTables:Seq[String] = ???
+  def toFiware:FiwareOptions[MsConf] = fiwareOptions
 
-  def toFiware:FiwareOptions[MsConf] = new FiwareOptions[MsConf](config)
-
-  def toThings:ThingsOptions[MsConf] = new ThingsOptions[MsConf](config)
+  def toThings:ThingsOptions[MsConf] = thingsOptions
 
 }

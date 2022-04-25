@@ -34,7 +34,7 @@ abstract class Consumer[T <: BeatConf](options:Options[T]) {
   protected val TTN_UPLINK_MESSAGE  = "uplink_message"
 
   private val mqttClient: Option[MqttClient] = buildMqttClient
-  protected var logger:Logger
+  protected def getLogger:Logger
 
   /**
    * Internal method to build an Eclipse Paho
@@ -89,11 +89,11 @@ abstract class Consumer[T <: BeatConf](options:Options[T]) {
 
     if (!mqttClient.get.isConnected) {
       val message = s"MQTT Consumer could not connect to: ${options.getBrokerUrl}."
-      logger.error(message)
+      getLogger.error(message)
     }
     else {
       val message = s"MQTT Consumer is connected with: ${options.getBrokerUrl}."
-      logger.info(message)
+      getLogger.info(message)
 
       mqttClient.get.subscribe(options.getMqttTopic, options.getMqttQos)
 
@@ -105,7 +105,7 @@ abstract class Consumer[T <: BeatConf](options:Options[T]) {
    * specified MQTT broker
    */
   def restart(t:Throwable): Unit = {
-    logger.warn(s"MQTT Consumer restart due to: ${t.getLocalizedMessage}")
+    getLogger.warn(s"MQTT Consumer restart due to: ${t.getLocalizedMessage}")
     subscribeAndPublish()
   }
 
@@ -115,7 +115,7 @@ abstract class Consumer[T <: BeatConf](options:Options[T]) {
     mqttClient.get.disconnect()
 
     val message = s"MQTT Consumer is disconnected from: ${options.getBrokerUrl}."
-    logger.info(message)
+    getLogger.info(message)
 
   }
   /**

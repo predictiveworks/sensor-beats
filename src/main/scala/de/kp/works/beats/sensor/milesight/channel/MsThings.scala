@@ -22,7 +22,7 @@ package de.kp.works.beats.sensor.milesight.channel
 import ch.qos.logback.classic.Logger
 import com.google.gson.JsonParser
 import de.kp.works.beats.sensor.milesight.MsProducts.EM_300
-import de.kp.works.beats.sensor.milesight.{MsConf, MsLogger, MsOptions}
+import de.kp.works.beats.sensor.milesight.{MsConf, MsLogging, MsOptions}
 import de.kp.works.beats.sensor.thingsstack.Consumer
 import de.kp.works.beats.sensor._
 import org.eclipse.paho.client.mqttv3.MqttMessage
@@ -34,10 +34,10 @@ import scala.collection.JavaConversions.collectionAsScalaIterable
  * the common consumer for all Milesight sensors, and the
  * publishing of their readings to various output channels.
  */
-class MsThings(options: MsOptions) extends Consumer[MsConf](options.toThings) {
+class MsThings(options: MsOptions) extends Consumer[MsConf](options.toThings) with MsLogging {
 
   private val BRAND_NAME = "Milesight"
-  override protected var logger: Logger = MsLogger.getLogger
+  override protected def getLogger: Logger = logger
   /**
    * Public method to persist the content of the received MQTT message
    * from the Things Stack in the internal RocksDB of the Milesight Beat.

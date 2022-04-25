@@ -19,9 +19,7 @@ package de.kp.works.beats.sensor.milesight
  *
  */
 
-import de.kp.works.beats.sensor.{BeatConf, BeatTasks}
-
-import scala.collection.JavaConversions.asScalaBuffer
+import de.kp.works.beats.sensor.BeatConf
 
 object MsConf {
 
@@ -40,26 +38,6 @@ class MsConf extends BeatConf {
    */
   override var path: String = "milesight.conf"
   /**
-   * The name of the configuration file used
-   * with logging
-   */
-  override var logname: String = "Beat"
-  /**
-   * Channels in the context of a `SensorBeat` are
-   * actors that receive a `BeatSensor` message and
-   * perform specific data operations like sending
-   * to RocksDB, a FIWARE Context Broker and more
-   */
-  def getChannels:Seq[String] = {
-    val outputCfg = getOutputCfg
-    outputCfg.getStringList("channels")
-  }
-  /**
-   * This method provides the number of threads used
-   * to build the deep learning monitors
-   */
-  override def getNumThreads: Int = ???
-  /**
    * Retrieve the sensor specific table names of
    * the `SensorBeat` database; these are coded
    * within `MsTables`.
@@ -69,10 +47,4 @@ class MsConf extends BeatConf {
       .map(value => value.toString)
       .toSeq
   }
-  /**
-   * The scheduler intervals for the deep learning
-   * jobs for anomaly detection as well as time series
-   * forecasting
-   */
-  override def getSchedulerIntervals: Map[BeatTasks.Value, Int] = ???
 }

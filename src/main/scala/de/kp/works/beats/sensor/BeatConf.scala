@@ -21,7 +21,10 @@ package de.kp.works.beats.sensor
 
 import akka.http.scaladsl.ConnectionContext
 import com.typesafe.config.{Config, ConfigFactory}
+import de.kp.works.beats.sensor.BeatTasks.{ANOMALY, FORECAST}
 import de.kp.works.beats.sensor.ssl.SslOptions
+
+import scala.collection.JavaConversions.asScalaBuffer
 
 /**
  * The base class for all sensor specific
@@ -36,7 +39,7 @@ abstract class BeatConf {
    * The name of the configuration file used
    * with logging
    */
-  var logname: String
+  var logname: String = "Beat"
   /**
    * In case of a deployed `Sensor Beat`, the file system
    * path to the configuration folder is provided as system
@@ -70,6 +73,16 @@ abstract class BeatConf {
 
     cfg.get.getConfig(name)
 
+  }
+  /**
+   * Channels in the context of a `SensorBeat` are
+   * actors that receive a `BeatSensor` message and
+   * perform specific data operations like sending
+   * to RocksDB, a FIWARE Context Broker and more
+   */
+  def getChannels:Seq[String] = {
+    val outputCfg = getOutputCfg
+    outputCfg.getStringList("channels").toSeq
   }
   /**
    * Method to build the HTTPS connection context;
@@ -116,7 +129,24 @@ abstract class BeatConf {
    * This method provides the number of threads used
    * to build the deep learning monitors
    */
-  def getNumThreads:Int
+  def getNumThreads: Map[BeatTasks.Value, Int] = {
+
+    val learningCfg = getCfg("learning")
+    /*
+     * The number of threads can be configured
+     * independently whether it is the anomaly
+     * detection or the timeseries forecasting
+     * monitor.
+     */
+    Map(
+      ANOMALY ->
+        learningCfg.getInt("anomThreads"),
+
+      FORECAST ->
+        learningCfg.getInt("foreThreads")
+    )
+
+  }
   /**
    * This method provides the configuration for the
    * `SensorBeat`'s output channels
@@ -154,7 +184,24 @@ abstract class BeatConf {
    * jobs for anomaly detection as well as time series
    * forecasting
    */
-  def getSchedulerIntervals:Map[BeatTasks.Value, Int]
+  def getSchedulerIntervals: Map[BeatTasks.Value, Int] = {
+
+    val learningCfg = getCfg("learning")
+    /*
+     * The scheduling intervals can be configured
+     * independently whether it is the anomaly
+     * detection or the timeseries forecasting
+     * monitor.
+     */
+    Map(
+      ANOMALY ->
+        learningCfg.getInt("anomInterval"),
+
+      FORECAST ->
+        learningCfg.getInt("foreInterval")
+    )
+
+  }
   /**
    * This method provides the SSL configuration of the
    * Sensor Beat (HTTP Server)

@@ -185,23 +185,26 @@ class MsService(config:MsConf) extends BeatService[MsConf](config) with MsLoggin
    */
   private def buildMonitors(queue: SourceQueueWithComplete[String]):Unit = {
 
-    val numThreads = config.getNumThreads
     val session = BeatSession.getSession
     /*
      * Build & initialize the `AnomWorker` and
      * the respective monitor
      */
     val anomWorker = new AnomWorker(queue, session, logger)
-    val anomMonitor = new AnomMonitor[MsConf](config, numThreads)
+
+    val anomThreads = config.getNumThreads(BeatTasks.ANOMALY)
+    val anomMonitor = new AnomMonitor[MsConf](config, anomThreads)
     /*
      * Build & initialize the `ForeWorker` and
      * the respective monitor
      */
-    val forecastWorker = new ForeWorker(queue, session, logger)
-    val forecastMonitor = new ForeMonitor[MsConf](config, numThreads)
+    val foreWorker = new ForeWorker(queue, session, logger)
+
+    val foreThreads = config.getNumThreads(BeatTasks.FORECAST)
+    val foreMonitor = new ForeMonitor[MsConf](config,foreThreads)
 
     anomMonitor.start[AnomWorker](anomWorker)
-    forecastMonitor.start[ForeWorker](forecastWorker)
+    foreMonitor.start[ForeWorker](foreWorker)
 
   }
 }
