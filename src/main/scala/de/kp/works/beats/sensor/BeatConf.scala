@@ -176,7 +176,8 @@ abstract class BeatConf {
   }
   /**
    * Retrieve the sensor specific table names of
-   * the `SensorBeat` database
+   * the `SensorBeat` database; this method is
+   * sensor specific and must be overwritten
    */
   def getRocksTables:Seq[String]
   /**

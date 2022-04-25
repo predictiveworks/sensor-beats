@@ -27,7 +27,7 @@ import com.google.gson.{JsonArray, JsonObject}
 import de.kp.works.beats.sensor.BeatTasks.{ANOMALY, FORECAST}
 import de.kp.works.beats.sensor.api._
 import de.kp.works.beats.sensor.dl.{BeatQueue, QueueEntry}
-import de.kp.works.beats.sensor.{BeatMessages, BeatRocks, BeatTasks}
+import de.kp.works.beats.sensor.{BeatJobs, BeatMessages, BeatRocks, BeatTasks}
 
 class DeepWorker(logger:Logger) extends Actor {
 
@@ -55,6 +55,7 @@ class DeepWorker(logger:Logger) extends Actor {
          * Build queue entry
          */
         val qe = QueueEntry(
+          id        = request.id,
           createdAt = System.currentTimeMillis,
           table     = request.table,
           startTime = request.startTime,
@@ -157,7 +158,14 @@ class ForecastActor(config:MsConf) extends ApiActor(config) with MsLogging {
     }
 
     val req = mapper.readValue(json.toString, classOf[DeepReq])
-    worker ! req
+    /*
+     * Each deep learning request receives a unique
+     * job identifier
+     */
+    val jid = s"job-${java.util.UUID.randomUUID.toString}"
+    val reqS = req.copy(id = jid)
+
+    worker ! reqS
 
     val response = new JsonObject
     response.addProperty("message", BeatMessages.forecastStarted())
@@ -209,6 +217,51 @@ class InsightActor(config:MsConf) extends ApiActor(config) with MsLogging {
 
     try {
       msSql.read(sql)
+
+    } catch {
+      case t:Throwable =>
+        logger.error(BeatMessages.insightFailed(t))
+        emptyResponse.toString
+    }
+
+  }
+
+  override def getLogger: Logger = logger
+
+}
+/**
+ * The [JobActor] supports the provisioning of
+ * status information about deep learning jobs
+ */
+class JobActor(config:MsConf) extends ApiActor(config) with MsLogging {
+  /**
+   * The response of this request is a JsonObject;
+   * in case of an invalid request, an empty response
+   * is returned
+   */
+  private val emptyResponse = new JsonObject
+
+  override def execute(request: HttpRequest): String = {
+
+    val json = getBodyAsJson(request)
+    if (json == null) {
+      logger.warn(BeatMessages.invalidJson())
+      return emptyResponse.toString
+    }
+
+    val req = mapper.readValue(json.toString, classOf[JobReq])
+    val jid = req.id
+    /*
+     * Validate job identifier
+     */
+    if (jid.isEmpty) {
+      logger.warn(BeatMessages.emptyJob())
+      return emptyResponse.toString
+    }
+
+    try {
+      val job = BeatJobs.get(jid)
+      mapper.writeValueAsString(job)
 
     } catch {
       case t:Throwable =>

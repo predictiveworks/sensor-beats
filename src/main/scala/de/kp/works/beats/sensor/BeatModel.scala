@@ -155,7 +155,8 @@ object BeatTasks extends Enumeration {
 object BeatStatuses extends Enumeration {
   type BeatStatus = Value
 
-  val STARTED: BeatStatuses.Value  = Value(1, "started")
-  val FINISHED: BeatStatuses.Value = Value(2, "finished")
+  val NOT_STARTED: BeatStatuses.Value = Value(1, "not_started")
+  val STARTED: BeatStatuses.Value     = Value(2, "started")
+  val FINISHED: BeatStatuses.Value    = Value(3, "finished")
 
 }

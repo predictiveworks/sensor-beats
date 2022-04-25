@@ -39,6 +39,7 @@ object BeatRoute {
   val BEAT_ANOMALY_ACTOR  = "beat_anomaly_actor"
   val BEAT_FORECAST_ACTOR = "beat_forecast_actor"
   val BEAT_INSIGHT_ACTOR  = "beat_insight_actor"
+  val BEAT_JOB_ACTOR      = "beat_job_actor"
   val BEAT_MONITOR_ACTOR  = "beat_monitor_actor"
   val BEAT_TREND_ACTOR    = "beat_trend_actor"
 
@@ -63,6 +64,7 @@ class BeatRoute(
     getEvent ~
     getForecast ~
     getInsight ~
+    getJob ~
     getMonitor ~
     getTrend
 
@@ -103,6 +105,11 @@ class BeatRoute(
    * time series
    */
   private def getInsight:Route = routePost("beat/v1/insight", actors(BEAT_INSIGHT_ACTOR))
+  /**
+   * `SensorBeat` API route to read the status
+   * of a deep learning job (or task)
+   */
+  private def getJob:Route = routePost("beat/v1/job", actors(BEAT_JOB_ACTOR))
   /**
    * `SensorBeat` API route to invoke monitoring
    * time series

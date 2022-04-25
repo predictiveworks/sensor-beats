@@ -22,6 +22,15 @@ import scala.collection.mutable
  */
 
 case class QueueEntry(
+  /*
+   * The unique identifier of the respective
+   * deep learning task
+   */
+  id:String,
+  /*
+   * The timestamp this queue entry has been
+   * created
+   */
   createdAt:Long,
   /*
    * Database table specification

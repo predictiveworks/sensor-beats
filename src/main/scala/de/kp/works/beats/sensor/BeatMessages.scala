@@ -33,6 +33,9 @@ object BeatMessages {
   def emptyIndicator():String =
     s"Request contains no technical indicator."
 
+  def emptyJob():String =
+    s"Request contains no deep learning job identifier."
+
   def emptySql():String =
     s"Request contains empty SQL query."
 

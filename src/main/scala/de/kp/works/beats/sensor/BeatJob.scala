@@ -67,4 +67,12 @@ object BeatJobs {
     registry += job.id -> job
   }
 
+  def get(jid:String):BeatJob = {
+    if (registry.contains(jid))
+      registry(jid)
+
+    else {
+      BeatJob(jid, 0L, 0L, BeatStatuses.NOT_STARTED)
+    }
+  }
 }

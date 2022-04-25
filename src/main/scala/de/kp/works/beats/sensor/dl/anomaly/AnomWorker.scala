@@ -38,7 +38,7 @@ class AnomWorker(
   private val provider = getClass.getName
   private val ANOMALY_10_EVENT = "Dataset loaded."
 
-  override def execute(table:String, start:Long, end:Long): Unit = {
+  override def execute(jid:String, table:String, start:Long, end:Long): Unit = {
 
     startts = System.currentTimeMillis
     currts  = startts
@@ -46,9 +46,8 @@ class AnomWorker(
      * STEP #1: Inform the [BeatJobs] that the respective
      * deep learning task was started.
      */
-    val jobId = s"anom-${java.util.UUID.randomUUID.toString}"
-    val beatJob = BeatJob(
-      id = jobId, createdAt = startts, updatedAt = 0L, status = BeatStatuses.STARTED)
+     val beatJob = BeatJob(
+      id = jid, createdAt = startts, updatedAt = 0L, status = BeatStatuses.STARTED)
 
     BeatJobs.register(beatJob)
     /*

@@ -51,7 +51,7 @@ abstract class BeatWorker(
     this.verbose = verbose
   }
 
-  def execute(table:String, start:Long, end:Long):Unit
+  def execute(jid:String, table:String, start:Long, end:Long):Unit
 
   def loadDataset(table:String, start:Long, end:Long):DataFrame = {
 

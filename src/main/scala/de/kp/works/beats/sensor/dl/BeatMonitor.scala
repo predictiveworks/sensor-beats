@@ -67,7 +67,8 @@ abstract class BeatMonitor[C <: BeatConf](config:C, task:BeatTasks.Value, numThr
           if (logger != null)
             logger.info(s"Deep learning task `${task.toString}` started.")
 
-          worker.execute(qe.get.table, qe.get.startTime, qe.get.endTime)
+          worker.execute(
+            qe.get.id, qe.get.table, qe.get.startTime, qe.get.endTime)
 
         }
       }

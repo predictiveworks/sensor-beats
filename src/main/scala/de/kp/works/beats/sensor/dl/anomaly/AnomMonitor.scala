@@ -44,8 +44,14 @@ class AnomMonitor[C <: BeatConf](config:C, numThreads:Int = 1)
        */
       val createdAt = System.currentTimeMillis
       MsTables.getAnonTables.foreach(table => {
+        /*
+         * Each deep learning request receives a unique
+         * job identifier
+         */
+        val jid = s"job-${java.util.UUID.randomUUID.toString}"
         BeatQueue.addAnomaly(
           QueueEntry(
+            id        = jid,
             createdAt = createdAt,
             table     = table.toString,
             startTime = 0L,

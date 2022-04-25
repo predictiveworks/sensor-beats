@@ -20,6 +20,11 @@ package de.kp.works.beats.sensor.api
  */
 
 case class DeepReq(
+  /*
+   * The unique identifier of the respective
+   * deep learning task
+   */
+  id:String,
  /*
   * The name of the table that contains the
   * input data for deep learning task
@@ -63,6 +68,17 @@ case class MonitorReq(
    * data from the sensor's Rocks DB.
    */
   sql:String
+)
+/**
+ * Request format to retrieve the status of
+ * a certain deep learning job (or task)
+ */
+case class JobReq(
+  /*
+   * The unique identifier of the respective
+   * deep learning task
+   */
+  id:String
 )
 /**
  * Request format for SQL based trend requests
