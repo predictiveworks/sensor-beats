@@ -19,14 +19,16 @@ package de.kp.works.beats.sensor.fiware
  *
  */
 
-import de.kp.works.beats.sensor.{BeatConf, BeatSensor}
+import de.kp.works.beats.sensor.BeatActions.{CREATE, UPDATE}
+import de.kp.works.beats.sensor.{BeatChannel, BeatConf, BeatRequest, BeatSensor}
 import de.kp.works.beats.sensor.http.HttpConnect
 /**
  * Base output channel to a FIWARE Context Broker;
  * this producer leverages the Broker REST API to
  * publish sensor readings.
  */
-abstract class Producer[T <: BeatConf](options:Options[T]) extends HttpConnect {
+abstract class Producer[T <: BeatConf](options:Options[T])
+  extends HttpConnect with BeatChannel {
   /**
    * The address of the Fiware Context Broker
    */
@@ -45,6 +47,21 @@ abstract class Producer[T <: BeatConf](options:Options[T]) extends HttpConnect {
   private val httpsContext = options.getHttpsContext
   if (httpsContext.nonEmpty)
     setHttpsContext(httpsContext.get)
+
+  override def execute(request: BeatRequest): Unit = {
+
+    request.action match {
+      case CREATE =>
+        createSensor(request.sensor)
+
+      case UPDATE =>
+        updateSensor(request.sensor)
+
+      case _ => /* Do nothing */
+    }
+
+  }
+
   /**
    * A public method to create a certain sensor
    * entity. The expected HTTP response code of

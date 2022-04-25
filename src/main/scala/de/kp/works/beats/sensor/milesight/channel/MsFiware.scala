@@ -19,27 +19,12 @@ package de.kp.works.beats.sensor.milesight.channel
  *
  */
 
-import de.kp.works.beats.sensor.BeatActions.{CREATE, UPDATE}
+import de.kp.works.beats.sensor.fiware
 import de.kp.works.beats.sensor.milesight.{MsConf, MsOptions}
-import de.kp.works.beats.sensor.{BeatChannel, BeatRequest, fiware}
 /**
  * Implementation of the FIWARE output channel
  */
 class MsFiware(options:MsOptions)
-  extends fiware.Producer[MsConf](options.toFiware) with BeatChannel {
-
-  override def execute(request: BeatRequest): Unit = {
-
-    request.action match {
-      case CREATE =>
-        createSensor(request.sensor)
-
-      case UPDATE =>
-        updateSensor(request.sensor)
-
-      case _ => /* Do nothing */
-    }
-
-  }
+  extends fiware.Producer[MsConf](options.toFiware) {
 
 }

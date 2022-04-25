@@ -153,13 +153,13 @@ class MsThings(options: MsOptions) extends Consumer[MsConf](options.toThings) wi
 
         case _ =>
           val message = s"The specified Milesight sensor product is not supported."
-          logger.warn(message)
+          getLogger.warn(message)
       }
 
     } catch {
       case t:Throwable =>
         val message = s"Publishing Milesight event failed: ${t.getLocalizedMessage}"
-        logger.error(message)
+        getLogger.error(message)
     }
   }
 }

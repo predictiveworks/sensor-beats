@@ -19,66 +19,20 @@ package de.kp.works.beats.sensor.milesight
  *
  */
 
-import akka.actor.{Actor, ActorRef, Props}
+import akka.actor.{ActorRef, Props}
 import akka.http.scaladsl.model.HttpRequest
 import akka.routing.RoundRobinPool
 import ch.qos.logback.classic.Logger
 import com.google.gson.{JsonArray, JsonObject}
-import de.kp.works.beats.sensor.BeatTasks.{ANOMALY, FORECAST}
+import de.kp.works.beats.sensor.BeatMessages
 import de.kp.works.beats.sensor.api._
-import de.kp.works.beats.sensor.dl.{BeatQueue, QueueEntry}
-import de.kp.works.beats.sensor.{BeatJobs, BeatMessages, BeatRocks, BeatTasks}
 
-class DeepWorker(logger:Logger) extends Actor {
+class MsDeepActor extends DeepActor with MsLogging {
 
-  override def receive: Receive = {
+  override def getLogger: Logger = logger
 
-    case request:DeepReq =>
-      /*
-       * Note, adhoc deep learning tasks are queued, to be in
-       * sync with the scheduled tasks; the current implementation
-       * supports environments where only a small number of DL
-       * tasks can be executed simultaneously.
-       */
-      try {
-        /*
-         * Check whether the provided table name
-         * is defined
-         */
-        MsTables.withName(request.table)
-        /*
-         * Check whether the RocksDB is initialized
-         */
-        if (!BeatRocks.isInit)
-          throw new Exception(BeatMessages.rocksNotInitialized())
-        /*
-         * Build queue entry
-         */
-        val qe = QueueEntry(
-          id        = request.id,
-          createdAt = System.currentTimeMillis,
-          table     = request.table,
-          startTime = request.startTime,
-          endTime   = request.endTime)
-        /*
-         * Check and distinguish between the supported
-         * deep learning tasks. Specific task is added
-         * to the respective deep learning queue, that
-         * executed tasks on a scheduled basis
-         */
-        BeatTasks.withName(request.task) match {
-          case ANOMALY =>
-            BeatQueue.addAnomaly(qe)
-
-          case FORECAST =>
-            BeatQueue.addForecast(qe)
-        }
-
-      } catch {
-        case t:Throwable =>
-          logger.error(BeatMessages.deepFailed(t))
-      }
-  }
+  override def validateTable(table: String): Unit =
+    MsTables.withName(table)
 
 }
 /**
@@ -95,7 +49,7 @@ class AnomalyActor(config:MsConf) extends ApiActor(config) with MsLogging {
     system
       .actorOf(RoundRobinPool(instances)
         .withResizer(resizer)
-        .props(Props(new DeepWorker(logger))), "AnomWorker")
+        .props(Props(new MsDeepActor())), "AnomWorker")
 
   /**
    * The response of this request is a JsonArray;
@@ -140,7 +94,7 @@ class ForecastActor(config:MsConf) extends ApiActor(config) with MsLogging {
     system
       .actorOf(RoundRobinPool(instances)
         .withResizer(resizer)
-        .props(Props(new DeepWorker(logger))), "ForeWorker")
+        .props(Props(new MsDeepActor())), "ForeWorker")
 
   /**
    * The response of this request is a JsonArray;
@@ -230,46 +184,11 @@ class InsightActor(config:MsConf) extends ApiActor(config) with MsLogging {
 
 }
 /**
- * The [JobActor] supports the provisioning of
+ * The [MsJobActor] supports the provisioning of
  * status information about deep learning jobs
  */
-class JobActor(config:MsConf) extends ApiActor(config) with MsLogging {
-  /**
-   * The response of this request is a JsonObject;
-   * in case of an invalid request, an empty response
-   * is returned
-   */
-  private val emptyResponse = new JsonObject
-
-  override def execute(request: HttpRequest): String = {
-
-    val json = getBodyAsJson(request)
-    if (json == null) {
-      logger.warn(BeatMessages.invalidJson())
-      return emptyResponse.toString
-    }
-
-    val req = mapper.readValue(json.toString, classOf[JobReq])
-    val jid = req.id
-    /*
-     * Validate job identifier
-     */
-    if (jid.isEmpty) {
-      logger.warn(BeatMessages.emptyJob())
-      return emptyResponse.toString
-    }
-
-    try {
-      val job = BeatJobs.get(jid)
-      mapper.writeValueAsString(job)
-
-    } catch {
-      case t:Throwable =>
-        logger.error(BeatMessages.insightFailed(t))
-        emptyResponse.toString
-    }
-
-  }
+class MsJobActor(config:MsConf)
+  extends JobActor[MsConf](config) with MsLogging {
 
   override def getLogger: Logger = logger
 
