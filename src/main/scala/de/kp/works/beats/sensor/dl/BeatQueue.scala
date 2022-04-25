@@ -46,13 +46,50 @@ object BeatQueue {
 
   private val anomalies = new mutable.Queue[QueueEntry]()
   private val forecasts = new mutable.Queue[QueueEntry]()
-
+  /**
+   * Public method to add another anomaly detection
+   * task to the deep learning task queue
+   */
   def addAnomaly(qe:QueueEntry):Unit = {
-    anomalies += qe
+    anomalies.enqueue(qe)
   }
-
+  /**
+   * Public method to retrieve the `oldest` anomaly
+   * detection task from the queue
+   */
+  def getAnomaly:Option[QueueEntry] = {
+    /*
+     * [Queue] is a FIFO and `dequeue` removes
+     * an element from the head of the queue
+     */
+    if (anomalies.isEmpty) None
+    else {
+      val qe = anomalies.dequeue()
+      Some(qe)
+    }
+  }
+  /**
+   * Public method to add another timeseries
+   * forecasting task to the deep learning
+   * task queue
+   */
   def addForecast(qe:QueueEntry):Unit = {
-    forecasts += qe
+    forecasts.enqueue(qe)
+  }
+  /**
+   * Public method to retrieve the `oldest` time
+   * series forecasting task from the queue
+   */
+  def getForecast:Option[QueueEntry] = {
+    /*
+     * [Queue] is a FIFO and `dequeue` removes
+     * an element from the head of the queue
+     */
+    if (forecasts.isEmpty) None
+    else {
+      val qe = forecasts.dequeue()
+      Some(qe)
+    }
   }
 
 }

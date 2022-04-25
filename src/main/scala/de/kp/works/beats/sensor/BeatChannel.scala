@@ -74,17 +74,17 @@ object BeatChannels {
    */
   implicit val timeout: Timeout = Timeout(15.seconds)
 
-  private val registeredChannels = mutable.HashMap.empty[String, ActorRef]
+  private val registeredChannels = mutable.HashMap.empty[Channels.Value, ActorRef]
 
-  def registerChannel(channelName:String, channelProps:Props):Unit = {
+  def registerChannel(channel:Channels.Value, channelProps:Props):Unit = {
 
-    val channelActor = system.actorOf(channelProps, channelName)
-    registeredChannels += channelName -> channelActor
+    val channelActor = system.actorOf(channelProps, channel.toString)
+    registeredChannels += channel -> channelActor
 
   }
 
-  def getChannel(channelName:String):Option[ActorRef] =
-    registeredChannels.get(channelName)
+  def getChannel(channel:Channels.Value):Option[ActorRef] =
+    registeredChannels.get(channel)
 
   def getChannels:Seq[ActorRef] =
     registeredChannels.values.toSeq

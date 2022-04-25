@@ -117,7 +117,11 @@ abstract class BeatConf {
    * to build the deep learning monitors
    */
   def getNumThreads:Int
-
+  /**
+   * This method provides the configuration for the
+   * `SensorBeat`'s output channels
+   */
+  def getOutputCfg: Config = getCfg("output")
   /**
    * This method provides the RocksDB configuration of
    * the Sensor Beat

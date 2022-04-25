@@ -26,8 +26,8 @@ import akka.http.scaladsl.server.Route
 import akka.stream.scaladsl.{Source, SourceQueueWithComplete}
 import de.kp.works.beats.sensor.Channels.{FIWARE, ROCKS_DB, SSE}
 import de.kp.works.beats.sensor._
-import de.kp.works.beats.sensor.dl.anomaly.{AnomalyMonitor, AnomalyWorker}
-import de.kp.works.beats.sensor.dl.forecast.{ForecastMonitor, ForecastWorker}
+import de.kp.works.beats.sensor.dl.anomaly.{AnomMonitor, AnomWorker}
+import de.kp.works.beats.sensor.dl.forecast.{ForeMonitor, ForeWorker}
 import de.kp.works.beats.sensor.milesight.channel.{MsFiware, MsRocks}
 import org.apache.spark.sql.BeatSession
 /**
@@ -125,66 +125,83 @@ class MsService(config:MsConf) extends BeatService[MsConf](config) with MsLoggin
    * : - Send NGSIv2 compliant sensor event
    * :   to Server-Sent-Event queue
    *
+   * This method also build the micro services that
+   * control the deep learning tasks associated with
+   * the Milesight sensor readings.
    */
   override def onStart(queue: SourceQueueWithComplete[String]): Unit = {
     /*
      * Create the micro services that control the
      * publishing of the incoming events;
-     *
-     * the current implementation supports the
-     * Fiware Context Broker (Fiware), the RocksDB
-     * local storage, and Server Sent Events.
      */
-    options.getChannels.foreach(channelName => {
-      Channels.withName(channelName) match {
-        case FIWARE =>
-          /*
-           * Build Fiware specific output channel
-           */
-          val props = Props(new MsFiware(options))
-          BeatChannels.registerChannel(channelName, props)
-
-        case ROCKS_DB =>
-          /*
-           * Build RocksDB specific output channel;
-           * note, the storage should be initialized
-           * at this stage already
-           */
-          val props = Props(new MsRocks(options))
-          BeatChannels.registerChannel(channelName, props)
-
-        case SSE =>
-          /*
-           * Build SSE specific output channel
-           */
-          val props = Props(new BeatSse(queue))
-          BeatChannels.registerChannel(channelName, props)
-
-        case _ => /* Do nothing */
-      }
-
-    })
+    buildChannels(queue)
     /*
      * Start the scheduled anomaly detection and
      * timeseries forecasting monitors
      */
+    buildMonitors(queue)
+  }
+  /**
+   * Create the micro services that control the
+   * publishing of the incoming events;
+   *
+   * the current implementation supports the
+   * Fiware Context Broker (Fiware), the RocksDB
+   * local storage, and Server Sent Events.
+   */
+  private def buildChannels(queue: SourceQueueWithComplete[String]):Unit = {
+
+    options.getChannels.foreach {
+      case channel@FIWARE =>
+        /*
+         * Build Fiware specific output channel
+         */
+        val props = Props(new MsFiware(options))
+        BeatChannels.registerChannel(channel, props)
+
+      case channel@ROCKS_DB =>
+        /*
+         * Build RocksDB specific output channel;
+         * note, the storage should be initialized
+         * at this stage already
+         */
+        val props = Props(new MsRocks(options))
+        BeatChannels.registerChannel(channel, props)
+
+      case channel@SSE =>
+        /*
+         * Build SSE specific output channel
+         */
+        val props = Props(new BeatSse(queue))
+        BeatChannels.registerChannel(channel, props)
+
+      case _ => /* Do nothing */
+    }
+
+  }
+  /**
+   * Start the scheduled anomaly detection and
+   * timeseries forecasting monitors
+   */
+  private def buildMonitors(queue: SourceQueueWithComplete[String]):Unit = {
+
     val numThreads = config.getNumThreads
     val session = BeatSession.getSession
     /*
-     * Build & initialize the `AnomalyWorker` and
+     * Build & initialize the `AnomWorker` and
      * the respective monitor
      */
-    val anomalyWorker = new AnomalyWorker(queue, session, logger)
-    val anomalyMonitor = new AnomalyMonitor[MsConf](config, numThreads)
+    val anomWorker = new AnomWorker(queue, session, logger)
+    val anomMonitor = new AnomMonitor[MsConf](config, numThreads)
     /*
-     * Build & initialize the `ForecastWorker` and
+     * Build & initialize the `ForeWorker` and
      * the respective monitor
      */
-    val forecastWorker = new ForecastWorker(queue, session, logger)
-    val forecastMonitor = new ForecastMonitor[MsConf](config, numThreads)
+    val forecastWorker = new ForeWorker(queue, session, logger)
+    val forecastMonitor = new ForeMonitor[MsConf](config, numThreads)
 
-    anomalyMonitor.start[AnomalyWorker](anomalyWorker)
-    forecastMonitor.start[ForecastWorker](forecastWorker)
+    anomMonitor.start[AnomWorker](anomWorker)
+    forecastMonitor.start[ForeWorker](forecastWorker)
 
   }
 }

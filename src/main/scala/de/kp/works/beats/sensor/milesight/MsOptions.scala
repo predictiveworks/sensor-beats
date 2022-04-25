@@ -19,6 +19,7 @@ package de.kp.works.beats.sensor.milesight
  *
  */
 
+import de.kp.works.beats.sensor.Channels
 import de.kp.works.beats.sensor.fiware.{Options => FiwareOptions}
 import de.kp.works.beats.sensor.thingsstack.{Options => ThingsOptions}
 
@@ -43,14 +44,21 @@ object MsProducts extends Enumeration {
  * service configuration
  */
 class MsOptions(config:MsConf) extends ThingsOptions(config) {
-
   /**
    * Channels in the context of a `SensorBeat` are
    * actors that receive a `BeatSensor` message and
    * perform specific data operations like sending
    * to RocksDB, a FIWARE Context Broker and more
    */
-  def getChannels:Seq[String] = ???
+  def getChannels:Seq[Channels.Value] = {
+    try {
+      config.getChannels.map(Channels.withName)
+
+    } catch {
+      case _:Throwable => Seq.empty[Channels.Value]
+    }
+
+  }
 
   def getProduct:MsProducts.Value = ???
 

@@ -21,6 +21,8 @@ package de.kp.works.beats.sensor.milesight
 
 import de.kp.works.beats.sensor.{BeatConf, BeatTasks}
 
+import scala.collection.JavaConversions.asScalaBuffer
+
 object MsConf {
 
   private var instance:Option[MsConf] = None
@@ -42,6 +44,16 @@ class MsConf extends BeatConf {
    * with logging
    */
   override var logname: String = "Beat"
+  /**
+   * Channels in the context of a `SensorBeat` are
+   * actors that receive a `BeatSensor` message and
+   * perform specific data operations like sending
+   * to RocksDB, a FIWARE Context Broker and more
+   */
+  def getChannels:Seq[String] = {
+    val outputCfg = getOutputCfg
+    outputCfg.getStringList("channels")
+  }
   /**
    * This method provides the number of threads used
    * to build the deep learning monitors

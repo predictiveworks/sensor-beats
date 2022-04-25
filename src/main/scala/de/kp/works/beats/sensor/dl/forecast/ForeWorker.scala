@@ -26,16 +26,16 @@ import de.kp.works.beats.sensor.dl.BeatWorker
 import org.apache.spark.sql.SparkSession
 
 /**
- * [ForecastWorker] is responsible for executing the
+ * [ForeWorker] is responsible for executing the
  * deep learning timeseries forecasting task. This task
  * can be executed either on an adhoc basis (API) or
  * scheduled
  */
-class ForecastWorker(
+class ForeWorker(
   queue:SourceQueueWithComplete[String], session:SparkSession, logger:Logger)
   extends BeatWorker(queue, session, logger) {
 
-  private val provider = "ForecastWorker"
+  private val provider = getClass.getName
   private val FORECAST_10_EVENT = "Dataset loaded."
 
   override def execute(table:String, start:Long, end:Long): Unit = {

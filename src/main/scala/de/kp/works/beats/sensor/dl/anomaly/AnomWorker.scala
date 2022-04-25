@@ -26,16 +26,16 @@ import de.kp.works.beats.sensor.dl.BeatWorker
 import org.apache.spark.sql.SparkSession
 
 /**
- * [AnomalyWorker] is responsible for executing the
+ * [AnomWorker] is responsible for executing the
  * deep learning anomaly detection task. This task
  * can be executed either on an adhoc basis (API) or
  * scheduled
  */
-class AnomalyWorker(
+class AnomWorker(
   queue:SourceQueueWithComplete[String], session:SparkSession, logger:Logger)
   extends BeatWorker(queue, session, logger) {
 
-  private val provider = "AnomalyWorker"
+  private val provider = getClass.getName
   private val ANOMALY_10_EVENT = "Dataset loaded."
 
   override def execute(table:String, start:Long, end:Long): Unit = {
@@ -46,7 +46,7 @@ class AnomalyWorker(
      * STEP #1: Inform the [BeatJobs] that the respective
      * deep learning task was started.
      */
-    val jobId = s"anon-${java.util.UUID.randomUUID.toString}"
+    val jobId = s"anom-${java.util.UUID.randomUUID.toString}"
     val beatJob = BeatJob(
       id = jobId, createdAt = startts, updatedAt = 0L, status = BeatStatuses.STARTED)
 
