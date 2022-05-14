@@ -19,16 +19,157 @@ package de.kp.works.beats.sensor.api
  *
  */
 
-import akka.actor.Actor
+import akka.actor.{Actor, ActorRef}
 import akka.http.scaladsl.model.HttpRequest
 import ch.qos.logback.classic.Logger
-import com.google.gson.JsonObject
+import com.google.gson.{JsonArray, JsonObject}
 import de.kp.works.beats.sensor.BeatTasks.{ANOMALY, FORECAST}
 import de.kp.works.beats.sensor.dl.{BeatQueue, QueueEntry}
 import de.kp.works.beats.sensor.{BeatConf, BeatJobs, BeatMessages, BeatRocks, BeatTasks}
+/**
+ * The [DeepActor] initiates and delegates the re-training
+ * of the SensorBeat's anomaly detection or timeseries
+ * forecasting model.
+ *
+ * Note, computing anomalies and forecasts is regularly
+ * performed on a scheduled basis, but can also be executed
+ * on demand as well.
+ */
+abstract class DeepActor[C <: BeatConf](config:C) extends ApiActor(config) {
+  /**
+   * The response of this request is a JsonArray;
+   * in case of an invalid request, an empty response
+   * is returned
+   */
+  private val emptyResponse = new JsonObject
+
+  private val worker:ActorRef = getWorker
+
+  override def execute(request: HttpRequest): String = {
+
+    val json = getBodyAsJson(request)
+    if (json == null) {
+      warn(BeatMessages.invalidJson())
+      return emptyResponse.toString
+    }
+
+    val req = mapper.readValue(json.toString, classOf[DeepReq])
+    worker ! req
+
+    val response = new JsonObject
+    response.addProperty("message", BeatMessages.deepStarted())
+
+    response.toString
+
+  }
+
+  def getWorker:ActorRef
+
+  private def warn(message:String):Unit = {
+    getLogger.warn(message)
+  }
+
+}
+/**
+ * The [InsightActor] supports the provisioning of
+ * sensor event insights based on a SQL statement.
+ * This actor is part of the `Sensor as a Table`
+ * approach.
+ */
+abstract class InsightActor[C <: BeatConf](config:C) extends ApiActor(config) {
+  /**
+   * The response of this request is a JsonArray;
+   * in case of an invalid request, an empty response
+   * is returned
+   */
+  private val emptyResponse = new JsonArray
+
+  override def execute(request: HttpRequest): String = {
+
+    val json = getBodyAsJson(request)
+    if (json == null) {
+      warn(BeatMessages.invalidJson())
+      return emptyResponse.toString
+    }
+
+    val req = mapper.readValue(json.toString, classOf[InsightReq])
+    val sql = req.sql
+    /*
+     * Validate SQL query
+     */
+    if (sql.isEmpty) {
+      warn(BeatMessages.emptySql())
+      return emptyResponse.toString
+    }
+
+    try {
+      read(sql)
+
+    } catch {
+      case t:Throwable =>
+        error(BeatMessages.insightFailed(t))
+        emptyResponse.toString
+    }
+
+  }
+
+  def read(sql:String):String
+
+  private def error(message:String):Unit = {
+    getLogger.error(message)
+  }
+
+  private def warn(message:String):Unit = {
+    getLogger.warn(message)
+  }
+
+}
 
 /**
- * The [DeepActor] invokes deep learning tasks,
+ * The [JobActor] supports the provisioning of
+ * status information about deep learning jobs
+ */
+abstract class JobActor[C <: BeatConf](config:C) extends ApiActor(config) {
+  /**
+   * The response of this request is a JsonObject;
+   * in case of an invalid request, an empty response
+   * is returned
+   */
+  private val emptyResponse = new JsonObject
+
+  override def execute(request: HttpRequest): String = {
+
+    val json = getBodyAsJson(request)
+    if (json == null) {
+      getLogger.warn(BeatMessages.invalidJson())
+      return emptyResponse.toString
+    }
+
+    val req = mapper.readValue(json.toString, classOf[JobReq])
+    val jid = req.id
+    /*
+     * Validate job identifier
+     */
+    if (jid.isEmpty) {
+      getLogger.warn(BeatMessages.emptyJob())
+      return emptyResponse.toString
+    }
+
+    try {
+      val job = BeatJobs.get(jid)
+      mapper.writeValueAsString(job)
+
+    } catch {
+      case t:Throwable =>
+        getLogger.error(BeatMessages.insightFailed(t))
+        emptyResponse.toString
+    }
+
+  }
+
+}
+/**
+ * The [LearnActor] invokes deep learning tasks,
  * either anomaly detection or timeseries fore-
  * casting. To this end, these tasks are defined
  * as queue entries and added to the task queue.
@@ -37,7 +178,7 @@ import de.kp.works.beats.sensor.{BeatConf, BeatJobs, BeatMessages, BeatRocks, Be
  * jobs, and executes them on a configured and
  * scheduled basis.
  */
-abstract class DeepActor extends Actor {
+abstract class LearnActor extends Actor {
 
   override def receive: Receive = {
 
@@ -96,47 +237,120 @@ abstract class DeepActor extends Actor {
   def validateTable(table:String):Unit
 
 }
-
 /**
- * The [JobActor] supports the provisioning of
- * status information about deep learning jobs
+ * The [MonitorActor] supports the provisioning of
+ * sensor events based on a SQL statement. This actor
+ * is part of the `Sensor as a Table` approach.
  */
-abstract class JobActor[C <: BeatConf](config:C) extends ApiActor(config) {
+abstract class MonitorActor[C <: BeatConf](config:C) extends ApiActor(config) {
   /**
-   * The response of this request is a JsonObject;
+   * The response of this request is a JsonArray;
    * in case of an invalid request, an empty response
    * is returned
    */
-  private val emptyResponse = new JsonObject
+  private val emptyResponse = new JsonArray
 
   override def execute(request: HttpRequest): String = {
 
     val json = getBodyAsJson(request)
     if (json == null) {
-      getLogger.warn(BeatMessages.invalidJson())
+      warn(BeatMessages.invalidJson())
       return emptyResponse.toString
     }
 
-    val req = mapper.readValue(json.toString, classOf[JobReq])
-    val jid = req.id
+    val req = mapper.readValue(json.toString, classOf[MonitorReq])
+    val sql = req.sql
     /*
-     * Validate job identifier
+     * Validate SQL query
      */
-    if (jid.isEmpty) {
-      getLogger.warn(BeatMessages.emptyJob())
+    if (sql.isEmpty) {
+      warn(BeatMessages.emptySql())
       return emptyResponse.toString
     }
 
     try {
-      val job = BeatJobs.get(jid)
-      mapper.writeValueAsString(job)
+      read(sql)
 
     } catch {
       case t:Throwable =>
-        getLogger.error(BeatMessages.insightFailed(t))
+        error(BeatMessages.monitorFailed(t))
         emptyResponse.toString
     }
 
+  }
+
+  def read(sql:String):String
+
+  private def error(message:String):Unit = {
+    getLogger.error(message)
+  }
+
+  private def warn(message:String):Unit = {
+    getLogger.warn(message)
+  }
+
+}
+/**
+ * The [TrendActor] supports the provisioning of
+ * sensor event trends based on a SQL statement.
+ * This actor is part of the `Sensor as a Table`
+ * approach.
+ */
+abstract class TrendActor[C <: BeatConf](config:C) extends ApiActor(config) {
+  /**
+   * The response of this request is a JsonArray;
+   * in case of an invalid request, an empty response
+   * is returned
+   */
+  private val emptyResponse = new JsonArray
+
+  override def execute(request: HttpRequest): String = {
+
+    val json = getBodyAsJson(request)
+    if (json == null) {
+      warn(BeatMessages.invalidJson())
+      return emptyResponse.toString
+    }
+
+    val req = mapper.readValue(json.toString, classOf[TrendReq])
+    val sql = req.sql
+    /*
+     * Validate SQL query
+     */
+    if (sql.isEmpty) {
+      warn(BeatMessages.emptySql())
+      return emptyResponse.toString
+    }
+    val indicator = req.indicator
+    /*
+     * Validate technical indicator
+     */
+    if (indicator.isEmpty) {
+      warn(BeatMessages.emptyIndicator())
+      return emptyResponse.toString
+    }
+
+    try {
+      trend(sql, indicator, req.timeframe)
+
+    } catch {
+      case t:Throwable =>
+        val message = s"Trend request failed: ${t.getLocalizedMessage}"
+        error(message)
+
+        emptyResponse.toString
+    }
+
+  }
+
+  def trend(sql:String, indicator:String, timeframe:Int=5):String
+
+  private def error(message:String):Unit = {
+    getLogger.error(message)
+  }
+
+  private def warn(message:String):Unit = {
+    getLogger.warn(message)
   }
 
 }

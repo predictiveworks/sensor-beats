@@ -83,28 +83,28 @@ class MsService(config:MsConf) extends BeatService[MsConf](config) with MsLoggin
        * retrieve anomalies
        */
       BEAT_ANOMALY_ACTOR ->
-        system.actorOf(Props(new AnomalyActor(config)), BEAT_ANOMALY_ACTOR),
+        system.actorOf(Props(new MsAnomActor(config)), BEAT_ANOMALY_ACTOR),
       /*
        * Train time series prediction model
        * & retrieve forecasts
        */
       BEAT_FORECAST_ACTOR ->
-        system.actorOf(Props(new ForecastActor(config)), BEAT_FORECAST_ACTOR),
+        system.actorOf(Props(new MsForeActor(config)), BEAT_FORECAST_ACTOR),
       /*
        * Retrieve sensor inferred readings via SQL query
        */
       BEAT_INSIGHT_ACTOR ->
-        system.actorOf(Props(new InsightActor(config)), BEAT_INSIGHT_ACTOR),
+        system.actorOf(Props(new MsInsightActor(config)), BEAT_INSIGHT_ACTOR),
       /*
        * Retrieve sensor readings via SQL query
        */
       BEAT_MONITOR_ACTOR ->
-        system.actorOf(Props(new MonitorActor(config)), BEAT_MONITOR_ACTOR),
+        system.actorOf(Props(new MsMonitorActor(config)), BEAT_MONITOR_ACTOR),
       /*
        * Retrieve sensor trend via SQL query
        */
       BEAT_TREND_ACTOR ->
-      system.actorOf(Props(new TrendActor(config)), BEAT_TREND_ACTOR)
+      system.actorOf(Props(new MsTrendActor(config)), BEAT_TREND_ACTOR)
 
     )
 

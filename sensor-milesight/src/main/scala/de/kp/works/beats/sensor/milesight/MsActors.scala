@@ -20,67 +20,31 @@ package de.kp.works.beats.sensor.milesight
  */
 
 import akka.actor.{ActorRef, Props}
-import akka.http.scaladsl.model.HttpRequest
 import akka.routing.RoundRobinPool
 import ch.qos.logback.classic.Logger
-import com.google.gson.{JsonArray, JsonObject}
-import de.kp.works.beats.sensor.BeatMessages
 import de.kp.works.beats.sensor.api._
 
-class MsDeepActor extends DeepActor with MsLogging {
-
-  override def getLogger: Logger = logger
-
-  override def validateTable(table: String): Unit =
-    MsTables.withName(table)
-
-}
 /**
- * The [AnomalyActor] supports the re-training
+ * The [MsAnomActor] supports the re-training
  * of the SensorBeat's anomaly detection model.
  *
  * Note, computing anomalies is regularly performed
  * on a scheduled basis, but can also be executed on
  * demand as well.
  */
-class AnomalyActor(config:MsConf) extends ApiActor(config) with MsLogging {
+class MsAnomActor(config:MsConf) extends DeepActor(config) with MsLogging {
 
-  private val worker:ActorRef =
+  override def getWorker:ActorRef =
     system
       .actorOf(RoundRobinPool(instances)
         .withResizer(resizer)
-        .props(Props(new MsDeepActor())), "AnomWorker")
-
-  /**
-   * The response of this request is a JsonArray;
-   * in case of an invalid request, an empty response
-   * is returned
-   */
-  private val emptyResponse = new JsonObject
-
-  override def execute(request: HttpRequest): String = {
-
-    val json = getBodyAsJson(request)
-    if (json == null) {
-      logger.warn(BeatMessages.invalidJson())
-      return emptyResponse.toString
-    }
-
-    val req = mapper.readValue(json.toString, classOf[DeepReq])
-    worker ! req
-
-    val response = new JsonObject
-    response.addProperty("message", BeatMessages.anomalyStarted())
-
-    response.toString
-
-  }
+        .props(Props(new MsLearnActor())), "AnomWorker")
 
   override def getLogger: Logger = logger
 
 }
 /**
- * The [ForecastActor] supports the re-training
+ * The [MsForeActor] supports the re-training
  * of the SensorBeat's timeseries forecast model,
  * and also the provisioning of forecasted values.
  *
@@ -88,97 +52,33 @@ class AnomalyActor(config:MsConf) extends ApiActor(config) with MsLogging {
  * performed on a scheduled basis, but can also be
  * executed on demand as well.
  */
-class ForecastActor(config:MsConf) extends ApiActor(config) with MsLogging {
+class MsForeActor(config:MsConf) extends DeepActor(config) with MsLogging {
 
-  private val worker:ActorRef =
+  override def getWorker:ActorRef =
     system
       .actorOf(RoundRobinPool(instances)
         .withResizer(resizer)
-        .props(Props(new MsDeepActor())), "ForeWorker")
-
-  /**
-   * The response of this request is a JsonArray;
-   * in case of an invalid request, an empty response
-   * is returned
-   */
-  private val emptyResponse = new JsonObject
-
-  override def execute(request: HttpRequest): String = {
-
-    val json = getBodyAsJson(request)
-    if (json == null) {
-      logger.warn(BeatMessages.invalidJson())
-      return emptyResponse.toString
-    }
-
-    val req = mapper.readValue(json.toString, classOf[DeepReq])
-    /*
-     * Each deep learning request receives a unique
-     * job identifier
-     */
-    val jid = s"job-${java.util.UUID.randomUUID.toString}"
-    val reqS = req.copy(id = jid)
-
-    worker ! reqS
-
-    val response = new JsonObject
-    response.addProperty("message", BeatMessages.forecastStarted())
-
-    response.toString
-
-  }
+        .props(Props(new MsLearnActor())), "ForeWorker")
 
   override def getLogger: Logger = logger
 
 }
 /**
- * The [InsightActor] supports the provisioning of
+ * The [MsInsightActor] supports the provisioning of
  * sensor event insights based on a SQL statement.
  * This actor is part of the `Sensor as a Table`
  * approach.
  */
-class InsightActor(config:MsConf) extends ApiActor(config) with MsLogging {
+class MsInsightActor(config:MsConf) extends InsightActor(config) with MsLogging {
   /**
    * [MsSql] is used to do the SQL query interpretation,
    * transformation to RocksDB commands and returning
    * the respective entries
    */
   private val msSql = new MsSql()
-  /**
-   * The response of this request is a JsonArray;
-   * in case of an invalid request, an empty response
-   * is returned
-   */
-  private val emptyResponse = new JsonArray
 
-  override def execute(request: HttpRequest): String = {
-
-    val json = getBodyAsJson(request)
-    if (json == null) {
-      logger.warn(BeatMessages.invalidJson())
-      return emptyResponse.toString
-    }
-
-    val req = mapper.readValue(json.toString, classOf[InsightReq])
-    val sql = req.sql
-    /*
-     * Validate SQL query
-     */
-    if (sql.isEmpty) {
-      logger.warn(BeatMessages.emptySql())
-      return emptyResponse.toString
-    }
-
-    try {
-      msSql.read(sql)
-
-    } catch {
-      case t:Throwable =>
-        logger.error(BeatMessages.insightFailed(t))
-        emptyResponse.toString
-    }
-
-  }
+  override def read(sql:String):String =
+    msSql.read(sql)
 
   override def getLogger: Logger = logger
 
@@ -192,116 +92,59 @@ class MsJobActor(config:MsConf) extends JobActor(config) with MsLogging {
   override def getLogger: Logger = logger
 
 }
-
 /**
- * The [MonitorActor] supports the provisioning of
+ * The [MsLearnActor] executes deep learning tasks,
+ * either anomaly detection or timeseries fore-
+ * casting. To this end, these tasks are defined
+ * as queue entries and added to the task queue.
+ *
+ * The task queue distinguishes anomaly & forecast
+ * jobs, and executes them on a configured and
+ * scheduled basis.
+ */
+class MsLearnActor extends LearnActor with MsLogging {
+
+  override def getLogger: Logger = logger
+
+  override def validateTable(table: String): Unit =
+    MsTables.withName(table)
+
+}
+/**
+ * The [MsMonitorActor] supports the provisioning of
  * sensor events based on a SQL statement. This actor
  * is part of the `Sensor as a Table` approach.
  */
-class MonitorActor(config:MsConf) extends ApiActor(config) with MsLogging {
+class MsMonitorActor(config:MsConf) extends MonitorActor(config) with MsLogging {
   /**
    * [MsSql] is used to do the SQL query interpretation,
    * transformation to RocksDB commands and returning
    * the respective entries
    */
   private val msSql = new MsSql()
-  /**
-   * The response of this request is a JsonArray;
-   * in case of an invalid request, an empty response
-   * is returned
-   */
-  private val emptyResponse = new JsonArray
 
-  override def execute(request: HttpRequest): String = {
-
-    val json = getBodyAsJson(request)
-    if (json == null) {
-      logger.warn(BeatMessages.invalidJson())
-      return emptyResponse.toString
-    }
-
-    val req = mapper.readValue(json.toString, classOf[MonitorReq])
-    val sql = req.sql
-    /*
-     * Validate SQL query
-     */
-    if (sql.isEmpty) {
-      logger.warn(BeatMessages.emptySql())
-      return emptyResponse.toString
-    }
-
-    try {
-      msSql.read(sql)
-
-    } catch {
-      case t:Throwable =>
-        logger.error(BeatMessages.monitorFailed(t))
-        emptyResponse.toString
-    }
-
-  }
+  override def read(sql:String):String =
+    msSql.read(sql)
 
   override def getLogger: Logger = logger
 
 }
 /**
- * The [TrendActor] supports the provisioning of
+ * The [MsTrendActor] supports the provisioning of
  * sensor event trends based on a SQL statement.
  * This actor is part of the `Sensor as a Table`
  * approach.
  */
-class TrendActor(config:MsConf) extends ApiActor(config) with MsLogging {
+class MsTrendActor(config:MsConf) extends TrendActor(config) with MsLogging {
   /**
    * [MsSql] is used to do the SQL query interpretation,
    * transformation to RocksDB commands and returning
    * the respective entries
    */
   private val msSql = new MsSql()
-  /**
-   * The response of this request is a JsonArray;
-   * in case of an invalid request, an empty response
-   * is returned
-   */
-  private val emptyResponse = new JsonArray
 
-  override def execute(request: HttpRequest): String = {
-
-    val json = getBodyAsJson(request)
-    if (json == null) {
-      logger.warn(BeatMessages.invalidJson())
-      return emptyResponse.toString
-    }
-
-    val req = mapper.readValue(json.toString, classOf[TrendReq])
-    val sql = req.sql
-    /*
-     * Validate SQL query
-     */
-    if (sql.isEmpty) {
-      logger.warn(BeatMessages.emptySql())
-      return emptyResponse.toString
-    }
-    val indicator = req.indicator
-    /*
-     * Validate technical indicator
-     */
-    if (indicator.isEmpty) {
-      logger.warn(BeatMessages.emptyIndicator())
-      return emptyResponse.toString
-    }
-
-    try {
-      msSql.trend(sql, indicator, req.timeframe)
-
-    } catch {
-      case t:Throwable =>
-        val message = s"Trend request failed: ${t.getLocalizedMessage}"
-        logger.error(message)
-
-        emptyResponse.toString
-    }
-
-  }
+  override def trend(sql:String, indicator:String, timeframe:Int=5):String =
+    msSql.trend(sql, indicator, timeframe)
 
   override def getLogger: Logger = logger
 
