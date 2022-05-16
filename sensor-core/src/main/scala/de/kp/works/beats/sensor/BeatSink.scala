@@ -30,23 +30,24 @@ import scala.concurrent.duration.DurationInt
  * The number of channels that can be configured to
  * publish consumed sensor events.
  */
-object Channels extends Enumeration {
-  type Channel = Value
+object BeatOutputs extends Enumeration {
+  type BeatOutput = Value
 
-  val FIWARE: Channels.Value      = Value(1, "FIWARE")
-  val ROCKS_DB: Channels.Value    = Value(2, "ROCKS_DB")
-  val SSE: Channels.Value         = Value(3, "SSE")
-  val THINGSBOARD: Channels.Value = Value(4, "THINGSBOARD")
+  val FIWARE: BeatOutputs.Value      = Value(1, "FIWARE")
+  val ROCKS_DB: BeatOutputs.Value    = Value(2, "ROCKS_DB")
+  val SSE: BeatOutputs.Value         = Value(3, "SSE")
+  val THINGSBOARD: BeatOutputs.Value = Value(4, "THINGSBOARD")
+
 }
 
-trait BeatChannel extends Actor {
+trait BeatSink extends Actor {
 
   override def receive: Receive = {
     case request:BeatRequest =>
       execute(request)
 
     case _ =>
-      throw new Exception(s"A `BeatChannel` supports sensor messages only")
+      throw new Exception(s"A `BeatSink` supports sensor messages only")
   }
 
   def execute(request:BeatRequest):Unit
@@ -56,7 +57,7 @@ trait BeatChannel extends Actor {
  * This object defines the registry of configured
  * output channels for SensorBeat implementations
  */
-object BeatChannels {
+object BeatSinks {
 
   private val uuid = java.util.UUID.randomUUID().toString
   /**
@@ -74,16 +75,16 @@ object BeatChannels {
    */
   implicit val timeout: Timeout = Timeout(15.seconds)
 
-  private val registeredChannels = mutable.HashMap.empty[Channels.Value, ActorRef]
+  private val registeredChannels = mutable.HashMap.empty[BeatOutputs.Value, ActorRef]
 
-  def registerChannel(channel:Channels.Value, channelProps:Props):Unit = {
+  def registerChannel(channel:BeatOutputs.Value, channelProps:Props):Unit = {
 
     val channelActor = system.actorOf(channelProps, channel.toString)
     registeredChannels += channel -> channelActor
 
   }
 
-  def getChannel(channel:Channels.Value):Option[ActorRef] =
+  def getChannel(channel:BeatOutputs.Value):Option[ActorRef] =
     registeredChannels.get(channel)
 
   def getChannels:Seq[ActorRef] =

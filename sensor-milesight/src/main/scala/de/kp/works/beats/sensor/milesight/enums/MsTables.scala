@@ -1,6 +1,4 @@
-package de.kp.works.beats.sensor.milesight
-
-import de.kp.works.beats.sensor.milesight.MsProducts.{EM_300, EM_500_UDL}
+package de.kp.works.beats.sensor.milesight.enums
 
 /**
  * Copyright (c) 2019 - 2022 Dr. Krusche & Partner PartG. All rights reserved.
@@ -21,10 +19,8 @@ import de.kp.works.beats.sensor.milesight.MsProducts.{EM_300, EM_500_UDL}
  *
  */
 
-/**
- * The current implementation leverages attribute
- * specific RocksDB column families for data management.
- */
+import de.kp.works.beats.sensor.milesight.enums.MsProducts._
+
 object MsTables extends Enumeration {
   type MsTable = Value
   /**
@@ -79,3 +75,4 @@ object MsTables extends Enumeration {
     }
   }
 }
+

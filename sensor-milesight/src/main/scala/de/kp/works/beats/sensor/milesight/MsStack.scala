@@ -22,7 +22,8 @@ package de.kp.works.beats.sensor.milesight
 import ch.qos.logback.classic.Logger
 import com.google.gson.{JsonObject, JsonParser}
 import de.kp.works.beats.sensor._
-import de.kp.works.beats.sensor.milesight.MsProducts.{EM_300, EM_500_UDL}
+import de.kp.works.beats.sensor.milesight.enums.MsProducts
+import de.kp.works.beats.sensor.milesight.enums.MsProducts._
 import de.kp.works.beats.sensor.thingsstack.Consumer
 import org.eclipse.paho.client.mqttv3.MqttMessage
 
@@ -33,7 +34,7 @@ import scala.collection.JavaConversions.collectionAsScalaIterable
  * the common consumer for all Milesight sensors, and the
  * publishing of their readings to various output channels.
  */
-class MsInput(options: MsOptions) extends Consumer[MsConf](options.toThings) with MsLogging {
+class MsStack(options: MsOptions) extends Consumer[MsConf](options.toStack) with MsLogging {
 
   private val BRAND_NAME = "Milesight"
   override protected def getLogger: Logger = logger
@@ -189,11 +190,11 @@ class MsInput(options: MsOptions) extends Consumer[MsConf](options.toThings) wit
      * for further processing; note, the MsRocks channel is always
      * defined.
      */
-    options.getChannels.foreach(channelName => {
+    options.getSinks.foreach(channelName => {
       /*
        * Note, a `BeatChannel` is implemented as an Akka actor
        */
-      val beatChannel = BeatChannels.getChannel(channelName)
+      val beatChannel = BeatSinks.getChannel(channelName)
       if (beatChannel.nonEmpty) beatChannel.get ! request
 
     })

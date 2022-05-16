@@ -20,7 +20,7 @@ package de.kp.works.beats.sensor.fiware
  */
 
 import de.kp.works.beats.sensor.BeatActions.{CREATE, UPDATE}
-import de.kp.works.beats.sensor.{BeatChannel, BeatConf, BeatRequest, BeatSensor}
+import de.kp.works.beats.sensor.{BeatSink, BeatConf, BeatRequest, BeatSensor}
 import de.kp.works.beats.sensor.http.HttpConnect
 /**
  * Base output channel to a FIWARE Context Broker;
@@ -32,7 +32,7 @@ import de.kp.works.beats.sensor.http.HttpConnect
  * management settings.
  */
 abstract class Producer[T <: BeatConf](options:Options[T])
-  extends HttpConnect with BeatChannel {
+  extends HttpConnect with BeatSink {
   /**
    * The address of the Fiware Context Broker
    */

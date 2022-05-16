@@ -1,4 +1,4 @@
-package de.kp.works.beats.sensor
+package de.kp.works.beats.sensor.sensecap.enums
 
 /**
  * Copyright (c) 2019 - 2022 Dr. Krusche & Partner PartG. All rights reserved.
@@ -18,19 +18,7 @@ package de.kp.works.beats.sensor
  * @author Stefan Krusche, Dr. Krusche & Partner PartG
  *
  */
-
-import akka.stream.scaladsl.SourceQueueWithComplete
-/**
- * Actor implementation to publish consumed Things Stack
- * events to the SSE queue.
- */
-class BeatSse(queue:SourceQueueWithComplete[String]) extends BeatSink {
-
-  override def execute(request: BeatRequest): Unit = {
-
-    val event = request.sensor.toJson
-    if (queue != null) queue.offer(event.toString)
-
-  }
+object ScProducts extends Enumeration {
+  type ScProduct = Value
 
 }

@@ -18,19 +18,21 @@ package de.kp.works.beats.sensor
  * @author Stefan Krusche, Dr. Krusche & Partner PartG
  *
  */
-
-import akka.stream.scaladsl.SourceQueueWithComplete
 /**
- * Actor implementation to publish consumed Things Stack
- * events to the SSE queue.
+ * The number of input channels that can be configured
+ * to consume sensor events.
  */
-class BeatSse(queue:SourceQueueWithComplete[String]) extends BeatSink {
+object BeatInputs extends Enumeration {
+  type BeatInput = Value
 
-  override def execute(request: BeatRequest): Unit = {
+  val HELIUM: BeatInputs.Value       = Value(1, "HELIUM")
+  val LORIOT: BeatInputs.Value       = Value(2, "LORIOT")
+  val THINGS_STACK: BeatInputs.Value = Value(3, "THINGS_STACK")
 
-    val event = request.sensor.toJson
-    if (queue != null) queue.offer(event.toString)
+}
 
-  }
+trait BeatSource {
+
+  def subscribeAndPublish():Unit
 
 }

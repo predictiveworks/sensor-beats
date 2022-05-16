@@ -21,13 +21,13 @@ package de.kp.works.beats.sensor.thingsboard
 
 import com.google.gson.JsonObject
 import de.kp.works.beats.sensor.BeatActions.{CREATE, UPDATE}
-import de.kp.works.beats.sensor.{BeatChannel, BeatConf, BeatRequest, BeatSensor}
+import de.kp.works.beats.sensor.{BeatSink, BeatConf, BeatRequest, BeatSensor}
 import org.eclipse.paho.client.mqttv3.{MqttClient, MqttException, MqttMessage}
 
 /**
  * Base output channel to a ThingsBoard Mqtt Broker
  */
-abstract class Producer[T <: BeatConf](options:Options[T]) extends BeatChannel {
+abstract class Producer[T <: BeatConf](options:Options[T]) extends BeatSink {
 
   private val mqttClient = mqttConnect
 

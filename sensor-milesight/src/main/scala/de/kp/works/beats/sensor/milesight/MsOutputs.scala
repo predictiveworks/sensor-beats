@@ -20,7 +20,7 @@ package de.kp.works.beats.sensor.milesight
  */
 
 import com.google.gson.JsonObject
-import de.kp.works.beats.sensor.{BeatChannel, BeatRequest, BeatRocksApi, fiware, thingsboard}
+import de.kp.works.beats.sensor.{BeatSink, BeatRequest, BeatRocksApi, fiware, thingsboard}
 /**
  * Milesight output channel for ThingsBoard
  */
@@ -36,7 +36,7 @@ class MsFiware(options:MsOptions)
 /**
  * Implementation of the RocksDB output channel
  */
-class MsRocks(options:MsOptions) extends BeatChannel {
+class MsRocks(options:MsOptions) extends BeatSink {
 
   private val rocksApi =
     if (BeatRocksApi.isInstance)

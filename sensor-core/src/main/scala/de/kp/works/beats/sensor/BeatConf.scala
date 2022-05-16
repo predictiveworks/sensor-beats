@@ -75,16 +75,6 @@ abstract class BeatConf {
 
   }
   /**
-   * Channels in the context of a `SensorBeat` are
-   * actors that receive a `BeatSensor` message and
-   * perform specific data operations like sending
-   * to RocksDB, a FIWARE Context Broker and more
-   */
-  def getChannels:Seq[String] = {
-    val outputCfg = getOutputCfg
-    outputCfg.getStringList("channels").toSeq
-  }
-  /**
    * Method to build the HTTPS connection context;
    * this method is used by the `BeatService`
    */
@@ -103,6 +93,20 @@ abstract class BeatConf {
    * respective access parameters
    */
   def getFiwareCfg: Config = getCfg("fiware")
+  /**
+   * The MQTT broker (for Helium) is one of the input
+   * channels of a `SensorBeat` and this configuration
+   * describes respective access parameters
+   */
+  def getHeliumCfg: Config = getCfg("helium")
+  /**
+   * This method provides the configuration for the
+   * `SensorBeat`'s input channel;
+   *
+   * the current implementation supports Helium, LORIOT
+   * and The Things Stack
+   */
+  def getInputCfg: Config = getCfg("input")
   /**
    * Method to determine the logging folder for the
    * `SensorBeat` project
@@ -125,6 +129,12 @@ abstract class BeatConf {
    * the Sensor Beat
    */
   def getLoggingCfg: Config = getCfg("logging")
+  /**
+   * The Loriot server is one of the input channels of
+   * a `SensorBeat` and this configuration describes
+   * respective access parameters
+   */
+  def getLoriotCfg: Config = getCfg("loriot")
   /**
    * This method provides the number of threads used
    * to build the deep learning monitors
@@ -208,6 +218,25 @@ abstract class BeatConf {
    * Sensor Beat (HTTP Server)
    */
   def getSecurityCfg: Config = getCfg("security")
+  /**
+   * Channels in the context of a `SensorBeat` are
+   * actors that receive a `BeatSensor` message and
+   * perform specific data operations like sending
+   * to RocksDB, a FIWARE Context Broker and more
+   */
+  def getSinks:Seq[String] = {
+    val outputCfg = getOutputCfg
+    outputCfg.getStringList("channels").toSeq
+  }
+  /**
+   * The data source on the context of a `SensorBeat`;
+   * the current implementation supports HELIUM, LORIOT
+   * and THINGS_STACK
+   */
+  def getSource:String = {
+    val inputCfg = getInputCfg
+    inputCfg.getString("channel")
+  }
   /**
    * ThingsBoard is one of the output channels of a
    * `SensorBeat` and this configuration describes

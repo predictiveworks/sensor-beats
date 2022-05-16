@@ -20,10 +20,10 @@ package de.kp.works.beats.sensor.thingsstack
  */
 
 import ch.qos.logback.classic.Logger
-import de.kp.works.beats.sensor.BeatConf
+import de.kp.works.beats.sensor.{BeatConf, BeatSource}
 import org.eclipse.paho.client.mqttv3.{IMqttDeliveryToken, MqttCallback, MqttClient, MqttMessage}
 
-abstract class Consumer[T <: BeatConf](options:Options[T]) {
+abstract class Consumer[T <: BeatConf](options:Options[T]) extends BeatSource {
   /**
    * FIELD NAMES of the TTN v3 uplink message format
    */
@@ -88,11 +88,11 @@ abstract class Consumer[T <: BeatConf](options:Options[T]) {
     mqttClient.get.connect(mqttOptions)
 
     if (!mqttClient.get.isConnected) {
-      val message = s"MQTT Consumer could not connect to: ${options.getBrokerUrl}."
+      val message = s"Things Stack Consumer could not connect to: ${options.getBrokerUrl}."
       getLogger.error(message)
     }
     else {
-      val message = s"MQTT Consumer is connected with: ${options.getBrokerUrl}."
+      val message = s"Things Stack Consumer is connected with: ${options.getBrokerUrl}."
       getLogger.info(message)
 
       mqttClient.get.subscribe(options.getMqttTopic, options.getMqttQos)
@@ -105,7 +105,7 @@ abstract class Consumer[T <: BeatConf](options:Options[T]) {
    * specified MQTT broker
    */
   def restart(t:Throwable): Unit = {
-    getLogger.warn(s"MQTT Consumer restart due to: ${t.getLocalizedMessage}")
+    getLogger.warn(s"Things Stack Consumer restart due to: ${t.getLocalizedMessage}")
     subscribeAndPublish()
   }
 
@@ -114,7 +114,7 @@ abstract class Consumer[T <: BeatConf](options:Options[T]) {
     if (mqttClient.isEmpty) return
     mqttClient.get.disconnect()
 
-    val message = s"MQTT Consumer is disconnected from: ${options.getBrokerUrl}."
+    val message = s"Things Stack Consumer is disconnected from: ${options.getBrokerUrl}."
     getLogger.info(message)
 
   }

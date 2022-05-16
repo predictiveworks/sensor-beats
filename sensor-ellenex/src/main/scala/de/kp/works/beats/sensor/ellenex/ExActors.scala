@@ -1,4 +1,4 @@
-package de.kp.works.beats.sensor.milesight
+package de.kp.works.beats.sensor.ellenex
 
 /**
  * Copyright (c) 2019 - 2022 Dr. Krusche & Partner PartG. All rights reserved.
@@ -23,29 +23,30 @@ import akka.actor.{ActorRef, Props}
 import akka.routing.RoundRobinPool
 import ch.qos.logback.classic.Logger
 import de.kp.works.beats.sensor.api._
-import de.kp.works.beats.sensor.milesight.enums.MsTables
+import de.kp.works.beats.sensor.ellenex.enums.ExTables
 
 /**
- * The [MsAnomActor] supports the re-training
+ * The [ExAnomActor] supports the re-training
  * of the SensorBeat's anomaly detection model.
  *
  * Note, computing anomalies is regularly performed
  * on a scheduled basis, but can also be executed on
  * demand as well.
  */
-class MsAnomActor(config:MsConf) extends DeepActor(config) with MsLogging {
+class ExAnomActor(config:ExConf) extends DeepActor(config) with ExLogging {
 
   override def getWorker:ActorRef =
     system
       .actorOf(RoundRobinPool(instances)
         .withResizer(resizer)
-        .props(Props(new MsLearnActor())), "AnomWorker")
+        .props(Props(new ExLearnActor())), "AnomWorker")
 
   override def getLogger: Logger = logger
 
 }
+
 /**
- * The [MsForeActor] supports the re-training
+ * The [ExForeActor] supports the re-training
  * of the SensorBeat's timeseries forecast model,
  * and also the provisioning of forecasted values.
  *
@@ -53,46 +54,49 @@ class MsAnomActor(config:MsConf) extends DeepActor(config) with MsLogging {
  * performed on a scheduled basis, but can also be
  * executed on demand as well.
  */
-class MsForeActor(config:MsConf) extends DeepActor(config) with MsLogging {
+class ExForeActor(config:ExConf) extends DeepActor(config) with ExLogging {
 
   override def getWorker:ActorRef =
     system
       .actorOf(RoundRobinPool(instances)
         .withResizer(resizer)
-        .props(Props(new MsLearnActor())), "ForeWorker")
+        .props(Props(new ExLearnActor())), "ForeWorker")
 
   override def getLogger: Logger = logger
 
 }
+
 /**
- * The [MsInsightActor] supports the provisioning of
+ * The [ExInsightActor] supports the provisioning of
  * sensor event insights based on a SQL statement.
  * This actor is part of the `Sensor as a Table`
  * approach.
  */
-class MsInsightActor(config:MsConf) extends InsightActor(config) with MsLogging {
+class ExInsightActor(config:ExConf) extends InsightActor(config) with ExLogging {
   /**
-   * [MsSql] is used to do the SQL query interpretation,
+   * [ExSql] is used to do the SQL query interpretation,
    * transformation to RocksDB commands and returning
    * the respective entries
    */
-  private val msSql = new MsSql()
+  private val exSql = new ExSql()
 
   override def read(sql:String):String =
-    msSql.read(sql)
+    exSql.read(sql)
 
   override def getLogger: Logger = logger
 
 }
+
 /**
- * The [MsJobActor] supports the provisioning of
+ * The [ExJobActor] supports the provisioning of
  * status information about deep learning jobs
  */
-class MsJobActor(config:MsConf) extends JobActor(config) with MsLogging {
+class ExJobActor(config:ExConf) extends JobActor(config) with ExLogging {
 
   override def getLogger: Logger = logger
 
 }
+
 /**
  * The [MsLearnActor] executes deep learning tasks,
  * either anomaly detection or timeseries fore-
@@ -103,49 +107,51 @@ class MsJobActor(config:MsConf) extends JobActor(config) with MsLogging {
  * jobs, and executes them on a configured and
  * scheduled basis.
  */
-class MsLearnActor extends LearnActor with MsLogging {
+class ExLearnActor extends LearnActor with ExLogging {
 
   override def getLogger: Logger = logger
 
   override def validateTable(table: String): Unit =
-    MsTables.withName(table)
+    ExTables.withName(table)
 
 }
+
 /**
- * The [MsMonitorActor] supports the provisioning of
+ * The [ExMonitorActor] supports the provisioning of
  * sensor events based on a SQL statement. This actor
  * is part of the `Sensor as a Table` approach.
  */
-class MsMonitorActor(config:MsConf) extends MonitorActor(config) with MsLogging {
+class ExMonitorActor(config:ExConf) extends MonitorActor(config) with ExLogging {
   /**
-   * [MsSql] is used to do the SQL query interpretation,
+   * [ExSql] is used to do the SQL query interpretation,
    * transformation to RocksDB commands and returning
    * the respective entries
    */
-  private val msSql = new MsSql()
+  private val exSql = new ExSql()
 
   override def read(sql:String):String =
-    msSql.read(sql)
+    exSql.read(sql)
 
   override def getLogger: Logger = logger
 
 }
+
 /**
- * The [MsTrendActor] supports the provisioning of
+ * The [ExTrendActor] supports the provisioning of
  * sensor event trends based on a SQL statement.
  * This actor is part of the `Sensor as a Table`
  * approach.
  */
-class MsTrendActor(config:MsConf) extends TrendActor(config) with MsLogging {
+class ExTrendActor(config:ExConf) extends TrendActor(config) with ExLogging {
   /**
-   * [MsSql] is used to do the SQL query interpretation,
+   * [ExSql] is used to do the SQL query interpretation,
    * transformation to RocksDB commands and returning
    * the respective entries
    */
-  private val msSql = new MsSql()
+  private val exSql = new ExSql()
 
   override def trend(sql:String, indicator:String, timeframe:Int=5):String =
-    msSql.trend(sql, indicator, timeframe)
+    exSql.trend(sql, indicator, timeframe)
 
   override def getLogger: Logger = logger
 

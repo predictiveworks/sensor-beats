@@ -1,4 +1,4 @@
-package de.kp.works.beats.sensor
+package de.kp.works.beats.sensor.ellenex
 
 /**
  * Copyright (c) 2019 - 2022 Dr. Krusche & Partner PartG. All rights reserved.
@@ -19,18 +19,22 @@ package de.kp.works.beats.sensor
  *
  */
 
-import akka.stream.scaladsl.SourceQueueWithComplete
+import de.kp.works.beats.sensor._
+import org.apache.spark.sql.BeatSession
+
 /**
- * Actor implementation to publish consumed Things Stack
- * events to the SSE queue.
+ * [MsSql] supports the `Sensor as a Table` concept,
+ * that is taken from Osquery.
  */
-class BeatSse(queue:SourceQueueWithComplete[String]) extends BeatSink {
+class ExSql extends ExLogging {
 
-  override def execute(request: BeatRequest): Unit = {
+  private val session = BeatSession.getSession
+  private val beatSql = new BeatSql(session, logger)
 
-    val event = request.sensor.toJson
-    if (queue != null) queue.offer(event.toString)
+  def read(sql:String):String =
+    beatSql.read(sql)
 
-  }
+  def trend(sql:String, indicator:String, timeframe:Int=5):String =
+    beatSql.trend(sql, indicator, timeframe)
 
 }

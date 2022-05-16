@@ -1,4 +1,4 @@
-package de.kp.works.beats.sensor.milesight
+package de.kp.works.beats.sensor.sensecap
 
 /**
  * Copyright (c) 2019 - 2022 Dr. Krusche & Partner PartG. All rights reserved.
@@ -20,32 +20,32 @@ package de.kp.works.beats.sensor.milesight
  */
 
 import de.kp.works.beats.sensor.BeatConf
-import de.kp.works.beats.sensor.milesight.enums.{MsProducts, MsTables}
+import de.kp.works.beats.sensor.sensecap.enums.{ScProducts, ScTables}
 
-object MsConf {
+object ScConf {
 
-  private var instance:Option[MsConf] = None
+  private var instance:Option[ScConf] = None
 
-  def getInstance:MsConf = {
-    if (instance.isEmpty) instance = Some(new MsConf())
+  def getInstance:ScConf = {
+    if (instance.isEmpty) instance = Some(new ScConf())
     instance.get
   }
 
 }
 
-class MsConf extends BeatConf {
+class ScConf extends BeatConf {
   /**
    * The (internal) resource folder file name
    */
-  override var path: String = "milesight.conf"
+  override var path: String = "sensecap.conf"
 
-  def getProduct:MsProducts.Value = {
+  def getProduct:ScProducts.Value = {
 
     val productCfg = getProductCfg
     val product = productCfg.getString("name")
 
     try {
-      MsProducts.withName(product)
+      ScProducts.withName(product)
 
     } catch {
       case _:Throwable =>
@@ -56,7 +56,7 @@ class MsConf extends BeatConf {
   /**
    * Retrieve the sensor specific table names of
    * the `SensorBeat` database; these are coded
-   * within `MsTables`.
+   * within `ScTables`.
    */
   def getRocksTables: Seq[String] = {
     /*
@@ -65,7 +65,8 @@ class MsConf extends BeatConf {
      * names.
      */
     val product = getProduct
-    MsTables.getTables(product)
+    ScTables.getTables(product)
 
   }
+
 }

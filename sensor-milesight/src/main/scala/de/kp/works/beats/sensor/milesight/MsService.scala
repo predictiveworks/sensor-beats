@@ -24,7 +24,8 @@ import akka.actor.{ActorRef, Props}
 import akka.http.scaladsl.model.sse.ServerSentEvent
 import akka.http.scaladsl.server.Route
 import akka.stream.scaladsl.{Source, SourceQueueWithComplete}
-import de.kp.works.beats.sensor.Channels.{FIWARE, ROCKS_DB, SSE, THINGSBOARD}
+import de.kp.works.beats.sensor.BeatInputs.{HELIUM, LORIOT, THINGS_STACK}
+import de.kp.works.beats.sensor.BeatOutputs.{FIWARE, ROCKS_DB, SSE, THINGSBOARD}
 import de.kp.works.beats.sensor._
 import de.kp.works.beats.sensor.dl.anomaly.{AnomMonitor, AnomWorker}
 import de.kp.works.beats.sensor.dl.forecast.{ForeMonitor, ForeWorker}
@@ -133,6 +134,11 @@ class MsService(config:MsConf) extends BeatService[MsConf](config) with MsLoggin
    */
   override def onStart(queue: SourceQueueWithComplete[String]): Unit = {
     /*
+     * Build the input channel for the Milesight
+     * server as a service
+     */
+    buildInput()
+    /*
      * Create the micro services that control the
      * publishing of the incoming events;
      */
@@ -145,9 +151,23 @@ class MsService(config:MsConf) extends BeatService[MsConf](config) with MsLoggin
   }
 
   private def buildInput():Unit = {
-    val msInput = new MsInput(options)
-    msInput.subscribeAndPublish()
-  }
+
+    options.getSource match {
+      case HELIUM =>
+        val helium = new MsHelium(options)
+        helium.subscribeAndPublish()
+
+      case LORIOT =>
+        val loriot = new MsLoriot(options)
+        loriot.subscribeAndPublish()
+
+      case THINGS_STACK =>
+        val stack = new MsStack(options)
+        stack.subscribeAndPublish()
+
+    }
+
+   }
   /**
    * Create the micro services that control the
    * publishing of the incoming events;
@@ -159,13 +179,13 @@ class MsService(config:MsConf) extends BeatService[MsConf](config) with MsLoggin
    */
   private def buildOutputs(queue: SourceQueueWithComplete[String]):Unit = {
 
-    options.getChannels.foreach {
+    options.getSinks.foreach {
       case channel@FIWARE =>
         /*
          * Build Fiware specific output channel
          */
         val props = Props(new MsFiware(options))
-        BeatChannels.registerChannel(channel, props)
+        BeatSinks.registerChannel(channel, props)
 
       case channel@ROCKS_DB =>
         /*
@@ -174,21 +194,21 @@ class MsService(config:MsConf) extends BeatService[MsConf](config) with MsLoggin
          * at this stage already
          */
         val props = Props(new MsRocks(options))
-        BeatChannels.registerChannel(channel, props)
+        BeatSinks.registerChannel(channel, props)
 
       case channel@SSE =>
         /*
          * Build SSE specific output channel
          */
         val props = Props(new BeatSse(queue))
-        BeatChannels.registerChannel(channel, props)
+        BeatSinks.registerChannel(channel, props)
 
       case channel@THINGSBOARD =>
         /*
          * Build ThingsBoard specific output channel
          */
         val props = Props(new MsBoard(options))
-        BeatChannels.registerChannel(channel, props)
+        BeatSinks.registerChannel(channel, props)
 
       case _ => /* Do nothing */
     }
