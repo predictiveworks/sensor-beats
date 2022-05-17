@@ -30,5 +30,11 @@ object MsProducts extends Enumeration {
    * The Milesight ultrasonic sensor
    */
   val EM_500_UDL: MsProducts.Value = Value(2, "EM_500_UDL")
+  /*
+   * The Milesight CO2 sensor, which includes
+   * humidity, temperature and pressure
+   */
+  val EM_500_CO2: MsProducts.Value = Value(3, "EM_500_CO2")
+
 }
 

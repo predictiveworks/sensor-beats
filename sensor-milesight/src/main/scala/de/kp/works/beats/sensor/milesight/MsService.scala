@@ -167,7 +167,7 @@ class MsService(config:MsConf) extends BeatService[MsConf](config) with MsLoggin
 
     }
 
-   }
+  }
   /**
    * Create the micro services that control the
    * publishing of the incoming events;

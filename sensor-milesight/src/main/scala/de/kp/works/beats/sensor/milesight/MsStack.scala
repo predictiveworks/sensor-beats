@@ -20,14 +20,10 @@ package de.kp.works.beats.sensor.milesight
  */
 
 import ch.qos.logback.classic.Logger
-import com.google.gson.{JsonObject, JsonParser}
-import de.kp.works.beats.sensor._
-import de.kp.works.beats.sensor.milesight.enums.MsProducts
+import com.google.gson.JsonParser
 import de.kp.works.beats.sensor.milesight.enums.MsProducts._
 import de.kp.works.beats.sensor.thingsstack.Consumer
 import org.eclipse.paho.client.mqttv3.MqttMessage
-
-import scala.collection.JavaConversions.collectionAsScalaIterable
 /**
  * The current implementation of the MsConsumer supports
  * the Milesight EM-300 series. [MsThings] is designed as
@@ -37,12 +33,15 @@ import scala.collection.JavaConversions.collectionAsScalaIterable
 class MsStack(options: MsOptions) extends Consumer[MsConf](options.toStack) with MsLogging {
 
   private val BRAND_NAME = "Milesight"
-  override protected def getLogger: Logger = logger
   /**
-   * Public method to persist the content of the received MQTT message
-   * from the Things Stack in the internal RocksDB of the Milesight Beat.
+   * The configured data sinks configured to send
+   * Milesight sensor readings to
    */
-  override def publish(mqttMessage: MqttMessage): Unit = {
+  private val sinks = options.getSinks
+
+  override protected def getLogger: Logger = logger
+
+  override protected def publish(mqttMessage: MqttMessage): Unit = {
 
     try {
 
@@ -80,69 +79,22 @@ class MsStack(options: MsOptions) extends Consumer[MsConf](options.toStack) with
        * provided TTN v3 uplink message
        */
       val uplinkMessage = messageObj.get(TTN_UPLINK_MESSAGE).getAsJsonObject
-      val decodedPayload = uplinkMessage.get(TTN_DECODED_PAYLOAD).getAsJsonObject
+      val sensorReadings = uplinkMessage.get(TTN_DECODED_PAYLOAD).getAsJsonObject
       /*
-       * STEP #3: Extract Milesight product specific
-       * parameters
+       * STEP #3: Send sensor readings (payload) to the
+       * configured data sinks; note, attributes are
+       * restricted to [Number] fields.
        */
       val product = options.getProduct
       product match {
         case EM_300 =>
-          /*
-           * Milesight environment sensor EM300-TH-868M
-           *
-           * Source: https://github.com/Milesight-IoT/SensorDecoders/tree/master/EM300_Series/EM300-TH
-           *
-           * --------------------- Payload Definition ---------------------
-           *
-           *                  [channel_id] [channel_type]   [channel_value]
-           *
-           * 01: battery      -> 0x01         0x75          [1byte ] Unit: %
-           * 03: temperature  -> 0x03         0x67          [2bytes] Unit: °C (℉)
-           * 04: humidity     -> 0x04         0x68          [1byte ] Unit: %RH
-           *
-           * ------------------------------------------------------ EM300-TH
-           *
-           * Sample: 01 75 5C 03 67 34 01 04 68 65
-           *
-           * {
-           * "battery": 92,
-           * "humidity": 50.5,
-           * "temperature": 30.8
-           * }
-           *
-           * The battery is an optional parameter; the parameter names
-           * are directly used as field names for further processing.
-           */
-          publishPayload(deviceId, product, decodedPayload)
+          send2Sinks(deviceId, BRAND_NAME, product.toString, sensorReadings, sinks)
 
         case EM_500_UDL =>
-          /*
-           * Milesight ultrasonic level sensor
-           *
-           * Source: https://github.com/Milesight-IoT/SensorDecoders/tree/master/EM500_Series/EM500-UDL
-           *
-           * --------------------- Payload Definition ---------------------
-           *
-           *                  [channel_id] [channel_type]   [channel_value]
-           *
-           * 01: battery      -> 0x01       0x75            [1 byte]  Unit: %
-           * 03: distance     -> 0x03       0x82            [2 bytes] Unit: m
-           *
-           * ------------------------------------------------------ EM500-UDL
-           *
-           * Sample: 01 75 5A 03 82 1E 00
-           *
-           * {
-           *   "battery": 90,
-           *   "distance": 30
-           * }
-           *
-           * The battery is an optional parameter; the parameter names
-           * are directly used as field names for further processing.
-           *
-           */
-          publishPayload(deviceId, product, decodedPayload)
+          send2Sinks(deviceId, BRAND_NAME, product.toString, sensorReadings, sinks)
+
+        case EM_500_CO2 =>
+          send2Sinks(deviceId, BRAND_NAME, product.toString, sensorReadings, sinks)
 
         case _ =>
           val message = s"The specified Milesight sensor product is not supported."
@@ -156,48 +108,4 @@ class MsStack(options: MsOptions) extends Consumer[MsConf](options.toStack) with
     }
   }
 
-  private def publishPayload(deviceId:String, product:MsProducts.Value, payload:JsonObject):Unit = {
-
-    val sensorAttrs = payload.entrySet().map(entry => {
-      /*
-       * The current implementation transforms decoded
-       * values into `Double` values
-       */
-      val attrName = entry.getKey
-      val attrType = "Double"
-      val attrValue = entry.getValue.getAsNumber
-
-      BeatAttr(attrName, attrType, attrValue)
-
-    }).toSeq
-    /*
-     * Build sensor specification for output channel processing.
-     * For use cases, where various `SensorBeat`s are used, the
-     * product and also the brand name are published to distinguish
-     * different beats.
-     */
-    val sensor = BeatSensor(
-      sensorId = deviceId,
-      sensorType = product.toString,
-      sensorBrand = BRAND_NAME,
-      sensorInfo  = BeatInfos.MONITOR,
-      sensorTime = System.currentTimeMillis,
-      sensorAttrs = sensorAttrs)
-
-    val request = BeatRequest(action = BeatActions.WRITE, sensor = sensor)
-    /*
-     * Build sensor beat and send to configured output channels
-     * for further processing; note, the MsRocks channel is always
-     * defined.
-     */
-    options.getSinks.foreach(channelName => {
-      /*
-       * Note, a `BeatChannel` is implemented as an Akka actor
-       */
-      val beatChannel = BeatSinks.getChannel(channelName)
-      if (beatChannel.nonEmpty) beatChannel.get ! request
-
-    })
-
-  }
 }

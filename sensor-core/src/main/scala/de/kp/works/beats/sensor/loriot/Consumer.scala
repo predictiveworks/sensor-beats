@@ -135,6 +135,6 @@ abstract class Consumer[T <: BeatConf](options:Options[T]) extends SocketConnect
 
   }
 
-  def publish(message:LoriotUplink)
+  protected def publish(message:LoriotUplink)
 
 }

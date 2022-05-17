@@ -1,16 +1,52 @@
 package de.kp.works.beats.sensor.milesight
 
+/**
+ * Copyright (c) 2019 - 2022 Dr. Krusche & Partner PartG. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy of
+ * the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
+ *
+ * @author Stefan Krusche, Dr. Krusche & Partner PartG
+ *
+ */
+
 import ch.qos.logback.classic.Logger
-import de.kp.works.beats.sensor.helium.Consumer
+import com.google.gson.JsonParser
+import de.kp.works.beats.sensor.helium.{Consumer, HeliumUplink}
 import org.eclipse.paho.client.mqttv3.MqttMessage
 
 class MsHelium(options: MsOptions) extends Consumer[MsConf](options.toHelium) with MsLogging {
-  override protected def getLogger: Logger = ???
 
+  private val BRAND_NAME = "Milesight"
   /**
-   * Public method to persist the content of the
-   * received MQTT message in the internal RocksDB
-   * of the `SensorBeat`.
+   * The configured data sinks configured to send
+   * Milesight sensor readings to
    */
-  override def publish(mqttMessage: MqttMessage): Unit = ???
+  private val sinks = options.getSinks
+
+  override protected def getLogger: Logger = logger
+
+  override protected def publish(uplinkMessage: HeliumUplink): Unit = {
+
+    try {
+
+      // TODO
+
+    } catch {
+      case t: Throwable =>
+        val message = s"Publishing Milesight event failed: ${t.getLocalizedMessage}"
+        getLogger.error(message)
+    }
+
+  }
+
 }

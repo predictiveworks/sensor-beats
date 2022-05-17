@@ -118,11 +118,7 @@ abstract class Consumer[T <: BeatConf](options:Options[T]) extends BeatSource {
     getLogger.info(message)
 
   }
-  /**
-   * Public method to persist the content of the
-   * received MQTT message in the internal RocksDB
-   * of the `SensorBeat`.
-   */
-  def publish(mqttMessage:MqttMessage):Unit
+
+  protected def publish(mqttMessage:MqttMessage):Unit
 
 }

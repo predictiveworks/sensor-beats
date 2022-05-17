@@ -1,4 +1,4 @@
-package de.kp.works.beats.sensor.milesight
+package de.kp.works.beats.sensor.ellenex
 
 /**
  * Copyright (c) 2019 - 2022 Dr. Krusche & Partner PartG. All rights reserved.
@@ -20,20 +20,20 @@ package de.kp.works.beats.sensor.milesight
  */
 
 import ch.qos.logback.classic.Logger
-import de.kp.works.beats.sensor.loriot.{Consumer, LoriotUplink}
+import de.kp.works.beats.sensor.helium.{Consumer, HeliumUplink}
+import org.eclipse.paho.client.mqttv3.MqttMessage
 
-class MsLoriot(options: MsOptions) extends Consumer[MsConf](options.toLoriot) with MsLogging {
+class ExHelium(options: ExOptions) extends Consumer[ExConf](options.toHelium) with ExLogging {
 
   private val BRAND_NAME = "Milesight"
-  /**
-   * The configured data sinks configured to send
-   * Milesight sensor readings to
-   */
-  private val sinks = options.getSinks
-
   override protected def getLogger: Logger = logger
 
-  override protected def publish(message: LoriotUplink): Unit = {
+  /**
+   * Public method to persist the content of the
+   * received Helium uplink message in the internal
+   * RocksDB of the `SensorBeat`.
+   */
+  override def publish(uplinkMessage: HeliumUplink): Unit = {
 
     try {
 
@@ -44,7 +44,6 @@ class MsLoriot(options: MsOptions) extends Consumer[MsConf](options.toLoriot) wi
         val message = s"Publishing Milesight event failed: ${t.getLocalizedMessage}"
         getLogger.error(message)
     }
-
   }
 
 }

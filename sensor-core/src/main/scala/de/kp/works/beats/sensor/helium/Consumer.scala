@@ -130,11 +130,7 @@ abstract class Consumer[T <: BeatConf](options:Options[T]) extends BeatSource {
     getLogger.info(message)
 
   }
-  /**
-   * Public method to persist the content of the
-   * received Helium uplink  message in the internal
-   * RocksDB of the `SensorBeat`.
-   */
-  def publish(uplinkMessage:HeliumUplink):Unit
+
+  protected def publish(uplinkMessage:HeliumUplink):Unit
 
 }

@@ -46,15 +46,16 @@ trait BeatSource {
 
   def subscribeAndPublish():Unit
 
-  protected def send2Sinks(deviceId:String, sensorBrand:String, sensorType:String, payload:JsonObject, sinks:Seq[BeatOutput]):Unit = {
+  protected def send2Sinks(deviceId:String, sensorBrand:String, sensorType:String, readings:JsonObject, sinks:Seq[BeatOutput]):Unit = {
 
-    val sensorAttrs = payload.entrySet().map(entry => {
+    val sensorAttrs = readings.entrySet().map(entry => {
       /*
-       * The current implementation transforms decoded
-       * values into `Double` values
+       * The sensor readings extracted for sending
+       * to the Sensor Beat's output channel are
+       * restricted to [Number] attributes
        */
       val attrName = entry.getKey
-      val attrType = "Double"
+      val attrType = "Number"
       val attrValue = entry.getValue.getAsNumber
 
       BeatAttr(attrName, attrType, attrValue)
