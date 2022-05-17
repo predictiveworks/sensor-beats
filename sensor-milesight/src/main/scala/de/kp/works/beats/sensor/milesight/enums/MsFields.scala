@@ -24,8 +24,10 @@ object MsFields {
    * Milesight devices decoded payload fields
    */
   val BATTERY: String     = "battery"
+  val CO2: String         = "co2"
   val DISTANCE: String    = "distance"
   val HUMIDITY: String    = "humidity"
+  val PRESSURE: String    = "pressure"
   val TEMPERATURE: String = "temperature"
 
 }

@@ -24,6 +24,8 @@ import com.google.gson.JsonParser
 import de.kp.works.beats.sensor.milesight.enums.MsProducts._
 import de.kp.works.beats.sensor.thingsstack.Consumer
 import org.eclipse.paho.client.mqttv3.MqttMessage
+
+import scala.collection.JavaConversions.asScalaSet
 /**
  * The current implementation of the MsConsumer supports
  * the Milesight EM-300 series. [MsThings] is designed as
@@ -87,13 +89,41 @@ class MsStack(options: MsOptions) extends Consumer[MsConf](options.toStack) with
        */
       val product = options.getProduct
       product match {
-        case EM_300 =>
+        /*
+         * The decoded fields of the subsequent sensors
+         * contain numeric values only.
+         */
+        case EM300_TH =>
           send2Sinks(deviceId, BRAND_NAME, product.toString, sensorReadings, sinks)
 
-        case EM_500_UDL =>
+        case EM500_UDL =>
           send2Sinks(deviceId, BRAND_NAME, product.toString, sensorReadings, sinks)
 
-        case EM_500_CO2 =>
+        case EM500_CO2 =>
+          send2Sinks(deviceId, BRAND_NAME, product.toString, sensorReadings, sinks)
+        /*
+         * The decoded fields of the subsequent sensors
+         * contain numeric and textual values.
+         */
+        case UC500 =>
+          /*
+           * The TTN decoding transforms fields that are
+           * decoded as [String] values into [Number].
+           */
+          try {
+
+            val keys = sensorReadings.keySet().filter(key => {
+              key.startsWith("gpio") || key.startsWith("chn")
+            })
+            keys.foreach(key => {
+              val value = sensorReadings.remove(key).getAsString
+              sensorReadings.addProperty(key, if (value == "off") 0 else 1)
+            })
+
+          } catch {
+            case _:Throwable => /* Do nothing */
+          }
+
           send2Sinks(deviceId, BRAND_NAME, product.toString, sensorReadings, sinks)
 
         case _ =>

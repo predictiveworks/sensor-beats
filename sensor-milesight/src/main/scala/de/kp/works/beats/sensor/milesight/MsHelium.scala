@@ -20,9 +20,9 @@ package de.kp.works.beats.sensor.milesight
  */
 
 import ch.qos.logback.classic.Logger
-import com.google.gson.JsonParser
+import com.google.gson.JsonObject
 import de.kp.works.beats.sensor.helium.{Consumer, HeliumUplink}
-import org.eclipse.paho.client.mqttv3.MqttMessage
+import de.kp.works.beats.sensor.milesight.enums.MsProducts._
 
 class MsHelium(options: MsOptions) extends Consumer[MsConf](options.toHelium) with MsLogging {
 
@@ -40,6 +40,18 @@ class MsHelium(options: MsOptions) extends Consumer[MsConf](options.toHelium) wi
     try {
 
       // TODO
+      val deviceId = ""
+      val sensorReadings = new JsonObject
+      /*
+       * Send sensor readings (payload) to the configured
+       * data sinks; note, attributes are restricted to [Number]
+       * fields.
+       *
+       * This restriction is ensured by the Milesight decoders
+       * provided with this project
+       */
+      val product = options.getProduct
+      send2Sinks(deviceId, BRAND_NAME, product.toString, sensorReadings, sinks)
 
     } catch {
       case t: Throwable =>

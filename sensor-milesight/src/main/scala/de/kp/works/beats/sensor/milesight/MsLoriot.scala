@@ -21,7 +21,11 @@ package de.kp.works.beats.sensor.milesight
 
 import ch.qos.logback.classic.Logger
 import de.kp.works.beats.sensor.loriot.{Consumer, LoriotUplink}
-
+/**
+ * The [MsLoriot] input channel focuses on the
+ * extraction of the unique device identifier
+ * and the provided sensor readings
+ */
 class MsLoriot(options: MsOptions) extends Consumer[MsConf](options.toLoriot) with MsLogging {
 
   private val BRAND_NAME = "Milesight"
@@ -36,8 +40,32 @@ class MsLoriot(options: MsOptions) extends Consumer[MsConf](options.toLoriot) wi
   override protected def publish(message: LoriotUplink): Unit = {
 
     try {
-
-      // TODO
+      /*
+       * Make sure the extracted message is a LORIOT
+       uplink message
+       */
+      if (message.cmd != "rx") return
+      /*
+       * The current implementation of SensorBeat does not
+       * supported encrypted data payloads (which refers to
+       * a missing APP KEY
+       */
+      if (message.encdata.nonEmpty || message.data.isEmpty) return
+      /*
+       * Send sensor readings (payload) to the configured
+       * data sinks; note, attributes are restricted to [Number]
+       * fields.
+       *
+       * This restriction is ensured by the Milesight decoders
+       * provided with this project
+       */
+      val product = options.getProduct
+      val sensorReadings = MsDecoder.decodeHex(product, message.data.get)
+      /*
+       * Note, the EUI value is used as unique device identifier
+       */
+      val deviceId = message.EUI
+      send2Sinks(deviceId, BRAND_NAME, product.toString, sensorReadings, sinks)
 
     } catch {
       case t: Throwable =>

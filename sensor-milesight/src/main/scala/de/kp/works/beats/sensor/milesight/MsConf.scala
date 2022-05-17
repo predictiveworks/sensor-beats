@@ -65,7 +65,17 @@ class MsConf extends BeatConf {
      * names.
      */
     val product = getProduct
-    MsTables.getTables(product)
+    val monitoring = MsTables.getTables(product)
+    /*
+     * SensorBeat supports anomaly detection and
+     * timeseries forecasting for all the selected
+     * monitoring attributes
+     */
+    val anomalies = monitoring.map(table => s"${table}_anom")
+    val forecasts = monitoring.map(table => s"${table}_fore")
+
+    val tables = monitoring ++ anomalies ++ forecasts
+    tables
 
   }
 }

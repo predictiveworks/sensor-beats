@@ -1,4 +1,4 @@
-package de.kp.works.beats.sensor.milesight.enums
+package de.kp.works.beats.sensor.milesight
 
 /**
  * Copyright (c) 2019 - 2022 Dr. Krusche & Partner PartG. All rights reserved.
@@ -19,25 +19,30 @@ package de.kp.works.beats.sensor.milesight.enums
  *
  */
 
-object MsProducts extends Enumeration {
-  type MsProduct = Value
-  /*
-   * The Milesight humidity & temperature sensor
-   * for indoor environmental sensing
-   */
-  val EM300_TH: MsProducts.Value = Value(1, "EM300_TH")
-  /*
-   * The Milesight CO2 sensor, which includes
-   * humidity, temperature and pressure
-   */
-  val EM500_CO2: MsProducts.Value = Value(2, "EM500_CO2")
-  /*
-   * The Milesight ultrasonic sensor
-   */
-  val EM500_UDL: MsProducts.Value = Value(3, "EM500_UDL")
-  /*
-   * The Milesight UC 500 sensor series
-   */
-  val UC500: MsProducts.Value = Value(3, "UC500")
-}
+import com.google.gson.JsonObject
+import de.kp.works.beats.sensor.milesight.enums.MsProducts
+import de.kp.works.beats.sensor.milesight.enums.MsProducts.MsProduct
 
+object MsDecoder {
+
+  def decodeHex(product: MsProduct, hexstring: String): JsonObject = {
+
+    val readings = product match {
+      case MsProducts.EM300_TH =>
+        decoders.EM300_TH.decodeHex(hexstring)
+
+      case MsProducts.EM500_CO2 =>
+        decoders.EM500_CO2.decodeHex(hexstring)
+
+      case MsProducts.EM500_UDL =>
+        decoders.EM500_CO2.decodeHex(hexstring)
+
+      case MsProducts.UC500 =>
+        decoders.UC500.decodeHex(hexstring)
+
+    }
+
+    readings
+
+  }
+}

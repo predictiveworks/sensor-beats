@@ -27,23 +27,11 @@ object MsTables extends Enumeration {
    * Monitoring tables
    */
   val BATTERY:MsTables.Value     = Value(1, "battery")
-  val DISTANCE:MsTables.Value    = Value(2, "distance")
-  val HUMIDITY:MsTables.Value    = Value(3, "humidity")
-  val TEMPERATURE:MsTables.Value = Value(4, "temperature")
-  /**
-   * Anomaly tables
-   */
-  val BATTERY_ANON:MsTables.Value     = Value(5, "battery_anon")
-  val DISTANCE_ANON:MsTables.Value    = Value(6, "distance_anon")
-  val HUMIDITY_ANON:MsTables.Value    = Value(7, "humidity_anon")
-  val TEMPERATURE_ANON:MsTables.Value = Value(8, "temperature_anon")
-  /**
-   * Forecast tables
-   */
-  val BATTERY_FORE:MsTables.Value     = Value(9,  "battery_fore")
-  val DISTANCE_FORE:MsTables.Value    = Value(10, "distance_fore")
-  val HUMIDITY_FORE:MsTables.Value    = Value(11, "humidity_fore")
-  val TEMPERATURE_FORE:MsTables.Value = Value(12, "temperature_fore")
+  val CO2:MsTables.Value         = Value(2, "co2")
+  val DISTANCE:MsTables.Value    = Value(3, "distance")
+  val HUMIDITY:MsTables.Value    = Value(4, "humidity")
+  val PRESSURE:MsTables.Value    = Value(5, "humidity")
+  val TEMPERATURE:MsTables.Value = Value(6, "pressure")
 
   def getTables(product:MsProducts.Value):Seq[String] = {
     product match {
@@ -51,27 +39,33 @@ object MsTables extends Enumeration {
        * Milesight humidity & temperature
        * indoor sensor
        */
-      case EM_300 =>
+      case EM300_TH =>
         Seq(
           MsTables.BATTERY.toString,
-          MsTables.BATTERY_ANON.toString,
-          MsTables.BATTERY_FORE.toString,
           MsTables.HUMIDITY.toString,
-          MsTables.HUMIDITY_ANON.toString,
-          MsTables.HUMIDITY_FORE.toString,
-          MsTables.TEMPERATURE.toString,
-          MsTables.TEMPERATURE_ANON.toString,
-          MsTables.TEMPERATURE_FORE.toString)
+          MsTables.TEMPERATURE.toString)
+      /*
+       * Milesight CO2 sensor
+       */
+      case EM500_CO2 =>
+        Seq(
+          MsTables.BATTERY.toString,
+          MsTables.CO2.toString,
+          MsTables.HUMIDITY.toString,
+          MsTables.PRESSURE.toString,
+          MsTables.TEMPERATURE.toString)
       /*
        * Milesight ultrasonic outdoor level
        * sensor
        */
-      case EM_500_UDL =>
+      case EM500_UDL =>
         Seq(
           MsTables.BATTERY.toString,
-          MsTables.BATTERY_ANON.toString,
-          MsTables.DISTANCE.toString,
-          MsTables.DISTANCE_ANON.toString)
+          MsTables.DISTANCE.toString)
+
+      case UC500 =>
+        // TODO
+        Seq.empty[String]
     }
   }
 }
