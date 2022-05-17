@@ -20,20 +20,18 @@ package de.kp.works.beats.sensor.loriot
  */
 
 import ch.qos.logback.classic.Logger
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.module.scala.DefaultScalaModule
-import de.kp.works.beats.sensor.{BeatConf, BeatSource}
 import de.kp.works.beats.sensor.socket.{SocketConnect, SocketHandler}
-
+import de.kp.works.beats.sensor.{BeatConf, BeatSource}
+/**
+ * The LORIOT consumer is built to consume LORIOT
+ * uplink messages from the LORIOT web socket server.
+ */
 abstract class Consumer[T <: BeatConf](options:Options[T]) extends SocketConnect with BeatSource {
 
   private val RESTART_WAIT_MS = 250
   private val MAX_RETRIES = 5
 
   private var retries = 1
-
-  protected val mapper = new ObjectMapper()
-  mapper.registerModule(DefaultScalaModule)
 
   protected def getLogger:Logger
   /**

@@ -22,6 +22,14 @@ package de.kp.works.beats.sensor
  * The number of input channels that can be configured
  * to consume sensor events.
  */
+
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.scala.DefaultScalaModule
+import com.google.gson.JsonObject
+import de.kp.works.beats.sensor.BeatOutputs.BeatOutput
+
+import scala.collection.JavaConversions.asScalaSet
+
 object BeatInputs extends Enumeration {
   type BeatInput = Value
 
@@ -33,6 +41,54 @@ object BeatInputs extends Enumeration {
 
 trait BeatSource {
 
+  protected val mapper = new ObjectMapper()
+  mapper.registerModule(DefaultScalaModule)
+
   def subscribeAndPublish():Unit
+
+  protected def send2Sinks(deviceId:String, sensorBrand:String, sensorType:String, payload:JsonObject, sinks:Seq[BeatOutput]):Unit = {
+
+    val sensorAttrs = payload.entrySet().map(entry => {
+      /*
+       * The current implementation transforms decoded
+       * values into `Double` values
+       */
+      val attrName = entry.getKey
+      val attrType = "Double"
+      val attrValue = entry.getValue.getAsNumber
+
+      BeatAttr(attrName, attrType, attrValue)
+
+    }).toSeq
+    /*
+     * Build sensor specification for output channel processing.
+     * For use cases, where various `SensorBeat`s are used, the
+     * sensor type and also the brand name are published to distinguish
+     * different beats.
+     */
+    val sensor = BeatSensor(
+      sensorId = deviceId,
+      sensorType = sensorType,
+      sensorBrand = sensorBrand,
+      sensorInfo  = BeatInfos.MONITOR,
+      sensorTime = System.currentTimeMillis,
+      sensorAttrs = sensorAttrs)
+
+    val request = BeatRequest(action = BeatActions.WRITE, sensor = sensor)
+    /*
+     * Build sensor beat and send to configured output channels
+     * for further processing; note, the MsRocks channel is always
+     * defined.
+     */
+    sinks.foreach(sink => {
+      /*
+       * Note, a `BeatChannel` is implemented as an Akka actor
+       */
+      val beatChannel = BeatSinks.getChannel(sink)
+      if (beatChannel.nonEmpty) beatChannel.get ! request
+
+    })
+
+  }
 
 }

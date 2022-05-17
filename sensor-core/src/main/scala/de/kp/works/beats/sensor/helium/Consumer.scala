@@ -20,6 +20,7 @@ package de.kp.works.beats.sensor.helium
  */
 
 import ch.qos.logback.classic.Logger
+import com.google.gson.JsonParser
 import de.kp.works.beats.sensor.{BeatConf, BeatSource}
 import org.eclipse.paho.client.mqttv3.{IMqttDeliveryToken, MqttCallback, MqttClient, MqttMessage}
 /**
@@ -58,8 +59,23 @@ abstract class Consumer[T <: BeatConf](options:Options[T]) extends BeatSource {
      */
     val callback: MqttCallback = new MqttCallback() {
 
-      override def messageArrived(topic: String, message: MqttMessage) {
-        publish(message)
+      override def messageArrived(topic: String, mqttMessage: MqttMessage) {
+
+        try {
+          /*
+           * Extract message payload and check
+           * whether valid JSON is provided
+           */
+          val payload = new String(mqttMessage.getPayload)
+          val json = JsonParser.parseString(payload)
+
+          val uplink = mapper.readValue(json.toString, classOf[HeliumUplink])
+          publish(uplink)
+
+        } catch {
+          case t:Throwable =>
+            getLogger.error(s"MQTT Message parsing failed: ${t.getLocalizedMessage}")
+        }
       }
 
       override def deliveryComplete(token: IMqttDeliveryToken) {}
@@ -116,9 +132,9 @@ abstract class Consumer[T <: BeatConf](options:Options[T]) extends BeatSource {
   }
   /**
    * Public method to persist the content of the
-   * received MQTT message in the internal RocksDB
-   * of the `SensorBeat`.
+   * received Helium uplink  message in the internal
+   * RocksDB of the `SensorBeat`.
    */
-  def publish(mqttMessage:MqttMessage):Unit
+  def publish(uplinkMessage:HeliumUplink):Unit
 
 }
