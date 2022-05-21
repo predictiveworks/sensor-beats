@@ -22,35 +22,25 @@ package de.kp.works.beats.sensor.milesight.decoders
 import com.google.gson.JsonObject
 import de.kp.works.beats.sensor.milesight.enums.MsFields._
 
-import scala.util.control.Breaks._
+import scala.util.control.Breaks.{break, breakable}
 
-object EM500_UDL extends BaseDecoder {
+/**
+ * Payload Decoder for Milesight EM500-SWL
+ */
+object EM500_SWL extends BaseDecoder {
   /*
-   * Milesight ultrasonic level sensor
+   * Milesight water level sensor
    *
-   * Source: https://github.com/Milesight-IoT/SensorDecoders/tree/master/EM500_Series/EM500-UDL
+   * Source: https://github.com/Milesight-IoT/SensorDecoders/tree/master/EM500_Series/EM500-SWL
    *
    * --------------------- Payload Definition ---------------------
    *
-   *                  [channel_id] [channel_type]   [channel_value]
-   *
-   * 01: battery      -> 0x01       0x75            [1 byte]  Unit: %
-   * 03: distance     -> 0x03       0x82            [2 bytes] Unit: m
-   *
-   * ------------------------------------------------------ EM500-UDL
-   *
-   * Sample: 01 75 5A 03 82 1E 00
-   *
-   * {
-   *   "battery": 90,
-   *   "distance": 30
-   * }
-   *
-   * The battery is an optional parameter; the parameter names
-   * are directly used as field names for further processing.
-   *
+   *                    [channel_id] [channel_type] [channel_value]
+   * 01: battery        -> 0x01         0x75          [1byte ] Unit: %
+   * 03: water_level    -> 0x03         0x77          [2bytes] Unit: cm
+   * ---------------------------------------------------- EM500-SWL
    */
-  def decode(bytes:Array[Int]):JsonObject = {
+  override def decode(bytes: Array[Int]): JsonObject = {
 
     val decoded = new JsonObject
 
@@ -67,28 +57,30 @@ object EM500_UDL extends BaseDecoder {
         if (channel_id == 0x01 && channel_type == 0x75) {
           i += 1
           val battery = bytes(i)
-          decoded.addProperty("battery",  battery)
+          decoded.addProperty("battery", battery)
         }
-        // DISTANCE
-        else if (channel_id == 0x03 && channel_type == 0x82) {
+        // WATER LEVEL (cm)
+        else if (channel_id == 0x03 && channel_type == 0x77) {
           i += 1
-          val distance = readInt16LE(bytes.slice(i, i + 2)).toDouble
-          decoded.addProperty("distance", distance)
+          val water_level = readInt16LE(bytes.slice(i, i + 2)).toDouble
+          decoded.addProperty("water_level", water_level)
           i += 1
         }
         else {
           break
         }
+
       }
     }
 
     decoded
+
   }
 
   override def fields: Seq[String] = {
     Seq(
       BATTERY,
-      DISTANCE
+      WATER_LEVEL
     )
   }
 }

@@ -20,6 +20,8 @@ package de.kp.works.beats.sensor.milesight.decoders
  */
 
 import com.google.gson.JsonObject
+import de.kp.works.beats.sensor.milesight.enums.MsFields._
+
 import scala.util.control.Breaks._
 /**
  * Payload Decoder for EM500-CO2
@@ -28,7 +30,7 @@ object EM500_CO2 extends BaseDecoder {
   /*
    * Milesight ultrasonic level sensor
    *
-   * Source:https://github.com/Milesight-IoT/SensorDecoders/blob/master/EM500_Series/EM500-CO2
+   * Source: https://github.com/Milesight-IoT/SensorDecoders/blob/master/EM500_Series/EM500-CO2
    *
    * --------------------- Payload Definition ---------------------
    *
@@ -38,7 +40,7 @@ object EM500_CO2 extends BaseDecoder {
    * 03: temperature  -> 0x03      0x67             [2bytes] Unit:°C
    * 04: humidity     -> 0x04      0x68             [1byte]  Unit:%RH
    * 05: CO2          -> 0x05      0x7D             [2bytes] Unit:ppm
-   * 06: Pressure     -> 0x06      0x73             [2bytes] Unit: hPa
+   * 06: pressure     -> 0x06      0x73             [2bytes] Unit: hPa
    *
    * ---------------------------------------------------- EM500-CO2
    *
@@ -102,4 +104,13 @@ object EM500_CO2 extends BaseDecoder {
 
   }
 
+  override def fields: Seq[String] = {
+    Seq(
+      BATTERY,
+      TEMPERATURE,
+      HUMIDITY,
+      CO2,
+      PRESSURE
+    )
+  }
 }

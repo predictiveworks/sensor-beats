@@ -22,53 +22,41 @@ package de.kp.works.beats.sensor.milesight.decoders
 import com.google.gson.JsonObject
 import de.kp.works.beats.sensor.milesight.enums.MsFields._
 
-import scala.util.control.Breaks._
+import scala.util.control.Breaks.{break, breakable}
 
 /**
- * Payload Decoder for Milesight EM300-TH
+ * Payload decoder for Milesight EM500-SMT
  */
-object EM300_TH extends BaseDecoder {
+object EM500_SMT extends BaseDecoder {
   /*
-   * Milesight environment sensor EM300-TH-868M
+   * Milesight soil moisture, temperature & electrical
+   * conductivity sensor
    *
-   * Source: https://github.com/Milesight-IoT/SensorDecoders/tree/master/EM300_Series/EM300-TH
+   * Source: https://github.com/Milesight-IoT/SensorDecoders/tree/master/EM500_Series/EM500-SMT
    *
    * --------------------- Payload Definition ---------------------
    *
-   *                  [channel_id] [channel_type]   [channel_value]
-   *
-   * 01: battery      -> 0x01         0x75          [1byte ] Unit: %
-   * 03: temperature  -> 0x03         0x67          [2bytes] Unit: °C (℉)
-   * 04: humidity     -> 0x04         0x68          [1byte ] Unit: %RH
-   *
-   * ------------------------------------------------------ EM300-TH
-   *
-   * Sample: 01 75 5C 03 67 34 01 04 68 65
-   *
-   * {
-   * "battery": 92,
-   * "humidity": 50.5,
-   * "temperature": 30.8
-   * }
-   *
-   * The battery is an optional parameter; the parameter names
-   * are directly used as field names for further processing.
+   *                    [channel_id] [channel_type] [channel_value]
+   * 01: battery        -> 0x01         0x75          [1byte ] Unit: %
+   * 03: temperature    -> 0x03         0x67          [2bytes] Unit: °C (℉)
+   * 04: moisture       -> 0x04         0x68          [1byte ] Unit: %RH
+   * 04: moisture       -> 0x04         0xCA          [2bytes] Unit: %RH
+   * 05: ec             -> 0x05         0x7F          [2bytes] Unit: µs/cm
+   * --------------------------------------------------- EM500-SMTC
    */
-  def decode(bytes:Array[Int]):JsonObject = {
+  override def decode(bytes: Array[Int]): JsonObject = {
 
     val decoded = new JsonObject
 
     var i = -1
     breakable {
       while (i < bytes.length - 1) {
-
         // CHANNEL
         i += 1
         val channel_id = bytes(i)
 
         i += 1
         val channel_type = bytes(i)
-
         // BATTERY
         if (channel_id == 0x01 && channel_type == 0x75) {
           i += 1
@@ -82,20 +70,33 @@ object EM300_TH extends BaseDecoder {
           decoded.addProperty("temperature", temperature)
           i += 1
         }
-        // HUMIDITY
+        // HUMIDITY, OLD RESOLUTION (MOISTURE)
         else if (channel_id == 0x04 && channel_type == 0x68) {
           i += 1
           val humidity = bytes(i).toDouble / 2
           decoded.addProperty("humidity", humidity)
-
-        } else {
+        }
+        // HUMIDITY, NEW RESOLUTION (MOISTURE)
+        else if (channel_id == 0x04 && channel_type == 0xCA) {
+          i += 1
+          val humidity = readUInt16LE(bytes.slice(i, i + 2)).toDouble / 100
+          decoded.addProperty("humidity", humidity)
+          i += 1
+        }
+        // EC, ELECTRIC CONDUCTIVITY
+        else if (channel_id == 0x05 && channel_type == 0x7F) {
+          i += 1
+          val ec = readUInt16LE(bytes.slice(i, i + 2))
+          decoded.addProperty("ec", ec)
+          i += 1
+        }
+        else {
           break
         }
-
       }
     }
 
-   decoded
+    decoded
 
   }
 
@@ -103,7 +104,8 @@ object EM300_TH extends BaseDecoder {
     Seq(
       BATTERY,
       TEMPERATURE,
-      HUMIDITY)
+      HUMIDITY,
+      EC
+    )
   }
-
 }

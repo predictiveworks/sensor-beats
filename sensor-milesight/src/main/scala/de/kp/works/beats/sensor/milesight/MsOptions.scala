@@ -23,7 +23,7 @@ import de.kp.works.beats.sensor.{BeatInputs, BeatOutputs}
 import de.kp.works.beats.sensor.fiware.{Options => FiwareOptions}
 import de.kp.works.beats.sensor.helium.{Options => HeliumOptions}
 import de.kp.works.beats.sensor.loriot.{Options => LoriotOptions}
-import de.kp.works.beats.sensor.milesight.enums.MsProducts
+import de.kp.works.beats.sensor.milesight.enums.MsProducts.MsProduct
 import de.kp.works.beats.sensor.thingsboard.{Options => BoardOptions}
 import de.kp.works.beats.sensor.thingsstack.{Options => StackOptions}
 /**
@@ -36,7 +36,7 @@ class MsOptions(config:MsConf) {
    * Milesight product name; in case of an
    * unsupported sensor, an exception is thrown
    */
-  def getProduct:MsProducts.Value =
+  def getProduct:MsProduct =
     config.getProduct
   /**
    * Public wrapper method to retrieve the RocksDB

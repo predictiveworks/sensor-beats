@@ -69,7 +69,7 @@ class MsLoriot(options: MsOptions) extends Consumer[MsConf](options.toLoriot) wi
 
     } catch {
       case t: Throwable =>
-        val message = s"Publishing Milesight event failed: ${t.getLocalizedMessage}"
+        val message = s"Publishing LORIOT Milesight event failed: ${t.getLocalizedMessage}"
         getLogger.error(message)
     }
 

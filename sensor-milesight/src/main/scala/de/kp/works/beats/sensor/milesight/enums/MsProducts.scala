@@ -21,23 +21,20 @@ package de.kp.works.beats.sensor.milesight.enums
 
 object MsProducts extends Enumeration {
   type MsProduct = Value
-  /*
-   * The Milesight humidity & temperature sensor
-   * for indoor environmental sensing
-   */
-  val EM300_TH: MsProducts.Value = Value(1, "EM300_TH")
-  /*
-   * The Milesight CO2 sensor, which includes
-   * humidity, temperature and pressure
-   */
-  val EM500_CO2: MsProducts.Value = Value(2, "EM500_CO2")
-  /*
-   * The Milesight ultrasonic sensor
-   */
-  val EM500_UDL: MsProducts.Value = Value(3, "EM500_UDL")
-  /*
-   * The Milesight UC 500 sensor series
-   */
-  val UC500: MsProducts.Value = Value(3, "UC500")
+
+  val AM100: MsProduct       = Value(1, "AM100")
+  val AM300: MsProduct       = Value(2, "AM300")
+  val EM300_MCS: MsProduct   = Value(3, "EM300_MCS")
+  val EM300_SLD: MsProduct   = Value(4, "EM300_SLD")
+  val EM300_TH: MsProduct    = Value(5, "EM300_TH")
+  val EM300_ZLD: MsProduct   = Value(6, "EM300_ZLD")
+  val EM500_CO2: MsProduct   = Value(7, "EM500_CO2")
+  val EM500_LGT: MsProduct   = Value(8, "EM500_LGT")
+  val EM500_PP: MsProduct    = Value(9, "EM500_PP")
+  val EM500_PT100: MsProduct = Value(10, "EM500_PT100")
+  val EM500_SMT: MsProduct   = Value(11, "EM500_SMT")
+  val EM500_SWL: MsProduct   = Value(12, "EM500_SWL")
+  val EM500_UDL: MsProduct   = Value(13, "EM500_UDL")
+  val UC500: MsProduct       = Value(14, "UC500")
 }
 

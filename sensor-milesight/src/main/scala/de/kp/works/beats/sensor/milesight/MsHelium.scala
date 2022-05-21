@@ -20,9 +20,9 @@ package de.kp.works.beats.sensor.milesight
  */
 
 import ch.qos.logback.classic.Logger
-import com.google.gson.JsonObject
 import de.kp.works.beats.sensor.helium.{Consumer, HeliumUplink}
-import de.kp.works.beats.sensor.milesight.enums.MsProducts._
+
+import java.util.Base64
 
 class MsHelium(options: MsOptions) extends Consumer[MsConf](options.toHelium) with MsLogging {
 
@@ -35,13 +35,18 @@ class MsHelium(options: MsOptions) extends Consumer[MsConf](options.toHelium) wi
 
   override protected def getLogger: Logger = logger
 
-  override protected def publish(uplinkMessage: HeliumUplink): Unit = {
+  override protected def publish(message: HeliumUplink): Unit = {
 
     try {
-
-      // TODO
-      val deviceId = ""
-      val sensorReadings = new JsonObject
+      /*
+       * Data transmitted by the device is a base64 encoded String.
+       */
+      val decodedPayload = Base64.getDecoder.decode(message.payload)
+      /*
+       * The uplink message provides the size of the payload and this
+       * parameter is used to verify the payload
+       */
+      if (decodedPayload.length != message.payload_size.intValue()) return
       /*
        * Send sensor readings (payload) to the configured
        * data sinks; note, attributes are restricted to [Number]
@@ -51,11 +56,21 @@ class MsHelium(options: MsOptions) extends Consumer[MsConf](options.toHelium) wi
        * provided with this project
        */
       val product = options.getProduct
+      val sensorReadings = MsDecoder.decodeHex(product, new String(decodedPayload))
+      /*
+       * The `dev_eui` is used as a unique device identifier:
+       *
+       * LoRaWAN 64-bit Device Identifier (DevEUI) in MSB hex;
+       * conventionally this is used to identify a unique device
+       * within a specific application (AppEUI) or even within an
+       * entire organization
+       */
+      val deviceId = message.dev_eui
       send2Sinks(deviceId, BRAND_NAME, product.toString, sensorReadings, sinks)
 
     } catch {
       case t: Throwable =>
-        val message = s"Publishing Milesight event failed: ${t.getLocalizedMessage}"
+        val message = s"Publishing Helium Milesight event failed: ${t.getLocalizedMessage}"
         getLogger.error(message)
     }
 

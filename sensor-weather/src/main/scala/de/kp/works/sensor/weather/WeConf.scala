@@ -1,4 +1,4 @@
-package de.kp.works.beats.sensor.sensecap
+package de.kp.works.sensor.weather
 
 /**
  * Copyright (c) 2019 - 2022 Dr. Krusche & Partner PartG. All rights reserved.
@@ -20,54 +20,41 @@ package de.kp.works.beats.sensor.sensecap
  */
 
 import de.kp.works.beats.sensor.BeatConf
-import de.kp.works.beats.sensor.sensecap.enums.ScProducts.ScProduct
-import de.kp.works.beats.sensor.sensecap.enums.{ScProducts, ScTables}
+import de.kp.works.sensor.weather.enums.WeProducts
+import de.kp.works.sensor.weather.enums.WeProducts.WeProduct
 
-object ScConf {
+object WeConf {
 
-  private var instance:Option[ScConf] = None
+  private var instance:Option[WeConf] = None
 
-  def getInstance:ScConf = {
-    if (instance.isEmpty) instance = Some(new ScConf())
+  def getInstance:WeConf = {
+    if (instance.isEmpty) instance = Some(new WeConf())
     instance.get
   }
 
 }
 
-class ScConf extends BeatConf {
+class WeConf extends BeatConf {
   /**
    * The (internal) resource folder file name
    */
-  override var path: String = "sensecap.conf"
+  override var path: String = "weather.conf"
 
-  def getProduct:ScProduct = {
+  def getProduct:WeProduct = {
 
     val productCfg = getProductCfg
     val product = productCfg.getString("name")
 
     try {
-      ScProducts.withName(product)
+      WeProducts.withName(product)
 
     } catch {
       case _:Throwable =>
-        throw new Exception(s"SenseCap product `$product` not supported.")
+        throw new Exception(s"OpenWeather product `$product` not supported.")
     }
 
   }
-  /**
-   * Retrieve the sensor specific table names of
-   * the `SensorBeat` database; these are coded
-   * within `ScTables`.
-   */
-  def getRocksTables: Seq[String] = {
-    /*
-     * Retrieve the correct product or sensor name
-     * and determine the associated hard-coded table
-     * names.
-     */
-    val product = getProduct
-    ScTables.getTables(product)
 
-  }
+  override def getRocksTables: Seq[String] = ???
 
 }

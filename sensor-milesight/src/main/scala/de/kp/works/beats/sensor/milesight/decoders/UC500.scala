@@ -20,16 +20,26 @@ package de.kp.works.beats.sensor.milesight.decoders
  */
 
 import com.google.gson.JsonObject
+import de.kp.works.beats.sensor.milesight.enums.MsFields._
 
 import scala.util.control.Breaks.breakable
-
+/**
+ * Milesight UC500 is a LoRaWAN node with multiple
+ * interfaces to connect to sensors.
+ *
+ * The field or attribute names are generic and
+ * refer to the interfaces.
+ *
+ * Note, these generic field names should be replaced
+ * by more meaningful names e.g. via configuration
+ */
 object UC500 extends BaseDecoder {
 
   def decode(bytes:Array[Int]):JsonObject = {
 
     val decoded = new JsonObject
 
-    var i = -1;
+    var i = -1
     breakable {
       while (i < bytes.length - 1) {
         // CHANNEL
@@ -108,13 +118,28 @@ object UC500 extends BaseDecoder {
         }
         // MODBUS
         else if (channel_id == 0xFF && channel_type == 0x0E) {
+          // CHANNEL TYPE 0x0E refers to the RS485 interface
+          // of the LoRaWAN sensor hub
+          //
+          // Sample: The RS485 channel identifier 08 refers to
+          // channel 2, which is the Modbus master channel
           i += 1
           val modbus_chn_id = bytes(i) - 6
-
+          // DATA TYPE specifies e.g. Float & data length
+          //
+          // 25 => 00100101
+          //
           i += 1
           val package_type = bytes(i)
 
           val data_type = package_type & 7
+          /*
+           * The Modbus channel is the generic field name
+           * assigned to the respective sensor.
+           *
+           * Configuration must be used to determine whether
+           * this is temperature, dissolved oxygen or others
+           */
           val chn = "chn" + modbus_chn_id
 
           data_type match {
@@ -145,5 +170,27 @@ object UC500 extends BaseDecoder {
     }
 
     decoded
+  }
+  /**
+   * Note: The current implementation does not
+   * reflect the Modbus field names as these are
+   * generated dynamically.
+   */
+  override def fields: Seq[String] = {
+    Seq(
+      BATTERY,
+      GPIO1,
+      GPIO2,
+      COUNTER1,
+      COUNTER2,
+      ADC1_AVG,
+      ADC1_CUR,
+      ADC1_MAX,
+      ADC1_MIN,
+      ADC2_AVG,
+      ADC2_CUR,
+      ADC2_MAX,
+      ADC2_MIN
+    )
   }
 }

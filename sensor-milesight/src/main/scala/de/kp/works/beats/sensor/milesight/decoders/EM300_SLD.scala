@@ -22,39 +22,29 @@ package de.kp.works.beats.sensor.milesight.decoders
 import com.google.gson.JsonObject
 import de.kp.works.beats.sensor.milesight.enums.MsFields._
 
-import scala.util.control.Breaks._
-
+import scala.util.control.Breaks.{break, breakable}
 /**
- * Payload Decoder for Milesight EM300-TH
+ * Payload decode for Milesight EM300-SLD & EM300-ZLD
  */
-object EM300_TH extends BaseDecoder {
+object EM300_SLD extends BaseDecoder {
   /*
-   * Milesight environment sensor EM300-TH-868M
+   * Milesight Spot Leak Detection Sensor / Zone Leak Detection Sensor
    *
-   * Source: https://github.com/Milesight-IoT/SensorDecoders/tree/master/EM300_Series/EM300-TH
+   * Through instant water leak detection, the EM300-SLD/ZLD will help
+   * prevent potential water damage to properties or assets.
+   *
+   * Source: https://github.com/Milesight-IoT/SensorDecoders/tree/master/EM300_Series/EM300-SLD
    *
    * --------------------- Payload Definition ---------------------
    *
-   *                  [channel_id] [channel_type]   [channel_value]
-   *
-   * 01: battery      -> 0x01         0x75          [1byte ] Unit: %
-   * 03: temperature  -> 0x03         0x67          [2bytes] Unit: °C (℉)
-   * 04: humidity     -> 0x04         0x68          [1byte ] Unit: %RH
-   *
-   * ------------------------------------------------------ EM300-TH
-   *
-   * Sample: 01 75 5C 03 67 34 01 04 68 65
-   *
-   * {
-   * "battery": 92,
-   * "humidity": 50.5,
-   * "temperature": 30.8
-   * }
-   *
-   * The battery is an optional parameter; the parameter names
-   * are directly used as field names for further processing.
+   *                    [channel_id] [channel_type] [channel_value]
+   * 01: battery        -> 0x01         0x75          [1byte ] Unit: %
+   * 03: temperature    -> 0x03         0x67          [2bytes] Unit: °C (℉)
+   * 04: humidity       -> 0x04         0x68          [1byte ] Unit: %RH
+   * 05: water_leak     -> 0x05         0x00          [1byte ] Unit: N/A
+   * ---------------------------------------- EM300-SLD / EM300-ZLD
    */
-  def decode(bytes:Array[Int]):JsonObject = {
+  override def decode(bytes: Array[Int]): JsonObject = {
 
     val decoded = new JsonObject
 
@@ -87,7 +77,12 @@ object EM300_TH extends BaseDecoder {
           i += 1
           val humidity = bytes(i).toDouble / 2
           decoded.addProperty("humidity", humidity)
-
+        }
+        // WATER LEAK
+        else if (channel_id == 0x05 && channel_type == 0x00) {
+          i += 1
+          val water_leak = bytes(i)
+          decoded.addProperty("water_leak", water_leak)
         } else {
           break
         }
@@ -95,7 +90,7 @@ object EM300_TH extends BaseDecoder {
       }
     }
 
-   decoded
+    decoded
 
   }
 
@@ -103,7 +98,8 @@ object EM300_TH extends BaseDecoder {
     Seq(
       BATTERY,
       TEMPERATURE,
-      HUMIDITY)
+      HUMIDITY,
+      WATER_LEAK
+    )
   }
-
 }

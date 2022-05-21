@@ -1,4 +1,4 @@
-package de.kp.works.beats.sensor.sensecap.enums
+package de.kp.works.sensor.weather.enums
 
 /**
  * Copyright (c) 2019 - 2022 Dr. Krusche & Partner PartG. All rights reserved.
@@ -18,12 +18,7 @@ package de.kp.works.beats.sensor.sensecap.enums
  * @author Stefan Krusche, Dr. Krusche & Partner PartG
  *
  */
-
-import de.kp.works.beats.sensor.sensecap.enums.ScProducts.ScProduct
-
-object ScTables extends Enumeration {
-  type ScTable = Value
-
-  def getTables(product:ScProduct):Seq[String] = ???
+object WeProducts extends Enumeration {
+  type WeProduct = Value
 
 }

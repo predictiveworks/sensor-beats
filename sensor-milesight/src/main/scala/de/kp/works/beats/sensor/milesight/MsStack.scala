@@ -26,6 +26,7 @@ import de.kp.works.beats.sensor.thingsstack.Consumer
 import org.eclipse.paho.client.mqttv3.MqttMessage
 
 import scala.collection.JavaConversions.asScalaSet
+
 /**
  * The current implementation of the MsConsumer supports
  * the Milesight EM-300 series. [MsThings] is designed as
@@ -93,18 +94,90 @@ class MsStack(options: MsOptions) extends Consumer[MsConf](options.toStack) with
          * The decoded fields of the subsequent sensors
          * contain numeric values only.
          */
+        case AM100 =>
+          send2Sinks(deviceId, BRAND_NAME, product.toString, sensorReadings, sinks)
+
         case EM300_TH =>
           send2Sinks(deviceId, BRAND_NAME, product.toString, sensorReadings, sinks)
 
-        case EM500_UDL =>
+        case EM500_CO2 =>
           send2Sinks(deviceId, BRAND_NAME, product.toString, sensorReadings, sinks)
 
-        case EM500_CO2 =>
+        case EM500_LGT =>
+          send2Sinks(deviceId, BRAND_NAME, product.toString, sensorReadings, sinks)
+
+        case EM500_PP =>
+          send2Sinks(deviceId, BRAND_NAME, product.toString, sensorReadings, sinks)
+
+        case EM500_PT100 =>
+          send2Sinks(deviceId, BRAND_NAME, product.toString, sensorReadings, sinks)
+
+        case EM500_SMT =>
+          send2Sinks(deviceId, BRAND_NAME, product.toString, sensorReadings, sinks)
+
+        case EM500_SWL =>
+          send2Sinks(deviceId, BRAND_NAME, product.toString, sensorReadings, sinks)
+
+        case EM500_UDL =>
           send2Sinks(deviceId, BRAND_NAME, product.toString, sensorReadings, sinks)
         /*
          * The decoded fields of the subsequent sensors
          * contain numeric and textual values.
          */
+        case AM300 =>
+
+          try {
+            // beep
+            {
+              val key = "beep"
+              val value = sensorReadings.remove(key).getAsString
+              sensorReadings.addProperty(key, if (value == "yes") 1 else 0)
+            }
+            // pir
+            {
+              val key = "pir"
+              val value = sensorReadings.remove(key).getAsString
+              sensorReadings.addProperty(key, if (value == "trigger") 1 else 0)
+            }
+
+          } catch {
+            case _: Throwable => /* Do nothing */
+          }
+
+          send2Sinks(deviceId, BRAND_NAME, product.toString, sensorReadings, sinks)
+
+        case EM300_MCS =>
+
+          try {
+            // door
+            {
+              val key = "door"
+              val value = sensorReadings.remove(key).getAsString
+              sensorReadings.addProperty(key, if (value == "open") 1 else 0)
+            }
+
+          } catch {
+            case _: Throwable => /* Do nothing */
+          }
+
+          send2Sinks(deviceId, BRAND_NAME, product.toString, sensorReadings, sinks)
+
+        case EM300_SLD | EM300_ZLD =>
+
+          try {
+            // water_leak
+            {
+              val key = "water_leak"
+              val value = sensorReadings.remove(key).getAsString
+              sensorReadings.addProperty(key, if (value == "leak") 1 else 0)
+            }
+
+          } catch {
+            case _: Throwable => /* Do nothing */
+          }
+
+          send2Sinks(deviceId, BRAND_NAME, product.toString, sensorReadings, sinks)
+
         case UC500 =>
           /*
            * The TTN decoding transforms fields that are
@@ -121,7 +194,7 @@ class MsStack(options: MsOptions) extends Consumer[MsConf](options.toStack) with
             })
 
           } catch {
-            case _:Throwable => /* Do nothing */
+            case _: Throwable => /* Do nothing */
           }
 
           send2Sinks(deviceId, BRAND_NAME, product.toString, sensorReadings, sinks)
@@ -132,8 +205,8 @@ class MsStack(options: MsOptions) extends Consumer[MsConf](options.toStack) with
       }
 
     } catch {
-      case t:Throwable =>
-        val message = s"Publishing Milesight event failed: ${t.getLocalizedMessage}"
+      case t: Throwable =>
+        val message = s"Publishing Things Stack Milesight event failed: ${t.getLocalizedMessage}"
         getLogger.error(message)
     }
   }

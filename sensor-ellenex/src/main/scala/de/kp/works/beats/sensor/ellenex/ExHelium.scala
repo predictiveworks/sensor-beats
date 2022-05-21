@@ -25,7 +25,13 @@ import org.eclipse.paho.client.mqttv3.MqttMessage
 
 class ExHelium(options: ExOptions) extends Consumer[ExConf](options.toHelium) with ExLogging {
 
-  private val BRAND_NAME = "Milesight"
+  private val BRAND_NAME = "Ellenex"
+  /**
+   * The configured data sinks configured to send
+   * Milesight sensor readings to
+   */
+  private val sinks = options.getSinks
+
   override protected def getLogger: Logger = logger
 
   /**
@@ -41,7 +47,7 @@ class ExHelium(options: ExOptions) extends Consumer[ExConf](options.toHelium) wi
 
     } catch {
       case t: Throwable =>
-        val message = s"Publishing Milesight event failed: ${t.getLocalizedMessage}"
+        val message = s"Publishing Helium $BRAND_NAME event failed: ${t.getLocalizedMessage}"
         getLogger.error(message)
     }
   }

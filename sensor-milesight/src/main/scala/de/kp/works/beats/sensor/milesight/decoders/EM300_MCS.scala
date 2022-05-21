@@ -22,73 +22,81 @@ package de.kp.works.beats.sensor.milesight.decoders
 import com.google.gson.JsonObject
 import de.kp.works.beats.sensor.milesight.enums.MsFields._
 
-import scala.util.control.Breaks._
-
-object EM500_UDL extends BaseDecoder {
+import scala.util.control.Breaks.{break, breakable}
+/**
+ * Payload Decoder for Milesight EM300-MCS
+ */
+object EM300_MCS extends BaseDecoder {
   /*
-   * Milesight ultrasonic level sensor
+   * Milesight magnetic contact switch sensor
    *
-   * Source: https://github.com/Milesight-IoT/SensorDecoders/tree/master/EM500_Series/EM500-UDL
+   * Source: https://github.com/Milesight-IoT/SensorDecoders/tree/master/EM300_Series/EM300-MCS
    *
    * --------------------- Payload Definition ---------------------
    *
-   *                  [channel_id] [channel_type]   [channel_value]
-   *
-   * 01: battery      -> 0x01       0x75            [1 byte]  Unit: %
-   * 03: distance     -> 0x03       0x82            [2 bytes] Unit: m
-   *
-   * ------------------------------------------------------ EM500-UDL
-   *
-   * Sample: 01 75 5A 03 82 1E 00
-   *
-   * {
-   *   "battery": 90,
-   *   "distance": 30
-   * }
-   *
-   * The battery is an optional parameter; the parameter names
-   * are directly used as field names for further processing.
-   *
+   *                  [channel_id] [channel_type] [channel_value]
+   * 01: battery      -> 0x01         0x75          [1byte ] Unit: %
+   * 03: temperature  -> 0x03         0x67          [2bytes] Unit: °C (℉)
+   * 04: humidity     -> 0x04         0x68          [1byte ] Unit: %RH
+   * 06: door         -> 0x06         0x00          [1byte ] Unit: N/A
+   * ---------------------------------------------------- EM300-MCS
    */
-  def decode(bytes:Array[Int]):JsonObject = {
+  override def decode(bytes: Array[Int]): JsonObject = {
 
     val decoded = new JsonObject
 
     var i = -1
     breakable {
       while (i < bytes.length - 1) {
+
         // CHANNEL
         i += 1
         val channel_id = bytes(i)
 
         i += 1
         val channel_type = bytes(i)
+
         // BATTERY
         if (channel_id == 0x01 && channel_type == 0x75) {
           i += 1
           val battery = bytes(i)
           decoded.addProperty("battery",  battery)
         }
-        // DISTANCE
-        else if (channel_id == 0x03 && channel_type == 0x82) {
+        // TEMPERATURE (°C)
+        else if (channel_id == 0x03 && channel_type == 0x67) {
           i += 1
-          val distance = readInt16LE(bytes.slice(i, i + 2)).toDouble
-          decoded.addProperty("distance", distance)
+          val temperature = readInt16LE(bytes.slice(i, i + 2)).toDouble / 10
+          decoded.addProperty("temperature", temperature)
           i += 1
         }
-        else {
+        // HUMIDITY
+        else if (channel_id == 0x04 && channel_type == 0x68) {
+          i += 1
+          val humidity = bytes(i).toDouble / 2
+          decoded.addProperty("humidity", humidity)
+        }
+        // DOOR
+        else if (channel_id == 0x06 && channel_type == 0x00) {
+          i += 1
+          val door = bytes(i)
+          decoded.addProperty("door", door)
+        } else {
           break
         }
+
       }
     }
 
     decoded
+
   }
 
   override def fields: Seq[String] = {
     Seq(
       BATTERY,
-      DISTANCE
+      TEMPERATURE,
+      HUMIDITY,
+      DOOR
     )
   }
 }

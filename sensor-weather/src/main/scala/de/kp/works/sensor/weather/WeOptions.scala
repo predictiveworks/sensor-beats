@@ -1,4 +1,4 @@
-package de.kp.works.beats.sensor.sensecap
+package de.kp.works.sensor.weather
 
 /**
  * Copyright (c) 2019 - 2022 Dr. Krusche & Partner PartG. All rights reserved.
@@ -20,39 +20,37 @@ package de.kp.works.beats.sensor.sensecap
  */
 
 import de.kp.works.beats.sensor.BeatOutputs
-import de.kp.works.beats.sensor.BeatOutputs.BeatOutput
 import de.kp.works.beats.sensor.fiware.{Options => FiwareOptions}
-import de.kp.works.beats.sensor.sensecap.enums.ScProducts
-import de.kp.works.beats.sensor.sensecap.enums.ScProducts.ScProduct
 import de.kp.works.beats.sensor.thingsboard.{Options => BoardOptions}
 import de.kp.works.beats.sensor.thingsstack.{Options => ThingsOptions}
+import de.kp.works.sensor.weather.enums.WeProducts.WeProduct
 
 /**
- * Wrapper for SenseCap sensors specific
+ * Wrapper for OpenWeather sensors specific
  * service configuration
  */
-class ScOptions(config:ScConf) {
+class WeOptions(config:WeConf) {
   /**
    * Channels in the context of a `SensorBeat` are
    * actors that receive a `BeatSensor` message and
    * perform specific data operations like sending
    * to RocksDB, a FIWARE Context Broker and more
    */
-  def getChannels:Seq[BeatOutput] = {
+  def getChannels:Seq[BeatOutputs.Value] = {
     try {
       config.getSinks.map(BeatOutputs.withName)
 
     } catch {
-      case _:Throwable => Seq.empty[BeatOutput]
+      case _:Throwable => Seq.empty[BeatOutputs.Value]
     }
 
   }
   /**
    * Public method to retrieve the supported
-   * SenseCap product name; in case of an
+   * OpenWeather product name; in case of an
    * unsupported sensor, an exception is thrown
    */
-  def getProduct:ScProduct =
+  def getProduct:WeProduct =
     config.getProduct
   /**
    * Public wrapper method to retrieve the RocksDB
@@ -63,22 +61,15 @@ class ScOptions(config:ScConf) {
   /**
    * Public wrapper method to retrieve the RocksDB
    * column families that are specified for the
-   * Milesight sensor.
+   * OpenWeather sensor.
    */
   def getRocksTables:Seq[String] =
     config.getRocksTables
 
-  def toBoard:BoardOptions[ScConf] =
-    new BoardOptions[ScConf](config)
+  def toBoard:BoardOptions[WeConf] =
+    new BoardOptions[WeConf](config)
 
-  def toFiware:FiwareOptions[ScConf] =
-    new FiwareOptions[ScConf](config)
-  /**
-   * The ThingsStack configuration to access The Things
-   * Network, which is one of the input channels of a
-   * Sensor Beat
-   */
-  def toThings:ThingsOptions[ScConf] =
-    new ThingsOptions[ScConf](config)
+  def toFiware:FiwareOptions[WeConf] =
+    new FiwareOptions[WeConf](config)
 
 }

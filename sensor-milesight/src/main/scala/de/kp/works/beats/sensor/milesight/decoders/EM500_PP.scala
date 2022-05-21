@@ -22,73 +22,66 @@ package de.kp.works.beats.sensor.milesight.decoders
 import com.google.gson.JsonObject
 import de.kp.works.beats.sensor.milesight.enums.MsFields._
 
-import scala.util.control.Breaks._
+import scala.util.control.Breaks.{break, breakable}
 
-object EM500_UDL extends BaseDecoder {
+/**
+ * Payload decoder for Milesight EM500-PP
+ */
+object EM500_PP extends BaseDecoder {
   /*
-   * Milesight ultrasonic level sensor
    *
-   * Source: https://github.com/Milesight-IoT/SensorDecoders/tree/master/EM500_Series/EM500-UDL
+   * Source: https://github.com/Milesight-IoT/SensorDecoders/blob/master/EM500_Series/EM500-PP
    *
    * --------------------- Payload Definition ---------------------
    *
-   *                  [channel_id] [channel_type]   [channel_value]
-   *
-   * 01: battery      -> 0x01       0x75            [1 byte]  Unit: %
-   * 03: distance     -> 0x03       0x82            [2 bytes] Unit: m
-   *
-   * ------------------------------------------------------ EM500-UDL
-   *
-   * Sample: 01 75 5A 03 82 1E 00
-   *
-   * {
-   *   "battery": 90,
-   *   "distance": 30
-   * }
-   *
-   * The battery is an optional parameter; the parameter names
-   * are directly used as field names for further processing.
-   *
+   *                    [channel_id] [channel_type] [channel_value]
+   * 01: battery      -> 0x01         0x75          [1byte ] Unit: %
+   * 03: pressure     -> 0x03         0x7B          [2bytes] Unit: kPa
+   * ----------------------------------------------------- EM500-PP
    */
-  def decode(bytes:Array[Int]):JsonObject = {
+  override def decode(bytes: Array[Int]): JsonObject = {
 
     val decoded = new JsonObject
 
     var i = -1
     breakable {
       while (i < bytes.length - 1) {
+
         // CHANNEL
         i += 1
         val channel_id = bytes(i)
 
         i += 1
         val channel_type = bytes(i)
+
         // BATTERY
         if (channel_id == 0x01 && channel_type == 0x75) {
           i += 1
           val battery = bytes(i)
-          decoded.addProperty("battery",  battery)
+          decoded.addProperty("battery", battery)
         }
-        // DISTANCE
-        else if (channel_id == 0x03 && channel_type == 0x82) {
+        // PRESSURE
+        else if (channel_id == 0x03 && channel_type == 0x7B) {
           i += 1
-          val distance = readInt16LE(bytes.slice(i, i + 2)).toDouble
-          decoded.addProperty("distance", distance)
+          val pressure = readInt16LE(bytes.slice(i, i + 2))
+          decoded.addProperty("pressure", pressure)
           i += 1
-        }
-        else {
+        } else {
           break
         }
+
       }
     }
 
     decoded
+
   }
 
   override def fields: Seq[String] = {
     Seq(
       BATTERY,
-      DISTANCE
+      PRESSURE
     )
   }
+
 }
