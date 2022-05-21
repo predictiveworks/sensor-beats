@@ -174,7 +174,7 @@ trait HttpConnect {
    * A public GET method that either leverages the Akka
    * `singleRequest` or the `pooled` API
    */
-  def get(endpoint: String, headers: Map[String, String], pooled: Boolean = false): Source[ByteString, Any] = {
+  def get(endpoint: String, headers: Map[String, String] = Map.empty[String,String], pooled: Boolean = false): Source[ByteString, Any] = {
 
     try {
 

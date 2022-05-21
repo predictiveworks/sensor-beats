@@ -22,29 +22,41 @@ package de.kp.works.sensor.weather
 import de.kp.works.beats.sensor.BeatOutputs
 import de.kp.works.beats.sensor.fiware.{Options => FiwareOptions}
 import de.kp.works.beats.sensor.thingsboard.{Options => BoardOptions}
-import de.kp.works.beats.sensor.thingsstack.{Options => ThingsOptions}
 import de.kp.works.sensor.weather.enums.WeProducts.WeProduct
 
+case class WeStation(
+  /*
+   * Unique identifier of a certain
+   * weather station
+   */
+  id: String,
+  /*
+   * Name of the weather station
+   */
+  name: String,
+  /*
+   * Latitude of the weather station
+   */
+  lat: Double,
+  /*
+   * Longitude of the weather station
+   */
+  lon: Double)
 /**
  * Wrapper for OpenWeather sensors specific
  * service configuration
  */
 class WeOptions(config:WeConf) {
+
+  private val weatherCfg = config.getWeatherCfg
   /**
-   * Channels in the context of a `SensorBeat` are
-   * actors that receive a `BeatSensor` message and
-   * perform specific data operations like sending
-   * to RocksDB, a FIWARE Context Broker and more
+   * The API key to access the OpenWeather API
    */
-  def getChannels:Seq[BeatOutputs.Value] = {
-    try {
-      config.getSinks.map(BeatOutputs.withName)
-
-    } catch {
-      case _:Throwable => Seq.empty[BeatOutputs.Value]
-    }
-
-  }
+  def getApiKey:String = weatherCfg.getString("apiKey")
+  /**
+   * The base url of the OpenWeather REST server
+   */
+  def getBaseUrl:String = weatherCfg.getString("serverUrl")
   /**
    * Public method to retrieve the supported
    * OpenWeather product name; in case of an
@@ -65,6 +77,55 @@ class WeOptions(config:WeConf) {
    */
   def getRocksTables:Seq[String] =
     config.getRocksTables
+
+  def getSource:WeStation = ???
+  /**
+   * Sinks in the context of a `SensorBeat` are
+   * actors that receive a `BeatSensor` message
+   * and perform specific data operations like
+   * sending to RocksDB, a FIWARE Context Broker
+   * and more
+   */
+  def getSinks:Seq[BeatOutputs.Value] = {
+    try {
+      config.getSinks.map(BeatOutputs.withName)
+
+    } catch {
+      case _:Throwable => Seq.empty[BeatOutputs.Value]
+    }
+  }
+  /**
+   * The time interval determine how often the
+   * OpenWeather API is requested to retrieve
+   * location specific data
+   */
+  def getTimeInterval:Long = {
+
+    val interval = weatherCfg.getString("interval")
+    interval match {
+      case "5m" =>
+        1000 * 60 * 5
+      case "10m" =>
+        1000 * 60 * 10
+      case "15m" =>
+        1000 * 60 * 15
+      case "30m" =>
+        1000 * 60 * 30
+      case "1h" =>
+        1000 * 60 * 60
+      case "3h" =>
+        1000 * 60 * 60 * 3
+      case "6h" =>
+        1000 * 60 * 60 * 6
+      case "12h" =>
+        1000 * 60 * 60 * 12
+      case _ =>
+        val now = new java.util.Date()
+        throw new Exception(s"[ERROR] $now.toString - The time interval `$interval` is not supported.")
+
+    }
+
+  }
 
   def toBoard:BoardOptions[WeConf] =
     new BoardOptions[WeConf](config)

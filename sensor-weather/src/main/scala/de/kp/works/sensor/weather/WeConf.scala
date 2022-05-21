@@ -19,6 +19,7 @@ package de.kp.works.sensor.weather
  *
  */
 
+import com.typesafe.config.Config
 import de.kp.works.beats.sensor.BeatConf
 import de.kp.works.sensor.weather.enums.WeProducts
 import de.kp.works.sensor.weather.enums.WeProducts.WeProduct
@@ -56,5 +57,7 @@ class WeConf extends BeatConf {
   }
 
   override def getRocksTables: Seq[String] = ???
+
+  def getWeatherCfg: Config = getCfg("weather")
 
 }
