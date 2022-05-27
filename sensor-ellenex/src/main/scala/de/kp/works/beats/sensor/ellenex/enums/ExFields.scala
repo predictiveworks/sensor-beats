@@ -18,7 +18,13 @@ package de.kp.works.beats.sensor.ellenex.enums
  * @author Stefan Krusche, Dr. Krusche & Partner PartG
  *
  */
-
+/**
+ * Ellenex devices decoded payload fields
+ */
 object ExFields {
+
+  val BATTERY: String  = "battery"
+  val LEVEL: String    = "level"
+  val PRESSURE: String = "pressure"
 
 }

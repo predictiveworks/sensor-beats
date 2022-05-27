@@ -1,4 +1,4 @@
-package de.kp.works.beats.sensor
+package de.kp.works.sensor.abeeway.decoders
 
 /**
  * Copyright (c) 2019 - 2022 Dr. Krusche & Partner PartG. All rights reserved.
@@ -19,29 +19,23 @@ package de.kp.works.beats.sensor
  *
  */
 
-import akka.stream.scaladsl.SourceQueueWithComplete
 import com.google.gson.JsonObject
-/**
- * Actor implementation to publish consumed Things Stack
- * events to the SSE queue.
- */
-class BeatSse(queue:SourceQueueWithComplete[String]) extends BeatSink {
 
-  override def execute(request: BeatRequest): Unit = {
+trait BaseDecoder {
 
-    val sensor = request.sensor
+  def decodeHex(hexstring:String):JsonObject = {
     /*
-     * The SSE event is harmonized with the Works Beat
-     * services
+     * HINT: It is important to covert the hex string
+     * into an INT Array to ensure proper decoding
      */
-    val eventType = s"sensor/${sensor.sensorBrand.toLowerCase}/${sensor.sensorType.toLowerCase}"
+    val bytes = hexstring.sliding(2,2).toArray.map(hex => {
+      Integer.parseInt(hex, 16)
+    })
 
-    val json = new JsonObject
-    json.addProperty("type", eventType)
-    json.addProperty("event", sensor.toJson.toString)
-
-    if (queue != null) queue.offer(json.toString)
+    decode(bytes)
 
   }
+
+  def decode(bytes:Array[Int]):JsonObject
 
 }

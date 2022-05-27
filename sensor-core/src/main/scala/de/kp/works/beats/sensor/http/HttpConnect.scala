@@ -21,19 +21,26 @@ package de.kp.works.beats.sensor.http
 
 import akka.NotUsed
 import akka.actor.ActorSystem
-import akka.http.scaladsl.{Http, HttpsConnectionContext}
-import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.ContentTypes._
+import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers._
+import akka.http.scaladsl.{Http, HttpsConnectionContext}
+import akka.stream.scaladsl.{FileIO, RestartSource, Sink, Source}
 import akka.stream.{ActorMaterializer, KillSwitches}
-import akka.stream.scaladsl.{Flow, RestartSource, Sink, Source}
 import akka.util.{ByteString, Timeout}
 import com.google.gson._
 
+import java.nio.file.Paths
 import scala.collection.JavaConversions.asScalaSet
-import scala.concurrent.{Await, ExecutionContextExecutor, Future}
 import scala.concurrent.duration._
+import scala.concurrent.{Await, ExecutionContextExecutor, Future}
 import scala.util.{Failure, Success, Try}
+
+trait DownloadHandler {
+
+  def complete(status:Boolean):Unit
+
+}
 
 trait HttpConnect {
 
@@ -46,7 +53,7 @@ trait HttpConnect {
   /*
    * Common timeout for all Akka connection
    */
-  val duration: FiniteDuration = 10.seconds
+  val duration: FiniteDuration = 30.seconds
   implicit val timeout: Timeout = Timeout(duration)
   /**
    * The HTTPS connection context
@@ -163,6 +170,58 @@ trait HttpConnect {
         return response.entity.dataBytes
 
       throw new Exception(s"Request to Http endpoint returns with: ${status.value}.")
+
+    } catch {
+      case t: Throwable =>
+        throw new Exception(t.getLocalizedMessage)
+    }
+
+  }
+  /**
+   * This method supports a simple download request
+   * without any HTTP headers and informs the requestor
+   * about the result via the download handler
+   */
+  def download(endpoint:String, file:String, handler:DownloadHandler):Unit = {
+
+    val headers = Map.empty[String,String]
+    val pooled = false
+
+    download(endpoint, headers, pooled, file, handler)
+
+  }
+
+  def download(endpoint:String, headers: Map[String, String], pooled: Boolean, file:String, handler:DownloadHandler):Unit = {
+
+    try {
+
+      if (file.isEmpty)
+        throw new Exception("The provided file name is empty.")
+
+      val request = {
+        if (headers.isEmpty)
+          HttpRequest(HttpMethods.GET, endpoint)
+
+        else
+          HttpRequest(HttpMethods.GET, endpoint, headers = headers.map { case (k, v) => RawHeader(k, v) }.toList)
+      }
+
+      val response =
+        if (pooled) {
+          pooledGet(request)
+
+        } else singleGet(request)
+
+      response.onComplete {
+        /* Evaluate HTTP(s) response */
+        case Success(source) =>
+          source.runWith(FileIO.toPath(Paths.get(file))).onComplete {
+            /* Evaluate write operation */
+            case Success(_) => handler.complete(true)
+            case Failure(_) => handler.complete(false)
+          }
+        case Failure(_) => handler.complete(false)
+      }
 
     } catch {
       case t: Throwable =>

@@ -20,7 +20,7 @@ package de.kp.works.beats.sensor.ellenex
  */
 
 import de.kp.works.beats.sensor.BeatConf
-import de.kp.works.beats.sensor.ellenex.enums.{ExProducts, ExTables}
+import de.kp.works.beats.sensor.ellenex.enums.ExProducts
 
 object ExConf {
 
@@ -49,7 +49,7 @@ class ExConf extends BeatConf {
 
     } catch {
       case _:Throwable =>
-        throw new Exception(s"Milesight product `$product` not supported.")
+        throw new Exception(s"Ellenex product `$product` not supported.")
     }
 
   }
@@ -65,8 +65,17 @@ class ExConf extends BeatConf {
      * names.
      */
     val product = getProduct
-    ExTables.getTables(product)
+    val monitoring = ExDecoder.tables(product)
+    /*
+     * SensorBeat supports anomaly detection and
+     * timeseries forecasting for all the selected
+     * monitoring attributes
+     */
+    val anomalies = monitoring.map(table => s"${table}_anom")
+    val forecasts = monitoring.map(table => s"${table}_fore")
+
+    val tables = monitoring ++ anomalies ++ forecasts
+    tables
 
   }
-
 }

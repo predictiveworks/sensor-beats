@@ -1,4 +1,4 @@
-package de.kp.works.beats.sensor
+package de.kp.works.beats.sensor.ellenex
 
 /**
  * Copyright (c) 2019 - 2022 Dr. Krusche & Partner PartG. All rights reserved.
@@ -19,28 +19,38 @@ package de.kp.works.beats.sensor
  *
  */
 
-import akka.stream.scaladsl.SourceQueueWithComplete
 import com.google.gson.JsonObject
-/**
- * Actor implementation to publish consumed Things Stack
- * events to the SSE queue.
- */
-class BeatSse(queue:SourceQueueWithComplete[String]) extends BeatSink {
+import de.kp.works.beats.sensor.ellenex.enums.ExProducts.{ExProduct, PLS2_L, PTS2_L}
 
-  override def execute(request: BeatRequest): Unit = {
+object ExDecoder {
 
-    val sensor = request.sensor
-    /*
-     * The SSE event is harmonized with the Works Beat
-     * services
-     */
-    val eventType = s"sensor/${sensor.sensorBrand.toLowerCase}/${sensor.sensorType.toLowerCase}"
+  def decodeHex(product: ExProduct, hexstring: String, fport:Int): JsonObject = {
 
-    val json = new JsonObject
-    json.addProperty("type", eventType)
-    json.addProperty("event", sensor.toJson.toString)
+    val readings = product match {
+      case PLS2_L =>
+        decoders.PLS2_L.decodeHex(hexstring, fport)
 
-    if (queue != null) queue.offer(json.toString)
+      case PTS2_L =>
+        decoders.PTS2_L.decodeHex(hexstring, fport)
+
+    }
+
+    readings
+
+  }
+
+  def tables(product: ExProduct):Seq[String] = {
+
+    val fields = product match {
+      case PLS2_L =>
+        decoders.PLS2_L.fields
+
+      case PTS2_L =>
+        decoders.PTS2_L.fields
+
+    }
+
+    fields
 
   }
 

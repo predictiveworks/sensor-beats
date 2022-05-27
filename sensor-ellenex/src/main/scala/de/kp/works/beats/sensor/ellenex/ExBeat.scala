@@ -1,4 +1,4 @@
-package de.kp.works.sensor.weather
+package de.kp.works.beats.sensor.ellenex
 
 /**
  * Copyright (c) 2019 - 2022 Dr. Krusche & Partner PartG. All rights reserved.
@@ -19,16 +19,12 @@ package de.kp.works.sensor.weather
  *
  */
 
-/**
- * [WeBeat] is an Akka-based micro service to continually
- * retrieve weather data from a certain weather station,
- * identified by its geospatial coordinates.
- */
-object WeBeat extends WeLogging {
+object ExBeat extends ExLogging {
 
-  val programName: String = "WeBeat"
-  val programDesc: String = "Digital twin of an OpenWeather station."
+  val programName: String = "ExBeat"
+  val programDesc: String = "Digital twin of an Ellenex sensor."
 
+  private val config = ExConf.getInstance
   private val line = s"------------------------------------------------"
 
   def main(args:Array[String]):Unit = {
@@ -37,7 +33,7 @@ object WeBeat extends WeLogging {
 
       info(line)
 
-      val service = new WeService(config)
+      val service = new ExService(config)
       service.start()
 
       info(s"$programName service started.")
@@ -47,7 +43,10 @@ object WeBeat extends WeLogging {
       case t: Throwable =>
 
         error(s"$programName cannot be started: " + t.getMessage)
-
+        /*
+         * Sleep for 10 seconds so that one may see error messages
+         * in Yarn clusters where logs are not stored.
+         */
         Thread.sleep(10000)
         sys.exit(1)
 

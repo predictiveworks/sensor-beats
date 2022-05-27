@@ -56,6 +56,8 @@ class WeConf extends BeatConf {
 
   }
 
+  def getMosmixCfg: Config = getCfg("mosmix")
+
   override def getRocksTables: Seq[String] = ???
 
   def getWeatherCfg: Config = getCfg("weather")

@@ -27,7 +27,7 @@ trait WeLogging {
    * Initialize the overall `SensorBeat` configuration
    * that is specific for OpenWeather `Sensors`
    */
-  private val config = WeConf.getInstance
+  val config: WeConf = WeConf.getInstance
   if (!config.isInit) config.init()
 
   private val loggerName = "WeLogger"

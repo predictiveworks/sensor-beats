@@ -1,4 +1,4 @@
-package de.kp.works.sensor.weather
+package de.kp.works.sensor.weather.owea
 
 /**
  * Copyright (c) 2019 - 2022 Dr. Krusche & Partner PartG. All rights reserved.
@@ -23,11 +23,15 @@ import com.google.gson.{JsonElement, JsonObject}
 import de.kp.works.sensor.weather.json.JsonUtil
 
 object WeDecoder extends JsonUtil {
+  /**
+   * This method extract the attributes provided by
+   * the OpenWeather response and transforms them
+   * into a { key: value } format.
+   *
+   * The  fields (keys) are defined in [WeFields]
+   */
+  def decode(jsonObject: JsonObject): JsonElement = {
 
-  def decode(jsonObject:JsonObject):JsonElement = {
-    /*
-     * Flatten [[OpenWeatherAPI]] response
-     */
     val weather = initialObject
     /*
      * Extract and append `main`
@@ -55,13 +59,13 @@ object WeDecoder extends JsonUtil {
     val jMain = getAsObject(jsonObject, "main")
     if (jMain != null) {
 
-      weather.addProperty("temp",       getOrElseDouble(jMain, "temp", 0D) - 273.15)
-      weather.addProperty("feels_like", getOrElseDouble(jMain, "feels_like", 0D) -273.15)
-      weather.addProperty("temp_min",   getOrElseDouble(jMain, "temp_min", 0D) -273.15)
-      weather.addProperty("temp_max",   getOrElseDouble(jMain, "temp_max", 0D) -273.15)
+      weather.addProperty("temp", getOrElseDouble(jMain, "temp", 0D) - 273.15)
+      weather.addProperty("feels_like", getOrElseDouble(jMain, "feels_like", 0D) - 273.15)
+      weather.addProperty("temp_min", getOrElseDouble(jMain, "temp_min", 0D) - 273.15)
+      weather.addProperty("temp_max", getOrElseDouble(jMain, "temp_max", 0D) - 273.15)
 
-      weather.addProperty("pressure",   getOrElseDouble(jMain, "pressure", -1D))
-      weather.addProperty("humidity",   getOrElseDouble(jMain, "humidity", -1D))
+      weather.addProperty("pressure", getOrElseDouble(jMain, "pressure", -1D))
+      weather.addProperty("humidity", getOrElseDouble(jMain, "humidity", -1D))
 
     }
     /*
@@ -81,8 +85,8 @@ object WeDecoder extends JsonUtil {
     if (jWind != null) {
 
       weather.addProperty("wind_speed", getOrElseDouble(jWind, "speed", -1D))
-      weather.addProperty("wind_deg",   getOrElseDouble(jWind, "deg",  -1D))
-      weather.addProperty("wind_gust",  getOrElseDouble(jWind, "gust",  -1D))
+      weather.addProperty("wind_deg", getOrElseDouble(jWind, "deg", -1D))
+      weather.addProperty("wind_gust", getOrElseDouble(jWind, "gust", -1D))
 
     }
     /*
@@ -122,22 +126,22 @@ object WeDecoder extends JsonUtil {
 
   }
 
-  private def initialObject:JsonObject = {
+  private def initialObject: JsonObject = {
 
     val weather = new JsonObject()
 
     /* The default temperature: 0 K = -273.15 °C */
-    weather.addProperty("temp",       -273.15)
+    weather.addProperty("temp", -273.15)
     weather.addProperty("feels_like", -273.15)
-    weather.addProperty("temp_min",   -273.15)
-    weather.addProperty("temp_max",   -273.15)
+    weather.addProperty("temp_min", -273.15)
+    weather.addProperty("temp_max", -273.15)
 
     weather.addProperty("pressure", -1D)
     weather.addProperty("humidity", -1D)
 
     weather.addProperty("wind_speed", -1D)
-    weather.addProperty("wind_deg",   -1D)
-    weather.addProperty("wind_gust",  -1D)
+    weather.addProperty("wind_deg", -1D)
+    weather.addProperty("wind_gust", -1D)
 
     weather.addProperty("cloudiness", -1D)
 

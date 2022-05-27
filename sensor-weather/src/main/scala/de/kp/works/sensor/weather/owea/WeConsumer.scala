@@ -1,4 +1,4 @@
-package de.kp.works.sensor.weather
+package de.kp.works.sensor.weather.owea
 
 /**
  * Copyright (c) 2019 - 2022 Dr. Krusche & Partner PartG. All rights reserved.
@@ -22,51 +22,7 @@ package de.kp.works.sensor.weather
 import com.google.gson.JsonElement
 import de.kp.works.beats.sensor.BeatSource
 import de.kp.works.beats.sensor.http.HttpConnect
-
-import java.util.concurrent.{Executors, ScheduledExecutorService, TimeUnit}
-
-class WeMonitor(options:WeOptions, numThreads:Int = 1) extends WeLogging {
-  /**
-   * The configured time interval the consumer task
-   * is executed
-   */
-  private val interval = options.getTimeInterval
-
-  private var executorService:ScheduledExecutorService = _
-  private val consumer = new WeConsumer(options)
-
-  def start():Unit = {
-
-    val worker = new Runnable {
-
-      override def run(): Unit = {
-        info(s"OpenWeather Consumer started.")
-        consumer.subscribeAndPublish()
-      }
-    }
-
-    try {
-
-      executorService = Executors.newScheduledThreadPool(numThreads)
-      executorService.scheduleAtFixedRate(worker, 0, interval, TimeUnit.MILLISECONDS)
-
-
-    } catch {
-      case t:Exception =>
-        error(s"OpenWeather Monitor failed with: ${t.getLocalizedMessage}")
-        stop()
-    }
-
-  }
-
-  def stop():Unit = {
-
-    executorService.shutdown()
-    executorService.shutdownNow()
-
-  }
-
-}
+import de.kp.works.sensor.weather.{WeLogging, WeOptions}
 
 /**
  * This class consumes weather data for a configured

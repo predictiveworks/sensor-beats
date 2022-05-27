@@ -1,4 +1,4 @@
-package de.kp.works.beats.sensor.ellenex.enums
+package de.kp.works.sensor.abeeway.enums
 
 /**
  * Copyright (c) 2019 - 2022 Dr. Krusche & Partner PartG. All rights reserved.
@@ -19,11 +19,13 @@ package de.kp.works.beats.sensor.ellenex.enums
  *
  */
 
-object ExTables extends Enumeration {
-  type ExTable = Value
+object AwProducts extends Enumeration {
 
-  val BATTERY: ExTable  = Value(1, "battery")
-  val LEVEL: ExTable    = Value(2, "level")
-  val PRESSURE: ExTable = Value(3, "pressure")
+  type AwProduct = Value
 
+  val COMPACT_TRACKER: AwProduct    = Value(1, "compact_tracker")
+  val GEOLOCATION_MODULE: AwProduct = Value(2, "geolocation_module")
+  val INDUSTRIAL_TRACKER: AwProduct = Value(3, "industrial_tracker")
+  val MICRO_TRACKER: AwProduct      = Value(4, "micro_tracker")
+  val SMART_BADGE: AwProduct        = Value(5, "smart_tracker")
 }

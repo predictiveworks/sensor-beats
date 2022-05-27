@@ -1,4 +1,4 @@
-package de.kp.works.sensor.weather
+package de.kp.works.beats.sensor.ellenex
 
 /**
  * Copyright (c) 2019 - 2022 Dr. Krusche & Partner PartG. All rights reserved.
@@ -24,22 +24,22 @@ import akka.actor.{ActorRef, Props}
 import akka.http.scaladsl.model.sse.ServerSentEvent
 import akka.http.scaladsl.server.Route
 import akka.stream.scaladsl.{Source, SourceQueueWithComplete}
+import de.kp.works.beats.sensor.BeatInputs.{HELIUM, LORIOT, THINGS_STACK}
 import de.kp.works.beats.sensor.BeatOutputs.{FIWARE, ROCKS_DB, SSE, THINGSBOARD}
 import de.kp.works.beats.sensor._
 import de.kp.works.beats.sensor.dl.anomaly.{AnomMonitor, AnomWorker}
 import de.kp.works.beats.sensor.dl.forecast.{ForeMonitor, ForeWorker}
-import de.kp.works.sensor.weather.owea.WeMonitor
 import org.apache.spark.sql.BeatSession
 
 /**
- * [WeService] is built to manage the various micro
+ * [ExService] is built to manage the various micro
  * services used to provide the REST API and also
  * the multiple output channels
  */
-class WeService(config:WeConf) extends BeatService[WeConf](config) with WeLogging {
+class ExService(config:ExConf) extends BeatService[ExConf](config) with ExLogging {
 
-  override protected var serviceName: String = "WeService"
-  private val options = new WeOptions(config)
+  override protected var serviceName: String = "ExService"
+  private val options = new ExOptions(config)
   /**
    * Initialize the local RocksDB storage
    */
@@ -85,28 +85,28 @@ class WeService(config:WeConf) extends BeatService[WeConf](config) with WeLoggin
        * retrieve anomalies
        */
       BEAT_ANOMALY_ACTOR ->
-        system.actorOf(Props(new WeAnomActor(config)), BEAT_ANOMALY_ACTOR),
+        system.actorOf(Props(new ExAnomActor(config)), BEAT_ANOMALY_ACTOR),
       /*
        * Train time series prediction model
        * & retrieve forecasts
        */
       BEAT_FORECAST_ACTOR ->
-        system.actorOf(Props(new WeForeActor(config)), BEAT_FORECAST_ACTOR),
+        system.actorOf(Props(new ExForeActor(config)), BEAT_FORECAST_ACTOR),
       /*
        * Retrieve sensor inferred readings via SQL query
        */
       BEAT_INSIGHT_ACTOR ->
-        system.actorOf(Props(new WeInsightActor(config)), BEAT_INSIGHT_ACTOR),
+        system.actorOf(Props(new ExInsightActor(config)), BEAT_INSIGHT_ACTOR),
       /*
        * Retrieve sensor readings via SQL query
        */
       BEAT_MONITOR_ACTOR ->
-        system.actorOf(Props(new WeMonitorActor(config)), BEAT_MONITOR_ACTOR),
+        system.actorOf(Props(new ExMonitorActor(config)), BEAT_MONITOR_ACTOR),
       /*
        * Retrieve sensor trend via SQL query
        */
       BEAT_TREND_ACTOR ->
-      system.actorOf(Props(new WeTrendActor(config)), BEAT_TREND_ACTOR)
+      system.actorOf(Props(new ExTrendActor(config)), BEAT_TREND_ACTOR)
 
     )
 
@@ -131,11 +131,11 @@ class WeService(config:WeConf) extends BeatService[WeConf](config) with WeLoggin
    *
    * This method also build the micro services that
    * control the deep learning tasks associated with
-   * the Milesight sensor readings.
+   * the Ellenex sensor readings.
    */
   override def onStart(queue: SourceQueueWithComplete[String]): Unit = {
     /*
-     * Build the input channel for the Milesight
+     * Build the input channel for the Ellenex
      * server as a service
      */
     buildInput()
@@ -152,13 +152,21 @@ class WeService(config:WeConf) extends BeatService[WeConf](config) with WeLoggin
   }
 
   private def buildInput():Unit = {
-    /*
-     * The data source (input) of the Weather Sensor
-     * is the [WeMonitor] that is responsible for
-     * sending scheduled requests to OpenWeather API
-     */
-    val monitor = new WeMonitor(options)
-    monitor.start()
+
+    options.getSource match {
+      case HELIUM =>
+        val helium = new ExHelium(options)
+        helium.subscribeAndPublish()
+
+      case LORIOT =>
+        val loriot = new ExLoriot(options)
+        loriot.subscribeAndPublish()
+
+      case THINGS_STACK =>
+        val stack = new ExStack(options)
+        stack.subscribeAndPublish()
+
+    }
 
   }
   /**
@@ -177,7 +185,7 @@ class WeService(config:WeConf) extends BeatService[WeConf](config) with WeLoggin
         /*
          * Build Fiware specific output channel
          */
-        val props = Props(new WeFiware(options))
+        val props = Props(new ExFiware(options))
         BeatSinks.registerChannel(channel, props)
 
       case channel@ROCKS_DB =>
@@ -186,7 +194,7 @@ class WeService(config:WeConf) extends BeatService[WeConf](config) with WeLoggin
          * note, the storage should be initialized
          * at this stage already
          */
-        val props = Props(new WeRocks(options))
+        val props = Props(new ExRocks(options))
         BeatSinks.registerChannel(channel, props)
 
       case channel@SSE =>
@@ -200,7 +208,7 @@ class WeService(config:WeConf) extends BeatService[WeConf](config) with WeLoggin
         /*
          * Build ThingsBoard specific output channel
          */
-        val props = Props(new WeBoard(options))
+        val props = Props(new ExBoard(options))
         BeatSinks.registerChannel(channel, props)
 
       case _ => /* Do nothing */
@@ -221,7 +229,7 @@ class WeService(config:WeConf) extends BeatService[WeConf](config) with WeLoggin
     val anomWorker = new AnomWorker(queue, session, logger)
 
     val anomThreads = config.getNumThreads(BeatTasks.ANOMALY)
-    val anomMonitor = new AnomMonitor[WeConf](config, anomThreads)
+    val anomMonitor = new AnomMonitor[ExConf](config, anomThreads)
     /*
      * Build & initialize the `ForeWorker` and
      * the respective monitor
@@ -229,7 +237,7 @@ class WeService(config:WeConf) extends BeatService[WeConf](config) with WeLoggin
     val foreWorker = new ForeWorker(queue, session, logger)
 
     val foreThreads = config.getNumThreads(BeatTasks.FORECAST)
-    val foreMonitor = new ForeMonitor[WeConf](config,foreThreads)
+    val foreMonitor = new ForeMonitor[ExConf](config,foreThreads)
 
     anomMonitor.start[AnomWorker](anomWorker)
     foreMonitor.start[ForeWorker](foreWorker)

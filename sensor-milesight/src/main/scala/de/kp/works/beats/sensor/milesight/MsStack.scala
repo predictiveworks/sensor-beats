@@ -27,12 +27,6 @@ import org.eclipse.paho.client.mqttv3.MqttMessage
 
 import scala.collection.JavaConversions.asScalaSet
 
-/**
- * The current implementation of the MsConsumer supports
- * the Milesight EM-300 series. [MsThings] is designed as
- * the common consumer for all Milesight sensors, and the
- * publishing of their readings to various output channels.
- */
 class MsStack(options: MsOptions) extends Consumer[MsConf](options.toStack) with MsLogging {
 
   private val BRAND_NAME = "Milesight"

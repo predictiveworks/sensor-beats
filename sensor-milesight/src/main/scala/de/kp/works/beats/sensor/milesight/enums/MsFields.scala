@@ -1,7 +1,5 @@
 package de.kp.works.beats.sensor.milesight.enums
 
-import de.kp.works.beats.sensor.milesight.decoders.UC500.readInt16LE
-
 /**
  * Copyright (c) 2019 - 2022 Dr. Krusche & Partner PartG. All rights reserved.
  *

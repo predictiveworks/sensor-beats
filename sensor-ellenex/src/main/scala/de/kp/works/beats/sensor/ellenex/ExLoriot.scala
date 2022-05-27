@@ -20,11 +20,14 @@ package de.kp.works.beats.sensor.ellenex
  */
 
 import ch.qos.logback.classic.Logger
-import de.kp.works.beats.sensor.helium.{Consumer, HeliumUplink}
+import de.kp.works.beats.sensor.loriot.{Consumer, LoriotUplink}
 
-import java.util.Base64
-
-class ExHelium(options: ExOptions) extends Consumer[ExConf](options.toHelium) with ExLogging {
+/**
+ * The [ExLoriot] input channel focuses on the
+ * extraction of the unique device identifier
+ * and the provided sensor readings
+ */
+class ExLoriot(options: ExOptions) extends Consumer[ExConf](options.toLoriot) with ExLogging {
 
   private val BRAND_NAME = "Ellenex"
   /**
@@ -35,20 +38,22 @@ class ExHelium(options: ExOptions) extends Consumer[ExConf](options.toHelium) wi
 
   override protected def getLogger: Logger = logger
 
-  override protected def publish(message: HeliumUplink): Unit = {
+  override protected def publish(message: LoriotUplink): Unit = {
 
     try {
+      /*
+       * Make sure the extracted message is a LORIOT
+       uplink message
+       */
+      if (message.cmd != "rx") return
+      /*
+       * The current implementation of SensorBeat does not
+       * supported encrypted data payloads (which refers to
+       * a missing APP KEY
+       */
+      if (message.encdata.nonEmpty || message.data.isEmpty) return
 
       val fport = message.port.intValue()
-      /*
-       * Data transmitted by the device is a base64 encoded String.
-       */
-      val decodedPayload = Base64.getDecoder.decode(message.payload)
-      /*
-       * The uplink message provides the size of the payload and this
-       * parameter is used to verify the payload
-       */
-      if (decodedPayload.length != message.payload_size.intValue()) return
       /*
        * Send sensor readings (payload) to the configured
        * data sinks; note, attributes are restricted to [Number]
@@ -58,21 +63,16 @@ class ExHelium(options: ExOptions) extends Consumer[ExConf](options.toHelium) wi
        * provided with this project
        */
       val product = options.getProduct
-      val sensorReadings = ExDecoder.decodeHex(product, new String(decodedPayload), fport)
+      val sensorReadings = ExDecoder.decodeHex(product, message.data.get, fport)
       /*
-       * The `dev_eui` is used as a unique device identifier:
-       *
-       * LoRaWAN 64-bit Device Identifier (DevEUI) in MSB hex;
-       * conventionally this is used to identify a unique device
-       * within a specific application (AppEUI) or even within an
-       * entire organization
+       * Note, the EUI value is used as unique device identifier
        */
-      val deviceId = message.dev_eui
+      val deviceId = message.EUI
       send2Sinks(deviceId, BRAND_NAME, product.toString, sensorReadings, sinks)
 
     } catch {
       case t: Throwable =>
-        val message = s"Publishing Helium Ellenex event failed: ${t.getLocalizedMessage}"
+        val message = s"Publishing LORIOT Ellenex event failed: ${t.getLocalizedMessage}"
         getLogger.error(message)
     }
 

@@ -22,8 +22,8 @@ package de.kp.works.beats.sensor
 object BeatAttrs extends Enumeration {
   type BeatAttr = Value
 
-  val TIME:BeatAttrs.Value  = Value(1, "time")
-  val VALUE:BeatAttrs.Value = Value(2, "value")
+  val TIME:BeatAttr  = Value(1, "time")
+  val VALUE:BeatAttr = Value(2, "value")
 
 }
 

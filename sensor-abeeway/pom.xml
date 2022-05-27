@@ -9,15 +9,13 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>sensor-weather</artifactId>
+    <artifactId>sensor-abeeway</artifactId>
 
     <properties>
         <encoding>UTF-8</encoding>
 
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
-
-        <scala.xml.version>1.3.0</scala.xml.version>
         <!--
         The Scala version that has been used for testing
         in 2.11.12
@@ -32,14 +30,6 @@
             <groupId>de.kp.works.beats</groupId>
             <artifactId>sensor-core</artifactId>
             <version>0.4.1</version>
-        </dependency>
-
-        <!-- SCALA-XML
-        -->
-        <dependency>
-            <groupId>org.scala-lang.modules</groupId>
-            <artifactId>scala-xml_${scala.binary.version}</artifactId>
-            <version>${scala.xml.version}</version>
         </dependency>
     </dependencies>
 

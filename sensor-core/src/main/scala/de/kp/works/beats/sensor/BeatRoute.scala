@@ -73,11 +73,13 @@ class BeatRoute(
   /** EVENT **/
 
   /*
-   * This is the Server Sent Event route
+   * This is the Server Sent Event route; note, the respective
+   * endpoint is harmonized with Works Beat services to enable
+   * a unified shipping e.g. to Apache Ignite caches.
    */
   def getEvent:Route = {
 
-    path("beat" / "v1" / "event") {
+    path("sensor" / "stream") {
       options {
         extractOptions
       } ~
