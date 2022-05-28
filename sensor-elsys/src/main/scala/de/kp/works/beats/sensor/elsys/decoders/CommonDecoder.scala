@@ -61,7 +61,7 @@ abstract class CommonDecoder extends BaseDecoder {
   override def decode(bytes: Array[Int]): JsonObject = {
 
     val decoded = new JsonObject
-    // 0x01, 0x00, 0xE2, 0x02, 0x29, 0x03, 0x01, 0x27, 0x05, 0x14, 0x06, 0x01, 0x01, 0x11
+
     var i = 0
     while (i < bytes.length) {
 

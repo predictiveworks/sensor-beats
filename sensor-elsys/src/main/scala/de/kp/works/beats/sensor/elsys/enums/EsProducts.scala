@@ -24,8 +24,17 @@ object EsProducts extends Enumeration {
   type EsProduct = Value
 
   val ELT_2: EsProduct          = Value(1, "ELT_2")
-  val ELT_ULTRASONIC: EsProduct = Value(2, "ELT_ULTRASONIC")
-  val EMS: EsProduct            = Value(3, "EMS")
-  val EMS_DESK: EsProduct       = Value(4, "EMS_DESK")
+  val ELT_LITE: EsProduct       = Value(2, "ELT_LITE")
+  val ELT_ULTRASONIC: EsProduct = Value(3, "ELT_ULTRASONIC")
+  val EMS: EsProduct            = Value(4, "EMS")
+  val EMS_DESK: EsProduct       = Value(5, "EMS_DESK")
+  val EMS_DOOR: EsProduct       = Value(6, "EMS_DOOR")
+  val EMS_LITE: EsProduct       = Value(7, "EMS_LITE")
+  val ERS: EsProduct            = Value(8, "ERS")
+  val ERS_CO2: EsProduct        = Value(9, "ERS_CO2")
+  val ERS_CO2_LITE: EsProduct   = Value(10, "ERS_CO2_LITE")
+  val ERS_EYE: EsProduct        = Value(11, "ERS_EYE")
+  val ERS_LITE: EsProduct       = Value(12, "ERS_LITE")
+  val ERS_SOUND: EsProduct      = Value(13, "ERS_SOUND")
 
 }
