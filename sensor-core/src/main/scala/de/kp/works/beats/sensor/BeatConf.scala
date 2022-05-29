@@ -20,7 +20,7 @@ package de.kp.works.beats.sensor
  */
 
 import akka.http.scaladsl.ConnectionContext
-import com.typesafe.config.{Config, ConfigFactory}
+import com.typesafe.config.{Config, ConfigFactory, ConfigObject}
 import de.kp.works.beats.sensor.BeatTasks.{ANOMALY, FORECAST}
 import de.kp.works.beats.sensor.ssl.SslOptions
 
@@ -135,6 +135,50 @@ abstract class BeatConf {
    * respective access parameters
    */
   def getLoriotCfg: Config = getCfg("loriot")
+  /**
+   * Public method to retrieve mappings for
+   * generic (decoded) field names
+   */
+  def getMappings:Map[String,String] = {
+
+    val productCfg = getProductCfg
+    if (!productCfg.hasPath("mappings"))
+      return Map.empty[String, String]
+
+    val mappings = productCfg.getList("mappings")
+    if (mappings.isEmpty) return Map.empty[String,String]
+
+    mappings.map {
+      case configObject: ConfigObject =>
+
+        val mapping = configObject.toConfig
+
+        val name = mapping.getString("name")
+        val alias = mapping.getString("alias")
+
+        (name, alias)
+
+      case _ =>
+        throw new Exception(s"Sensor mapping is not properly configured.")
+
+    }.toMap
+
+  }
+  /**
+   * Public method to retrieve configured table
+   * names; this approach supports sensors that
+   * do not have assigned fixed measurements
+   */
+  def getMeasurements:Seq[String] = {
+
+    val productCfg = getProductCfg
+    if (!productCfg.hasPath("measurements"))
+      return Seq.empty[String]
+
+    val measurements = productCfg.getStringList("measurements")
+    measurements
+
+  }
   /**
    * This method provides the number of threads used
    * to build the deep learning monitors
