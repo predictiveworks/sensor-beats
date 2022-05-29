@@ -32,23 +32,24 @@ object BeatRocksApi {
 
   private var instance:Option[BeatRocksApi] = None
 
-  def getInstance: BeatRocksApi = instance.get
+  def getInstance: BeatRocksApi = {
+    if (instance.isEmpty)
+      instance = Some(new BeatRocksApi())
 
-  def getInstance(tables:Seq[String], folder:String):BeatRocksApi = {
-    if (instance.isEmpty) instance = Some(new BeatRocksApi(tables, folder))
     instance.get
   }
 
-  def isInstance:Boolean = instance.nonEmpty
-
 }
 
-class BeatRocksApi(val tables:Seq[String], val folder:String) {
-  /**
-   * Initialize RocksDB with provided tables; every table
-   * refers to a certain column family.
-   */
-  BeatRocks.getOrCreate(tables, folder)
+class BeatRocksApi {
+
+  def isInit:Boolean = BeatRocks.isInit
+
+  def createIfNotExist(tables:Seq[String], path: String): Unit =
+    BeatRocks.createIfNotExist(tables, path)
+
+  def hasTable(table:String):Boolean =
+    BeatRocks.hasTable(table)
 
   def put(table:String, time:Long, value:String):Unit = {
     BeatRocks.putTs(table, time, value)
@@ -67,9 +68,13 @@ object BeatRocks {
 
   private val CHARSET = "UTF-8"
 
-  def isInit:Boolean =  !Objects.isNull(rocksDB)
-
-  def getOrCreate(tables:Seq[String], path: String): Unit = {
+  def isInit:Boolean = !Objects.isNull(rocksDB)
+  /**
+   * The method prepares the RocksDB by creating column
+   * names for each measurement that is defined for a
+   * certain LoRaWAN sensor.
+   */
+  def createIfNotExist(tables:Seq[String], path: String): Unit = {
 
     if (Objects.isNull(rocksDB)) {
       RocksDB.loadLibrary()
@@ -105,6 +110,18 @@ object BeatRocks {
 
       }).toMap
 
+    }
+
+  }
+
+  def hasTable(table:String):Boolean = {
+
+    try {
+      validate(table)
+      true
+
+    } catch {
+      case _:Throwable => false
     }
 
   }

@@ -656,7 +656,7 @@ class BeatSql(session:SparkSession, logger:Logger) extends TATrend {
 
   private def checkTable(table:String):Unit = {
 
-    if (!rocksApi.tables.contains(table)) {
+    if (!rocksApi.hasTable(table)) {
       val message = s"Unknown table `$table` detected."
       logger.error(message)
 
