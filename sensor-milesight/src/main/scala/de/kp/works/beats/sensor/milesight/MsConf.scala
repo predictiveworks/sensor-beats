@@ -19,12 +19,9 @@ package de.kp.works.beats.sensor.milesight
  *
  */
 
-import com.typesafe.config.ConfigObject
 import de.kp.works.beats.sensor.BeatConf
+import de.kp.works.beats.sensor.milesight.enums.MsProducts
 import de.kp.works.beats.sensor.milesight.enums.MsProducts.MsProduct
-import de.kp.works.beats.sensor.milesight.enums.{MsProducts, MsTables}
-
-import scala.collection.JavaConversions.asScalaBuffer
 
 object MsConf {
 
@@ -42,50 +39,6 @@ class MsConf extends BeatConf {
    * The (internal) resource folder file name
    */
   override var path: String = "milesight.conf"
-  /**
-   * Public method to retrieve mappings for
-   * generic (decoded) field names
-   */
-  def getMappings:Map[String,String] = {
-
-    val productCfg = getProductCfg
-    if (!productCfg.hasPath("mappings"))
-      return Map.empty[String, String]
-
-    val mappings = productCfg.getList("mappings")
-    if (mappings.isEmpty) return Map.empty[String,String]
-
-    mappings.map {
-      case configObject: ConfigObject =>
-
-        val mapping = configObject.toConfig
-
-        val name = mapping.getString("name")
-        val alias = mapping.getString("alias")
-
-        (name, alias)
-
-      case _ =>
-        throw new Exception(s"Sensor mapping is not properly configured.")
-
-    }.toMap
-
-  }
-  /**
-   * Public method to retrieve configured table
-   * names; this approach supports sensors that
-   * do not have assigned fixed measurements
-   */
-  def getMeasurements:Seq[String] = {
-
-    val productCfg = getProductCfg
-    if (!productCfg.hasPath("measurements"))
-      return Seq.empty[String]
-
-    val measurements = productCfg.getStringList("measurements")
-    measurements
-
-  }
 
   def getProduct:MsProduct = {
 
