@@ -23,6 +23,7 @@ import ch.qos.logback.classic.Logger
 import de.kp.works.beats.sensor.helium.{Consumer, HeliumUplink}
 
 import java.util.Base64
+import scala.collection.JavaConversions.asScalaSet
 
 class MsHelium(options: MsOptions) extends Consumer[MsConf](options.toHelium) with MsLogging {
 
@@ -57,6 +58,23 @@ class MsHelium(options: MsOptions) extends Consumer[MsConf](options.toHelium) wi
        */
       val product = options.getProduct
       val sensorReadings = MsDecoder.decodeHex(product, new String(decodedPayload))
+      /*
+       * Apply field mappings and replace those decoded field
+       * names by their aliases that are specified on the
+       * provided mappings
+       */
+      val mappings = options.getMappings
+      if (mappings.nonEmpty) {
+        val fields = sensorReadings.keySet()
+        fields.foreach(name => {
+          if (mappings.contains(name)) {
+            val alias = mappings(name)
+            val property = sensorReadings.remove(name)
+
+            sensorReadings.addProperty(alias, property.getAsDouble)
+          }
+        })
+      }
       /*
        * The `dev_eui` is used as a unique device identifier:
        *

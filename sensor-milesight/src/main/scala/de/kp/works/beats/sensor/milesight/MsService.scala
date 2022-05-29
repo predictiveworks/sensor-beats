@@ -39,11 +39,6 @@ class MsService(config:MsConf) extends BeatService[MsConf](config) with MsLoggin
 
   override protected var serviceName: String = "MsService"
   private val options = new MsOptions(config)
-  /**
-   * Initialize the local RocksDB storage
-   */
-  BeatRocksApi
-    .getInstance(options.getRocksTables, options.getRocksFolder)
 
   import BeatRoute._
   override def buildRoute(queue: SourceQueueWithComplete[String],

@@ -78,48 +78,12 @@ class MsStack(options: MsOptions) extends Consumer[MsConf](options.toStack) with
       val uplinkMessage = messageObj.get(TTN_UPLINK_MESSAGE).getAsJsonObject
       val sensorReadings = uplinkMessage.get(TTN_DECODED_PAYLOAD).getAsJsonObject
       /*
-       * STEP #3: Send sensor readings (payload) to the
-       * configured data sinks; note, attributes are
-       * restricted to [Number] fields.
+       * STEP #3: Convert decoded sensors that refer
+       * to textual values
        */
       val product = options.getProduct
       product match {
-        /*
-         * The decoded fields of the subsequent sensors
-         * contain numeric values only.
-         */
-        case AM100 =>
-          send2Sinks(deviceId, BRAND_NAME, product.toString, sensorReadings, sinks)
-
-        case EM300_TH =>
-          send2Sinks(deviceId, BRAND_NAME, product.toString, sensorReadings, sinks)
-
-        case EM500_CO2 =>
-          send2Sinks(deviceId, BRAND_NAME, product.toString, sensorReadings, sinks)
-
-        case EM500_LGT =>
-          send2Sinks(deviceId, BRAND_NAME, product.toString, sensorReadings, sinks)
-
-        case EM500_PP =>
-          send2Sinks(deviceId, BRAND_NAME, product.toString, sensorReadings, sinks)
-
-        case EM500_PT100 =>
-          send2Sinks(deviceId, BRAND_NAME, product.toString, sensorReadings, sinks)
-
-        case EM500_SMT =>
-          send2Sinks(deviceId, BRAND_NAME, product.toString, sensorReadings, sinks)
-
-        case EM500_SWL =>
-          send2Sinks(deviceId, BRAND_NAME, product.toString, sensorReadings, sinks)
-
-        case EM500_UDL =>
-          send2Sinks(deviceId, BRAND_NAME, product.toString, sensorReadings, sinks)
-        /*
-         * The decoded fields of the subsequent sensors
-         * contain numeric and textual values.
-         */
         case AM300 =>
-
           try {
             // beep
             {
@@ -138,8 +102,6 @@ class MsStack(options: MsOptions) extends Consumer[MsConf](options.toStack) with
             case _: Throwable => /* Do nothing */
           }
 
-          send2Sinks(deviceId, BRAND_NAME, product.toString, sensorReadings, sinks)
-
         case EM300_MCS =>
 
           try {
@@ -153,8 +115,6 @@ class MsStack(options: MsOptions) extends Consumer[MsConf](options.toStack) with
           } catch {
             case _: Throwable => /* Do nothing */
           }
-
-          send2Sinks(deviceId, BRAND_NAME, product.toString, sensorReadings, sinks)
 
         case EM300_SLD | EM300_ZLD =>
 
@@ -170,8 +130,6 @@ class MsStack(options: MsOptions) extends Consumer[MsConf](options.toStack) with
             case _: Throwable => /* Do nothing */
           }
 
-          send2Sinks(deviceId, BRAND_NAME, product.toString, sensorReadings, sinks)
-
         case UC500 =>
           /*
            * The TTN decoding transforms fields that are
@@ -184,19 +142,36 @@ class MsStack(options: MsOptions) extends Consumer[MsConf](options.toStack) with
             })
             keys.foreach(key => {
               val value = sensorReadings.remove(key).getAsString
-              sensorReadings.addProperty(key, if (value == "off") 0 else 1)
+              if (value == "off" || value == "on")
+                sensorReadings.addProperty(key, if (value == "off") 0 else 1)
             })
 
           } catch {
             case _: Throwable => /* Do nothing */
           }
 
-          send2Sinks(deviceId, BRAND_NAME, product.toString, sensorReadings, sinks)
+        case _ => /* Do nothing */
 
-        case _ =>
-          val message = s"The specified Milesight sensor product is not supported."
-          getLogger.warn(message)
       }
+      /*
+       * STEP #4: Apply field mappings and replace those decoded
+       * field names by their aliases that are specified on the
+       * provided mappings
+       */
+      val mappings = options.getMappings
+      if (mappings.nonEmpty) {
+        val fields = sensorReadings.keySet()
+        fields.foreach(name => {
+          if (mappings.contains(name)) {
+            val alias = mappings(name)
+            val property = sensorReadings.remove(name)
+
+            sensorReadings.addProperty(alias, property.getAsDouble)
+          }
+        })
+      }
+
+      send2Sinks(deviceId, BRAND_NAME, product.toString, sensorReadings, sinks)
 
     } catch {
       case t: Throwable =>

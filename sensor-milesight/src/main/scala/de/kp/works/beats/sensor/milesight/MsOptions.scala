@@ -32,6 +32,12 @@ import de.kp.works.beats.sensor.thingsstack.{Options => StackOptions}
  */
 class MsOptions(config:MsConf) {
   /**
+   * Public method to retrieve the field name
+   * mappings for generic decoded fields
+   */
+  def getMappings:Map[String, String] =
+    config.getMappings
+  /**
    * Public method to retrieve the supported
    * Milesight product name; in case of an
    * unsupported sensor, an exception is thrown

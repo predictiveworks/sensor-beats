@@ -21,6 +21,8 @@ package de.kp.works.beats.sensor.milesight
 
 import ch.qos.logback.classic.Logger
 import de.kp.works.beats.sensor.loriot.{Consumer, LoriotUplink}
+
+import scala.collection.JavaConversions.asScalaSet
 /**
  * The [MsLoriot] input channel focuses on the
  * extraction of the unique device identifier
@@ -61,6 +63,23 @@ class MsLoriot(options: MsOptions) extends Consumer[MsConf](options.toLoriot) wi
        */
       val product = options.getProduct
       val sensorReadings = MsDecoder.decodeHex(product, message.data.get)
+      /*
+       * Apply field mappings and replace those decoded field
+       * names by their aliases that are specified on the
+       * provided mappings
+       */
+      val mappings = options.getMappings
+      if (mappings.nonEmpty) {
+        val fields = sensorReadings.keySet()
+        fields.foreach(name => {
+          if (mappings.contains(name)) {
+            val alias = mappings(name)
+            val property = sensorReadings.remove(name)
+
+            sensorReadings.addProperty(alias, property.getAsDouble)
+          }
+        })
+      }
       /*
        * Note, the EUI value is used as unique device identifier
        */
