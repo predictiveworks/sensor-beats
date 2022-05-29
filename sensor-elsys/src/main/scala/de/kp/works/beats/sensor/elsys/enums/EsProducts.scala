@@ -36,5 +36,6 @@ object EsProducts extends Enumeration {
   val ERS_EYE: EsProduct        = Value(11, "ERS_EYE")
   val ERS_LITE: EsProduct       = Value(12, "ERS_LITE")
   val ERS_SOUND: EsProduct      = Value(13, "ERS_SOUND")
+  val ERS_VOC: EsProduct        = Value(14, "ERS_VOC")
 
 }
