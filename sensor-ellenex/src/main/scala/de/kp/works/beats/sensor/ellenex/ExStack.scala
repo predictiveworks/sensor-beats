@@ -24,6 +24,8 @@ import com.google.gson.JsonParser
 import de.kp.works.beats.sensor.thingsstack.Consumer
 import org.eclipse.paho.client.mqttv3.MqttMessage
 
+import scala.collection.JavaConversions.asScalaSet
+
 class ExStack(options: ExOptions) extends Consumer[ExConf](options.toStack) with ExLogging {
 
   private val BRAND_NAME = "Ellenex"
@@ -74,6 +76,23 @@ class ExStack(options: ExOptions) extends Consumer[ExConf](options.toStack) with
        */
       val uplinkMessage = messageObj.get(TTN_UPLINK_MESSAGE).getAsJsonObject
       val sensorReadings = uplinkMessage.get(TTN_DECODED_PAYLOAD).getAsJsonObject
+      /*
+       * Apply field mappings and replace those decoded field
+       * names by their aliases that are specified on the
+       * provided mappings
+       */
+      val mappings = options.getMappings
+      if (mappings.nonEmpty) {
+        val fields = sensorReadings.keySet()
+        fields.foreach(name => {
+          if (mappings.contains(name)) {
+            val alias = mappings(name)
+            val property = sensorReadings.remove(name)
+
+            sensorReadings.addProperty(alias, property.getAsDouble)
+          }
+        })
+      }
       /*
        * STEP #3: Send sensor readings (payload) to the
        * configured data sinks; note, attributes are

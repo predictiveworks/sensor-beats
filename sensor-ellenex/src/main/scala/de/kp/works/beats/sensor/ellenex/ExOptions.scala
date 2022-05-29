@@ -33,6 +33,12 @@ import de.kp.works.beats.sensor.thingsstack.{Options => StackOptions}
  */
 class ExOptions(config:ExConf) {
   /**
+   * Public method to retrieve the field name
+   * mappings for generic decoded fields
+   */
+  def getMappings:Map[String, String] =
+    config.getMappings
+  /**
    * Public method to retrieve the supported
    * Ellenex product name; in case of an
    * unsupported sensor, an exception is thrown

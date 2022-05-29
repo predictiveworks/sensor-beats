@@ -41,14 +41,7 @@ class ExFiware(options:ExOptions)
  */
 class ExRocks(options:ExOptions) extends BeatSink {
 
-  private val rocksApi =
-    if (BeatRocksApi.isInstance)
-      BeatRocksApi
-        .getInstance
-
-    else
-      BeatRocksApi
-        .getInstance(options.getRocksTables, options.getRocksFolder)
+  private val rocksApi:BeatRocksApi = BeatRocksApi.getInstance
 
   override def execute(request: BeatRequest): Unit = {
     /*
@@ -57,24 +50,63 @@ class ExRocks(options:ExOptions) extends BeatSink {
      */
     val sensor = request.sensor
     val time = sensor.sensorTime
+    val attrs  = sensor.sensorAttrs
+    /*
+     * Sensors exist where the supported measurements
+     * cannot be inferred from the product name.
+     */
+    val tables = attrs.map(_.attrName)
+    initRocksDB(tables)
     /*
      * Individual sensor attributes are mapped onto
      * RocksDB
      */
-    sensor.sensorAttrs.foreach(sensorAttr => {
+    attrs.foreach(attr => {
       /*
        * The attribute name is used as the `table`
        * name of the respective RocksDB
        */
-      val table = sensorAttr.attrName
+      val table = attr.attrName
 
       val value = new JsonObject
-      value.addProperty("type", sensorAttr.attrType)
-      value.addProperty("value", sensorAttr.attrValue)
+      value.addProperty("type", attr.attrType)
+      value.addProperty("value", attr.attrValue)
 
       rocksApi.put(table, time, value.toString)
 
     })
+
+  }
+  /**
+   * This method assumes that the tables names have
+   * their configured names at this stage (see ExHelium
+   * and others)
+   */
+  private def initRocksDB(tables:Seq[String]):Unit = {
+
+    if (rocksApi.isInit) return
+    /*
+     * Retrieve the predefined tables that represent
+     * a combination of static tables, configured
+     * measurements and mappings of decoded field
+     * names
+     */
+    val specs = options.getRocksTables
+    /*
+     * Validate that the decoded and optionally mapped
+     * table names are compliant with the specified
+     * ones
+     */
+    tables.foreach(table => {
+      if (!specs.contains(table))
+        throw new Exception(s"Unknown table name `$table` detected")
+    })
+    /*
+     * Finally create the RocksDB column families
+     * from the provided table names
+     */
+    val folder = options.getRocksFolder
+    rocksApi.createIfNotExist(tables, folder)
 
   }
 
