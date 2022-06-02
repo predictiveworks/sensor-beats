@@ -1,0 +1,36 @@
+package de.kp.works.beats.sensor.dragino.enums
+
+object DoFields {
+
+  val bat: String                   = "bat"
+  val Bat: String                   = "Bat"
+  val CO2: String                   = "CO2"
+  val conduct_SOIL: String          = "conduct_SOIL"
+  val HUM: String                   = "HUM"
+  val Interrupt_flag: String        = "Interrupt_flag"
+  val illumination: String          = "illumination"
+  val K_SOIL: String                = "K_SOIL"
+  val Leaf_Moisture: String         = "Leaf_Moisture"
+  val Leaf_Temperature: String      = "Leaf_Temperature"
+  val Message_type: String          = "Message_type"
+  val N_SOIL: String                = "N_SOIL"
+  val P_SOIL: String                = "P_SOIL"
+  val PAR: String                   = "PAR"
+  val PH1_SOIL: String              = "PH1_SOIL"
+  val PM10: String                  = "PM10"
+  val PM2_5: String                 = "PM2_5"
+  val pressure: String              = "pressure"
+  val rain_gauge: String            = "rain_gauge"
+  val rain_snow: String             = "rain_snow"
+  val TEM: String                   = "TEM"
+  val TempC_DS18B20: String         = "TempC_DS18B20"
+  val temp_SOIL: String             = "temp_SOIL"
+  val TEMP_SOIL: String             = "TEMP_SOIL"
+  val TSR: String                   = "TSR"
+  val water_SOIL: String            = "water_SOIL"
+  val wind_direction: String        = "wind_direction"
+  val wind_direction_angle: String  = "wind_direction_angle"
+  val wind_speed: String            = "wind_speed"
+  val wind_speed_level: String      = "wind_speed_level"
+
+}
