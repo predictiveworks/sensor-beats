@@ -74,7 +74,13 @@ class EsLoriot(options: EsOptions) extends Consumer[EsConf](options.toLoriot) wi
        *
        * SensorBeat is based on a common {key, value} format
        */
-      sensorReadings = sensorReadings.get("data").getAsJsonObject
+      if (sensorReadings.has("data")) {
+        /*
+         * Flatten the sensor readings
+         */
+        val data = sensorReadings.remove("data").getAsJsonObject
+        sensorReadings = data
+      }
       /*
        * The current implementation of SensorBeat supports
        * primitive field value, i.e. `externalTemperature2`
