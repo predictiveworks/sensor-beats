@@ -89,13 +89,13 @@ class MsStack(options: MsOptions) extends Consumer[MsConf](options.toStack) with
             {
               val key = "beep"
               val value = sensorReadings.remove(key).getAsString
-              sensorReadings.addProperty(key, if (value == "yes") 1 else 0)
+              sensorReadings.addProperty(key, if (value == "yes") 1D else 0D)
             }
             // pir
             {
               val key = "pir"
               val value = sensorReadings.remove(key).getAsString
-              sensorReadings.addProperty(key, if (value == "trigger") 1 else 0)
+              sensorReadings.addProperty(key, if (value == "trigger") 1D else 0D)
             }
 
           } catch {
@@ -109,7 +109,7 @@ class MsStack(options: MsOptions) extends Consumer[MsConf](options.toStack) with
             {
               val key = "door"
               val value = sensorReadings.remove(key).getAsString
-              sensorReadings.addProperty(key, if (value == "open") 1 else 0)
+              sensorReadings.addProperty(key, if (value == "open") 1D else 0D)
             }
 
           } catch {
@@ -123,7 +123,7 @@ class MsStack(options: MsOptions) extends Consumer[MsConf](options.toStack) with
             {
               val key = "water_leak"
               val value = sensorReadings.remove(key).getAsString
-              sensorReadings.addProperty(key, if (value == "leak") 1 else 0)
+              sensorReadings.addProperty(key, if (value == "leak") 1D else 0D)
             }
 
           } catch {
@@ -143,7 +143,7 @@ class MsStack(options: MsOptions) extends Consumer[MsConf](options.toStack) with
             keys.foreach(key => {
               val value = sensorReadings.remove(key).getAsString
               if (value == "off" || value == "on")
-                sensorReadings.addProperty(key, if (value == "off") 0 else 1)
+                sensorReadings.addProperty(key, if (value == "off") 0D else 1D)
             })
 
           } catch {
@@ -175,7 +175,7 @@ class MsStack(options: MsOptions) extends Consumer[MsConf](options.toStack) with
 
     } catch {
       case t: Throwable =>
-        val message = s"Publishing Things Stack Milesight event failed: ${t.getLocalizedMessage}"
+        val message = s"Publishing Things Stack $BRAND_NAME event failed: ${t.getLocalizedMessage}"
         getLogger.error(message)
     }
   }
