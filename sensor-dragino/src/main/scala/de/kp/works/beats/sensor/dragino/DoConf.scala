@@ -21,7 +21,18 @@ package de.kp.works.beats.sensor.dragino
 
 import de.kp.works.beats.sensor.BeatConf
 import de.kp.works.beats.sensor.dragino.enums.DoProducts
+import de.kp.works.beats.sensor.dragino.enums.DoProducts.DoProduct
 
+object DoConf {
+
+  private var instance:Option[DoConf] = None
+
+  def getInstance:DoConf = {
+    if (instance.isEmpty) instance = Some(new DoConf())
+    instance.get
+  }
+
+}
 
 class DoConf extends BeatConf {
   /**
@@ -29,7 +40,7 @@ class DoConf extends BeatConf {
    */
   override var path: String = "dragino.conf"
 
-  def getProduct:DoProducts.Value = {
+  def getProduct:DoProduct = {
 
     val productCfg = getProductCfg
     val product = productCfg.getString("name")

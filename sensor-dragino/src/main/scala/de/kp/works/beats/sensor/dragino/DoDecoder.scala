@@ -23,7 +23,13 @@ import com.google.gson.JsonObject
 import de.kp.works.beats.sensor.dragino.enums.DoProducts.{DoProduct, LDDS04, LLMS01, LMDS200, LSE01, LSNPK01, LSPH01, WSC1_L}
 
 object DoDecoder {
-
+  /**
+   * HINT: Dragino's decoding creates a plethora
+   * of field names, that must be harmonized before
+   * further data computing.
+   *
+   * This is achieved by applying field name mappings.
+   */
   def decodeHex(product: DoProduct, hexstring: String, fport:Int): JsonObject = {
 
     val readings = product match {

@@ -19,7 +19,7 @@ package de.kp.works.beats.sensor.dragino
  *
  */
 
-import de.kp.works.beats.sensor.dragino.enums.DoProducts
+import de.kp.works.beats.sensor.dragino.enums.DoProducts.DoProduct
 import de.kp.works.beats.sensor.fiware.{Options => FiwareOptions}
 import de.kp.works.beats.sensor.helium.{Options => HeliumOptions}
 import de.kp.works.beats.sensor.loriot.{Options => LoriotOptions}
@@ -43,7 +43,7 @@ class DoOptions(config:DoConf) {
    * Dragino product name; in case of an
    * unsupported sensor, an exception is thrown
    */
-  def getProduct:DoProducts.Value =
+  def getProduct:DoProduct =
     config.getProduct
   /**
    * Public wrapper method to retrieve the RocksDB
