@@ -20,13 +20,16 @@ package de.kp.works.beats.sensor.dragino
  */
 
 import com.google.gson.JsonObject
-import de.kp.works.beats.sensor.dragino.enums.DoProducts.{DoProduct, LLMS01, LMDS200, LSE01, LSNPK01, LSPH01, WSC1_L}
+import de.kp.works.beats.sensor.dragino.enums.DoProducts.{DoProduct, LDDS04, LLMS01, LMDS200, LSE01, LSNPK01, LSPH01, WSC1_L}
 
 object DoDecoder {
 
   def decodeHex(product: DoProduct, hexstring: String, fport:Int): JsonObject = {
 
     val readings = product match {
+      case LDDS04 =>
+        decoders.LDDS04.decodeHex(hexstring, fport)
+
       case LLMS01 =>
         decoders.LLMS01.decodeHex(hexstring, fport)
 
@@ -54,6 +57,9 @@ object DoDecoder {
   def tables(product: DoProduct):Seq[String] = {
 
     val fields = product match {
+      case LDDS04 =>
+        decoders.LDDS04.fields
+
       case LLMS01 =>
         decoders.LLMS01.fields
 
