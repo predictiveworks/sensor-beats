@@ -25,7 +25,8 @@ import de.kp.works.beats.sensor.milesight.enums.MsFields._
 import scala.util.control.Breaks.{break, breakable}
 
 /**
- * Payload Decoder for Milesight AM100 Series
+ * Payload Decoder for Milesight AM100 Series,
+ * which covers AM104 & AM107
  */
 object AM100 extends BaseDecoder {
   /*
@@ -79,7 +80,7 @@ object AM100 extends BaseDecoder {
           val humidity = bytes(i).toDouble / 2
           decoded.addProperty("humidity", humidity)
         }
-        // ACTIVITY
+        // ACTIVITY (PIR)
         else if (channel_id == 0x05 && channel_type == 0x6A) {
           i += 1
           val activity = readInt16LE(bytes.slice(i, i + 2)).toDouble / 10

@@ -57,7 +57,18 @@ class MsHelium(options: MsOptions) extends Consumer[MsConf](options.toHelium) wi
        * provided with this project
        */
       val product = options.getProduct
-      val sensorReadings = MsDecoder.decodeHex(product, new String(decodedPayload))
+      var sensorReadings = MsDecoder.decodeHex(product, new String(decodedPayload))
+      /*
+       * Check whether the sensor readings are wrapped
+       * in a {data: ...} object
+       */
+      if (sensorReadings.has("data")) {
+        /*
+         * Flatten the sensor readings
+         */
+        val data = sensorReadings.remove("data").getAsJsonObject
+        sensorReadings = data
+      }
       /*
        * Apply field mappings and replace those decoded field
        * names by their aliases that are specified on the

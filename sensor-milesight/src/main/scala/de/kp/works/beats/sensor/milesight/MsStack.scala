@@ -76,7 +76,18 @@ class MsStack(options: MsOptions) extends Consumer[MsConf](options.toStack) with
        * provided TTN v3 uplink message
        */
       val uplinkMessage = messageObj.get(TTN_UPLINK_MESSAGE).getAsJsonObject
-      val sensorReadings = uplinkMessage.get(TTN_DECODED_PAYLOAD).getAsJsonObject
+      var sensorReadings = uplinkMessage.get(TTN_DECODED_PAYLOAD).getAsJsonObject
+      /*
+       * Check whether the sensor readings are wrapped
+       * in a {data: ...} object
+       */
+      if (sensorReadings.has("data")) {
+        /*
+         * Flatten the sensor readings
+         */
+        val data = sensorReadings.remove("data").getAsJsonObject
+        sensorReadings = data
+      }
       /*
        * STEP #3: Convert decoded sensors that refer
        * to textual values
