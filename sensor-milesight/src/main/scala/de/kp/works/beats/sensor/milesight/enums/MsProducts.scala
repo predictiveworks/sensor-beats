@@ -36,5 +36,6 @@ object MsProducts extends Enumeration {
   val EM500_SWL: MsProduct   = Value(12, "EM500_SWL")
   val EM500_UDL: MsProduct   = Value(13, "EM500_UDL")
   val UC500: MsProduct       = Value(14, "UC500")
+  val VS121: MsProduct       = Value(15, "VS121")
 }
 

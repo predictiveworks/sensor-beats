@@ -38,6 +38,19 @@ trait BaseDecoder {
 
   def decode(bytes:Array[Int]):JsonObject
 
+  def readString(bytes:Array[Int]):String = {
+    bytes.map(byte => {
+      val value = "0" + Integer.toString(byte & 0xff, 16)
+      value.slice(value.length - 2, value.length)
+    }).mkString
+  }
+
+  def readVersion(bytes:Array[Int]):String = {
+    bytes.map(byte => {
+      Integer.toString(byte & 0xff, 10)
+    }).mkString(".")
+  }
+
   /*******************************************
    * bytes to number
    ********************************************/
@@ -49,6 +62,11 @@ trait BaseDecoder {
   def readInt8LE(bytes:Int):Int = {
     val ref = readUInt8LE(bytes)
     if (ref > 0x7F) ref - 0x100 else ref
+  }
+
+  def readUInt16BE(bytes:Array[Int]):Int = {
+    val value = (bytes(0) << 8) + bytes(1)
+    value & 0xffff
   }
 
   def readUInt16LE(bytes:Array[Int]): Int = {
@@ -67,7 +85,7 @@ trait BaseDecoder {
   }
 
   def readInt32LE(bytes:Array[Int]):Int = {
-    val ref = readUInt32LE(bytes);
+    val ref = readUInt32LE(bytes)
     if (ref > 0x7FFFFFFF) ref - 0x10000000 else ref
   }
 

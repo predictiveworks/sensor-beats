@@ -161,6 +161,28 @@ class MsStack(options: MsOptions) extends Consumer[MsConf](options.toStack) with
             case _: Throwable => /* Do nothing */
           }
 
+        case VS121 =>
+          /*
+           * Remove provided fields that are not relevant
+           * for measurements and computing insights
+           */
+          try {
+
+            val excluded = Seq(
+              "firmware_version",
+              "hardware_version",
+              "protocol_version",
+              "sn"
+            )
+
+            excluded.foreach(exclude =>
+              if (sensorReadings.has(exclude)) sensorReadings.remove(exclude)
+            )
+
+          } catch {
+            case _: Throwable => /* Do nothing */
+          }
+
         case _ => /* Do nothing */
 
       }

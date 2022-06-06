@@ -68,6 +68,9 @@ object MsDecoder {
       case MsProducts.UC500 =>
         decoders.UC500.decodeHex(hexstring)
 
+      case MsProducts.VS121 =>
+        decoders.VS121.decodeHex(hexstring)
+
     }
 
     readings
@@ -115,6 +118,9 @@ object MsDecoder {
 
       case MsProducts.UC500 =>
         decoders.UC500.fields
+
+      case MsProducts.VS121 =>
+        decoders.VS121.fields
 
     }
 
