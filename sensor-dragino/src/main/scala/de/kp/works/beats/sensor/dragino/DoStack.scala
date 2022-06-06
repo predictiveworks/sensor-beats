@@ -21,7 +21,7 @@ package de.kp.works.beats.sensor.dragino
 
 import ch.qos.logback.classic.Logger
 import com.google.gson.JsonParser
-import de.kp.works.beats.sensor.dragino.enums.DoProducts.LDDS04
+import de.kp.works.beats.sensor.dragino.enums.DoProducts.{LDDS04, LDDS20, LDDS45}
 import de.kp.works.beats.sensor.thingsstack.Consumer
 import org.eclipse.paho.client.mqttv3.MqttMessage
 
@@ -76,7 +76,24 @@ class DoStack(options: DoOptions) extends Consumer[DoConf](options.toStack) with
        * provided TTN v3 uplink message
        */
       val uplinkMessage = messageObj.get(TTN_UPLINK_MESSAGE).getAsJsonObject
-      val sensorReadings = uplinkMessage.get(TTN_DECODED_PAYLOAD).getAsJsonObject
+      var sensorReadings = uplinkMessage.get(TTN_DECODED_PAYLOAD).getAsJsonObject
+      /*
+       * The current implementation of the decoded payload
+       * has the following format:
+       *
+       * {
+       *    data: ...
+       * }
+       *
+       * SensorBeat is based on a common {key, value} format
+       */
+      if (sensorReadings.has("data")) {
+        /*
+         * Flatten the sensor readings
+         */
+        val data = sensorReadings.remove("data").getAsJsonObject
+        sensorReadings = data
+      }
       /*
         * STEP #3: Convert decoded sensors that refer
         * to textual values
@@ -90,6 +107,27 @@ class DoStack(options: DoOptions) extends Consumer[DoConf](options.toStack) with
               val key = "EXTI_Trigger"
               val value = sensorReadings.remove(key).getAsString
               sensorReadings.addProperty(key, if (value.toLowerCase == "true") 1D else 0D)
+            }
+
+          } catch {
+            case _: Throwable => /* Do nothing */
+          }
+
+        case LDDS20 | LDDS45 =>
+          try {
+            // Distance
+            {
+              val key = "Distance"
+              val value = sensorReadings.remove(key).getAsString
+
+              val distance =
+                if (value.toLowerCase == "no sensor") -1
+                else if (value.toLowerCase == "invalid reading") -2
+                else
+                  value.replace("mm", "").trim.toInt
+
+              sensorReadings.addProperty(key, distance)
+
             }
 
           } catch {

@@ -65,7 +65,24 @@ class DoLoriot(options: DoOptions) extends Consumer[DoConf](options.toLoriot) wi
        * provided with this project
        */
       val product = options.getProduct
-      val sensorReadings = DoDecoder.decodeHex(product, message.data.get, fport)
+      var sensorReadings = DoDecoder.decodeHex(product, message.data.get, fport)
+      /*
+       * The current implementation of the decoded payload
+       * has the following format:
+       *
+       * {
+       *    data: ...
+       * }
+       *
+       * SensorBeat is based on a common {key, value} format
+       */
+      if (sensorReadings.has("data")) {
+        /*
+         * Flatten the sensor readings
+         */
+        val data = sensorReadings.remove("data").getAsJsonObject
+        sensorReadings = data
+      }
       /*
        * Apply field mappings and replace those decoded field
        * names by their aliases that are specified on the

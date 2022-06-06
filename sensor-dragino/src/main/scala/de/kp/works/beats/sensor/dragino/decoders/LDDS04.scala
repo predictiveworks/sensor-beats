@@ -41,7 +41,7 @@ object LDDS04 extends BaseDecoder {
     fport match {
       case 2 =>
 
-        if(!((bytes(0) == 0x03) && (bytes(10)==0x02))) {
+        if (!((bytes(0) == 0x03) && (bytes(10)==0x02))) {
 
           // BatV
           val battery = ((bytes(0) << 8 | bytes(1)) & 0x3FFF).toDouble / 1000

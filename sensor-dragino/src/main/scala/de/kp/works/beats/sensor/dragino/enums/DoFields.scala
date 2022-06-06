@@ -1,5 +1,24 @@
 package de.kp.works.beats.sensor.dragino.enums
 
+/**
+ * Copyright (c) 2019 - 2022 Dr. Krusche & Partner PartG. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy of
+ * the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
+ *
+ * @author Stefan Krusche, Dr. Krusche & Partner PartG
+ *
+ */
+
 object DoFields {
 
   val bat: String                   = "bat"
@@ -10,6 +29,7 @@ object DoFields {
   val DALARM_count: String          = "DALARM_count"
   val dis1: String                  = "dis1"
   val dis2: String                  = "dis2"
+  val Distance: String              = "Distance"
   val distance1_cm: String          = "distance1_cm"
   val distance2_cm: String          = "distance2_cm"
   val distance3_cm: String          = "distance3_cm"
@@ -33,6 +53,7 @@ object DoFields {
   val pressure: String              = "pressure"
   val rain_gauge: String            = "rain_gauge"
   val rain_snow: String             = "rain_snow"
+  val Sensor_flag: String           = "Sensor_flag"
   val TEM: String                   = "TEM"
   val TempC_DS18B20: String         = "TempC_DS18B20"
   val temp_SOIL: String             = "temp_SOIL"

@@ -20,7 +20,7 @@ package de.kp.works.beats.sensor.dragino
  */
 
 import com.google.gson.JsonObject
-import de.kp.works.beats.sensor.dragino.enums.DoProducts.{DoProduct, LDDS04, LLMS01, LMDS200, LSE01, LSNPK01, LSPH01, WSC1_L}
+import de.kp.works.beats.sensor.dragino.enums.DoProducts._
 
 object DoDecoder {
   /**
@@ -35,6 +35,12 @@ object DoDecoder {
     val readings = product match {
       case LDDS04 =>
         decoders.LDDS04.decodeHex(hexstring, fport)
+
+      case LDDS20 =>
+        decoders.LDDS20.decodeHex(hexstring, fport)
+
+      case LDDS45 =>
+        decoders.LDDS45.decodeHex(hexstring, fport)
 
       case LLMS01 =>
         decoders.LLMS01.decodeHex(hexstring, fport)
@@ -65,6 +71,12 @@ object DoDecoder {
     val fields = product match {
       case LDDS04 =>
         decoders.LDDS04.fields
+
+      case LDDS20 =>
+        decoders.LDDS45.fields
+
+      case LDDS20 =>
+        decoders.LDDS45.fields
 
       case LLMS01 =>
         decoders.LLMS01.fields
