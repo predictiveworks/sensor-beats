@@ -22,8 +22,7 @@ package de.kp.works.beats.sensor.elsys.decoders
 import de.kp.works.beats.sensor.elsys.enums.EsFields._
 
 /**
- * Payload decoder for Elsys EMS-LITE: Measurements comprise
- * temperature, humidity and waterleak
+ * Payload decoder for Elsys EMS-LITE: INDOOR
  */
 object EMS_LITE extends CommonDecoder {
 

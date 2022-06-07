@@ -22,11 +22,18 @@ package de.kp.works.beats.sensor.elsys.decoders
 import de.kp.works.beats.sensor.elsys.enums.EsFields._
 
 /**
- * Payload decoder for Elsys EMS: Measurements comprise
- * temperature, humidity, accelerometer and water leak
+ * Payload decoder for Elsys EMS: INDOOR
  */
 object EMS extends CommonDecoder {
-
+  /*
+   * Indoor LoRaWAN® room sensor for measuring the indoor environment,
+   * the number of openings on a door, or maybe if something has moved
+   * or not.
+   *
+   * It also has a water leak detector which makes it ideal to mount under
+   * e.g. a dishwasher. It is perfect for mounting on door frames, window panes,
+   * or any other limited surface area.
+   */
   override def fields: Seq[String] = {
     Seq(
       TEMPERATURE,

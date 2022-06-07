@@ -22,11 +22,14 @@ package de.kp.works.beats.sensor.elsys.decoders
 import de.kp.works.beats.sensor.elsys.enums.EsFields._
 
 /**
- * Payload decoder for Elsys EMS-DOOR: Measurements
- * comprise accelerometer and door switch
+ * Payload decoder for Elsys EMS-DOOR: INDOOR
  */
 object EMS_DOOR extends CommonDecoder {
-
+  /*
+   * Indoor sensor for detecting when something has moved.
+   * Typical for door activation but the application scope
+   * is bigger than that.
+   */
   override def fields: Seq[String] = {
     Seq(
       X,

@@ -19,21 +19,30 @@ package de.kp.works.beats.sensor.elsys.decoders
  *
  */
 
-import de.kp.works.beats.sensor.elsys.enums.EsFields._
-
 /**
- * Payload decoder for Elsys ELT-2: Measurements comprise
- * temperature, humidity, accelerometer and pressure
+ * Payload decoder for Elsys ELT-2: OUTDOOR
  */
 object ELT_2 extends CommonDecoder {
+  /*
+   * ELT-2 is the ideal sensor for measuring in advanced places
+   * or in extreme weather conditions.
+   *
+   * ELT-2 has two generic inputs, and can be configured for:
+   *
+   * - external temperature probe,
+   * - pulse counting,
+   * - analog-input 0-10V,
+   * - digital-input,
+   * - water leak,
+   * - switch,
+   * - distance sensor,
+   * - soil moister sensor,
+   *
+   * and many more options.
+   *
+   * The supported field are set empty as they are dynamic and
+   * not pre-assigned to the sensor
+   */
+  override def fields: Seq[String] = Seq.empty[String]
 
-  override def fields: Seq[String] = {
-    Seq(
-      TEMPERATURE,
-      HUMIDITY,
-      X,
-      Y,
-      Z,
-      PRESSURE)
-  }
 }

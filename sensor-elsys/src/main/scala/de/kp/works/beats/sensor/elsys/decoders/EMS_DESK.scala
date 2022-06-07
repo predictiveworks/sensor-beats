@@ -22,11 +22,22 @@ package de.kp.works.beats.sensor.elsys.decoders
 import de.kp.works.beats.sensor.elsys.enums.EsFields._
 
 /**
- * Payload decoder for Elsys EMS Desk: Measurements comprise
- * temperature, humidity, accelerometer, and occupancy
+ * Payload decoder for Elsys EMS Desk: INDOOR
  */
 object EMS_DESK extends CommonDecoder {
-
+  /*
+   * EMS Desk is ideal for mounting under desks. It is designed
+   * to detect occupancy regardless of type of table and position
+   * of the person.
+   *
+   * EMS Desk is equipped with a body heat sensor and can detect
+   * when somebody is standing or sitting by a desk, even if the
+   * person is still.
+   *
+   * Environment measuring can be combined with occupancy detection
+   * since the EMS Desk is equipped with internal sensors for measuring
+   * the temperature and humidity.
+   */
   override def fields: Seq[String] = {
     Seq(
       TEMPERATURE,

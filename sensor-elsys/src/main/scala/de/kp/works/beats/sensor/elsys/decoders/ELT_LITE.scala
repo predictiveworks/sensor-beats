@@ -20,18 +20,33 @@ package de.kp.works.beats.sensor.elsys.decoders
  */
 
 /**
- * Payload decoder for Elsys ELT-LITE: Measurements comprise
- * a single external sensor like an electricity meter, flow
- * meter, analog sensor, moisture.
+ * Payload decoder for Elsys ELT-LITE: OUTDOOR
  */
 object ELT_LITE extends CommonDecoder {
   /*
-   * The supported field are set empty as
-   * they are dynamic and not pre-assigned
+   * ELT Lite is the ideal device to use together with an external sensor.
+   * Use it together with an
+   *
+   * - electricity meter,
+   * - flow meter,
+   * - analog sensor,
+   * - moisture sensor,
+   *
+   * or something else that fits your needs.  ELT Lite has one generic input,
+   * and can be configured for:
+   *
+   * - external temperature probe,
+   * - pulse counting,
+   * - analog-input 0-10V,
+   * - digital-input,
+   * - water leak,
+   * - switch,
+   *
+   * and many more options.
+   *
+   * The supported field are set empty as they are dynamic and not pre-assigned
    * to the sensor
    */
-  override def fields: Seq[String] = {
-    Seq()
-  }
+  override def fields: Seq[String] = Seq.empty[String]
 
 }

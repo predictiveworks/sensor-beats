@@ -22,11 +22,21 @@ package de.kp.works.beats.sensor.elsys.decoders
 import de.kp.works.beats.sensor.elsys.enums.EsFields._
 
 /**
- * Payload decoder for Elsys ELT Ultrasonic: Measurements
- * comprise temperature, humidity, accelerometer, distance
- * and pressure
+ * Payload decoder for Elsys ELT Ultrasonic: OUTDOOR
  */
 object ELT_ULTRASONIC extends CommonDecoder {
+  /*
+   * The ELT Ultrasonic is designed for measuring the distance. It can be placed
+   * in various environments and can work as a bin level sensor, tank level sensor,
+   * or water level under bridges, and more.
+   *
+   * It also has four internal sensors:
+   *
+   * - temperature sensor,
+   * - humidity sensor,
+   * - accelerometer,
+   * - atmospheric pressure sensor.
+   */
   override def fields: Seq[String] = {
     Seq(
       TEMPERATURE,
