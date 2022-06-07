@@ -20,6 +20,7 @@ package de.kp.works.beats.sensor.thingsstack
  */
 
 import ch.qos.logback.classic.Logger
+import com.google.gson.{JsonObject, JsonParser}
 import de.kp.works.beats.sensor.{BeatConf, BeatSource}
 import org.eclipse.paho.client.mqttv3.{IMqttDeliveryToken, MqttCallback, MqttClient, MqttMessage}
 
@@ -120,5 +121,67 @@ abstract class Consumer[T <: BeatConf](options:Options[T]) extends BeatSource {
   }
 
   protected def publish(mqttMessage:MqttMessage):Unit
+  /**
+   * Helper method to extract the `deviceId`, and the
+   * provided TTN payload, and, thereby flatten the
+   * payload to a unique {key: value} format
+   */
+  protected def unpack(mqttMessage:MqttMessage):(String, JsonObject) = {
 
+    val payload = new String(mqttMessage.getPayload)
+    val json = JsonParser.parseString(payload)
+    /*
+     * Extract uplink message and associated
+     * decoded payload
+     */
+    val messageObj = json.getAsJsonObject
+    /*
+     * Extract the unique TTN device identifier,
+     * which is also used to uniquely identify
+     * the sensor.
+     *
+     * {
+     *  "end_device_ids" : {
+     *    "device_id" : "dev1",                    // Device ID
+     *    "application_ids" : {
+     *      "application_id" : "app1"              // Application ID
+     *    },
+     *    "dev_eui" : "0004A30B001C0530",          // DevEUI of the end device
+     *    "join_eui" : "800000000000000C",         // JoinEUI of the end device (also known as AppEUI in LoRaWAN versions below 1.1)
+     *    "dev_addr" : "00BCB929"                  // Device address known by the Network Server
+     * },
+     *
+     * ...
+     */
+    val endDeviceIds = messageObj
+      .get(TTN_END_DEVICE_IDS).getAsJsonObject
+
+    val deviceId = endDeviceIds
+      .get(TTN_DEVICE_ID).getAsString
+    /*
+     * Extract the decoded payload from the
+     * provided TTN v3 uplink message
+     */
+    val uplinkMessage = messageObj.get(TTN_UPLINK_MESSAGE).getAsJsonObject
+    var sensorReadings = uplinkMessage.get(TTN_DECODED_PAYLOAD).getAsJsonObject
+    /*
+     * The current implementation of the decoded payload
+     * has the following format:
+     *
+     * {
+     *    data: ...
+     * }
+     *
+     * SensorBeat is based on a common {key, value} format
+     */
+    if (sensorReadings.has("data")) {
+      /*
+       * Flatten the sensor readings
+       */
+      val data = sensorReadings.remove("data").getAsJsonObject
+      sensorReadings = data
+    }
+
+    (deviceId, sensorReadings)
+  }
 }
