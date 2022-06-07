@@ -41,41 +41,7 @@ class ExStack(options: ExOptions) extends Consumer[ExConf](options.toStack) with
 
     try {
 
-      val payload = new String(mqttMessage.getPayload)
-      val json = JsonParser.parseString(payload)
-      /*
-       * Extract uplink message and associated
-       * decoded payload
-       */
-      val messageObj = json.getAsJsonObject
-      /*
-       * STEP #1: Extract the unique TTN device identifier,
-       * which is also used to uniquely identify the sensor.
-       *
-       * {
-       *  "end_device_ids" : {
-       *    "device_id" : "dev1",                    // Device ID
-       *    "application_ids" : {
-       *      "application_id" : "app1"              // Application ID
-       *    },
-       *    "dev_eui" : "0004A30B001C0530",          // DevEUI of the end device
-       *    "join_eui" : "800000000000000C",         // JoinEUI of the end device (also known as AppEUI in LoRaWAN versions below 1.1)
-       *    "dev_addr" : "00BCB929"                  // Device address known by the Network Server
-       * },
-       *
-       * ...
-       */
-      val endDeviceIds = messageObj
-        .get(TTN_END_DEVICE_IDS).getAsJsonObject
-
-      val deviceId = endDeviceIds
-        .get(TTN_DEVICE_ID).getAsString
-      /*
-       * STEP #2: Extract the decoded payload from the
-       * provided TTN v3 uplink message
-       */
-      val uplinkMessage = messageObj.get(TTN_UPLINK_MESSAGE).getAsJsonObject
-      val sensorReadings = uplinkMessage.get(TTN_DECODED_PAYLOAD).getAsJsonObject
+      val (deviceId, sensorReadings) = unpack(mqttMessage)
       /*
        * Apply field mappings and replace those decoded field
        * names by their aliases that are specified on the
@@ -94,9 +60,8 @@ class ExStack(options: ExOptions) extends Consumer[ExConf](options.toStack) with
         })
       }
       /*
-       * STEP #3: Send sensor readings (payload) to the
-       * configured data sinks; note, attributes are
-       * restricted to [Number] fields.
+       * Send sensor readings (payload) to the configured data
+       * sinks; note, attributes are restricted to [Number] fields.
        */
       val product = options.getProduct
       send2Sinks(deviceId, BRAND_NAME, product.toString, sensorReadings, sinks)
