@@ -20,7 +20,6 @@ package de.kp.works.beats.sensor.ellenex
  */
 
 import ch.qos.logback.classic.Logger
-import com.google.gson.JsonParser
 import de.kp.works.beats.sensor.thingsstack.Consumer
 import org.eclipse.paho.client.mqttv3.MqttMessage
 
