@@ -40,11 +40,6 @@ class WeService(config:WeConf) extends BeatService[WeConf](config) with WeLoggin
 
   override protected var serviceName: String = "WeService"
   private val options = new WeOptions(config)
-  /**
-   * Initialize the local RocksDB storage
-   */
-  BeatRocksApi
-    .getInstance(options.getRocksTables, options.getRocksFolder)
 
   import BeatRoute._
   override def buildRoute(queue: SourceQueueWithComplete[String],

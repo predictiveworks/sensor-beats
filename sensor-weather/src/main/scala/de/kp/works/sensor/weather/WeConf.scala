@@ -41,6 +41,8 @@ class WeConf extends BeatConf {
    */
   override var path: String = "weather.conf"
 
+  def getMosmixCfg: Config = getCfg("mosmix")
+
   def getProduct:WeProduct = {
 
     val productCfg = getProductCfg
@@ -56,7 +58,7 @@ class WeConf extends BeatConf {
 
   }
 
-  def getMosmixCfg: Config = getCfg("mosmix")
+  def getPythonCfg:Config = getCfg("python")
 
   override def getRocksTables: Seq[String] = ???
 

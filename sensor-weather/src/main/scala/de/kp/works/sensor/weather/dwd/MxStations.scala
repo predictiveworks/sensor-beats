@@ -21,6 +21,7 @@ package de.kp.works.sensor.weather.dwd
 
 import de.kp.works.beats.sensor.http.{DownloadHandler, HttpConnect}
 import de.kp.works.sensor.weather.WeLogging
+import de.kp.works.sensor.weather.h3.{H3, H3Utils}
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.types.{DoubleType, LongType, StructField, StructType}
 
@@ -53,6 +54,16 @@ case class MxStation(
    * The longitude
    */
   lon:Double,
+  /*
+   * The H3 index of the geospatial
+   * coordinate
+   */
+  h3index:Long,
+  /*
+   * The H3 resolution used to compute
+   * the respective index
+   */
+  h3res:Int = 7,
   /*
    * The altitude
    */
@@ -116,10 +127,11 @@ case class MxDot(ts:Long, name:String, value:Double)
  * Moreover, MOSMIX provides probabilistic forecasts, i.e. probability statements for the
  * occurrence of e.g. strong wind gusts or high precipitation events.
  */
-object MxStations extends HttpConnect with WeLogging{
+object MxStations extends HttpConnect with WeLogging {
+
+  private val H3_RESOLUTION = 7
 
   private val mosmixCfg = config.getMosmixCfg
-
   private val identRE = "href=\"(.*?)\"".r
   /**
    * The endpoint refers to the latest forecast
@@ -486,6 +498,11 @@ object MxStations extends HttpConnect with WeLogging{
          * [60:] place of the MOSMIX station
          */
         val place = line.substring(60).trim
+        /*
+         * Leverage H3 geospatial indexing
+         */
+        val h3index = H3.instance
+          .geoToH3(lat.toDouble, lon.toDouble, H3_RESOLUTION)
 
         MxStation(
           id       = id,
@@ -493,6 +510,8 @@ object MxStations extends HttpConnect with WeLogging{
           name     = name,
           lat      = lat.toDouble,
           lon      = lon.toDouble,
+          h3index  = h3index,
+          h3res    = H3_RESOLUTION,
           altitude = altitude.toDouble,
           place    = place)
 
