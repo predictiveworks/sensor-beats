@@ -38,7 +38,7 @@ import scala.util.{Failure, Success, Try}
 
 trait DownloadHandler {
 
-  def complete(status:Boolean):Unit
+  def onComplete(status:Boolean):Unit
 
 }
 
@@ -217,10 +217,10 @@ trait HttpConnect {
         case Success(source) =>
           source.runWith(FileIO.toPath(Paths.get(file))).onComplete {
             /* Evaluate write operation */
-            case Success(_) => handler.complete(true)
-            case Failure(_) => handler.complete(false)
+            case Success(_) => handler.onComplete(true)
+            case Failure(_) => handler.onComplete(false)
           }
-        case Failure(_) => handler.complete(false)
+        case Failure(_) => handler.onComplete(false)
       }
 
     } catch {
