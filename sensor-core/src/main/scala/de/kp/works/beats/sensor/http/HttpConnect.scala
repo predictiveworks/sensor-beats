@@ -26,7 +26,7 @@ import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers._
 import akka.http.scaladsl.{Http, HttpsConnectionContext}
 import akka.stream.scaladsl.{FileIO, RestartSource, Sink, Source}
-import akka.stream.{ActorMaterializer, KillSwitches}
+import akka.stream.{ActorMaterializer, IOResult, KillSwitches}
 import akka.util.{ByteString, Timeout}
 import com.google.gson._
 
@@ -35,12 +35,6 @@ import scala.collection.JavaConversions.asScalaSet
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContextExecutor, Future}
 import scala.util.{Failure, Success, Try}
-
-trait DownloadHandler {
-
-  def onComplete(status:Boolean):Unit
-
-}
 
 trait HttpConnect {
 
@@ -182,16 +176,16 @@ trait HttpConnect {
    * without any HTTP headers and informs the requestor
    * about the result via the download handler
    */
-  def download(endpoint:String, file:String, handler:DownloadHandler):Unit = {
+  def download(endpoint:String, file:String):IOResult = {
 
     val headers = Map.empty[String,String]
     val pooled = false
 
-    download(endpoint, headers, pooled, file, handler)
+    download(endpoint, headers, pooled, file)
 
   }
 
-  def download(endpoint:String, headers: Map[String, String], pooled: Boolean, file:String, handler:DownloadHandler):Unit = {
+  def download(endpoint:String,headers: Map[String, String],pooled: Boolean, file:String):IOResult = {
 
     try {
 
@@ -212,16 +206,11 @@ trait HttpConnect {
 
         } else singleGet(request)
 
-      response.onComplete {
-        /* Evaluate HTTP(s) response */
-        case Success(source) =>
-          source.runWith(FileIO.toPath(Paths.get(file))).onComplete {
-            /* Evaluate write operation */
-            case Success(_) => handler.onComplete(true)
-            case Failure(_) => handler.onComplete(false)
-          }
-        case Failure(_) => handler.onComplete(false)
-      }
+      val future = Await
+        .result(response, duration)
+        .runWith(FileIO.toPath(Paths.get(file)))
+
+     Await.result(future, duration)
 
     } catch {
       case t: Throwable =>
