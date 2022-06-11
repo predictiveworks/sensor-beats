@@ -41,7 +41,7 @@ class WeConf extends BeatConf {
    */
   override var path: String = "weather.conf"
 
-  def getMosmixCfg: Config = getCfg("mosmix")
+  def getDownloadCfg: Config = getCfg("download")
 
   def getProduct:WeProduct = {
 

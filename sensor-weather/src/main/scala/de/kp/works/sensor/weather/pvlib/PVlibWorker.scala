@@ -18,6 +18,7 @@ package de.kp.works.sensor.weather.pvlib
  * @author Stefan Krusche, Dr. Krusche & Partner PartG
  *
  */
+import com.typesafe.config.Config
 import de.kp.works.sensor.weather.WeLogging
 
 import scala.collection.mutable
@@ -30,9 +31,9 @@ trait PVlibHandler {
 
 }
 
-class PVlibWorker extends WeLogging {
+abstract class PVlibWorker extends WeLogging {
 
-  private val pythonCfg = config.getPythonCfg
+  protected val pythonCfg: Config = config.getPythonCfg
   private val pythonVersion = pythonCfg.getInt("version")
 
   private val pythonPackageVersionRegex = "^Python ([0-9]*)\\.([0-9]*)\\.([0-9]*)".r
@@ -56,7 +57,7 @@ class PVlibWorker extends WeLogging {
         }
      }.getOrElse(None)
 
-   def run(command:String, handler:PVlibHandler):Unit = {
+   protected def run(command:String, handler:PVlibHandler):Unit = {
 
     val cmdline = s"python$pythonVersion $command"
     try {

@@ -19,9 +19,9 @@ package de.kp.works.sensor.weather.dwd
  *
  */
 
-import de.kp.works.beats.sensor.http.{DownloadHandler, HttpConnect}
+import de.kp.works.beats.sensor.http.HttpConnect
 import de.kp.works.sensor.weather.WeLogging
-import de.kp.works.sensor.weather.h3.{H3, H3Utils}
+import de.kp.works.sensor.weather.h3.H3
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.types.{DoubleType, LongType, StructField, StructType}
 
@@ -131,7 +131,7 @@ object MxStations extends HttpConnect with WeLogging {
 
   private val H3_RESOLUTION = 7
 
-  private val mosmixCfg = config.getMosmixCfg
+  private val downloadCfg = config.getDownloadCfg
   private val identRE = "href=\"(.*?)\"".r
   /**
    * The endpoint refers to the latest forecast
@@ -152,10 +152,9 @@ object MxStations extends HttpConnect with WeLogging {
   private val timezone = TimeZone.getTimeZone("UTC")
 
   def main(args:Array[String]):Unit = {
-    /*
+
     val kmlFile = "/Users/krusche/IdeaProjects/sensor-beats/sensor-weather/downloads/mosmix_1653308890186_01001.kml"
-    extractLatest(kmlFile)
-    */
+    latestToCSV(kmlFile, "01001")
 
     System.exit(0)
   }
@@ -319,7 +318,7 @@ object MxStations extends HttpConnect with WeLogging {
 
       })
 
-    val folder = mosmixCfg.getString("downloads")
+    val folder = downloadCfg.getString("folder")
     val csvFile = s"$folder/mosmix_${issuedTime}_$stationId.csv"
 
     val writer = new PrintWriter(new File(csvFile))
@@ -356,7 +355,7 @@ object MxStations extends HttpConnect with WeLogging {
     /*
      * STEP #1: Build the file name
      */
-    val folder = mosmixCfg.getString("downloads")
+    val folder = downloadCfg.getString("folder")
     val timestamp = System.currentTimeMillis()
 
     val kmzFile = s"$folder/mosmix_${timestamp}_$stationId.kmz"
@@ -364,41 +363,36 @@ object MxStations extends HttpConnect with WeLogging {
     /*
      * STEP #2: Download the associated *.kmz file
      */
-    val handler = new DownloadHandler() {
-
-      override def complete(status: Boolean): Unit = {
-
-        if (status) {
-          /*
-           * STEP #1: In case of successful download of
-           * the *.kmz file, unzip file
-           */
-          val zis = new ZipInputStream(
-            new FileInputStream(new File(kmzFile)))
-
-          var zipEntry = zis.getNextEntry
-          while (zipEntry != null) {
-            Files.copy(zis, Paths.get(kmlFile), StandardCopyOption.REPLACE_EXISTING)
-            zipEntry = zis.getNextEntry
-          }
-
-          zis.closeEntry()
-          Files.delete(Paths.get(kmzFile))
-          /*
-           * STEP #2: Transform latest forecasts for provided
-           * station into *.csv file and write to file system
-           */
-          latestToCSV(kmlFile, stationId)
-          Files.delete(Paths.get(kmlFile))
-
-        }
-
-        System.exit(0)
-      }
-    }
-
     val endpoint = latestUrl.replace("{stationid}", stationId)
-    download(endpoint, kmzFile, handler)
+    val result = download(endpoint, kmzFile)
+
+    if (result.status.isSuccess) {
+      /*
+       * STEP #3: In case of successful download of
+       * the *.kmz file, unzip file
+       */
+      val zis = new ZipInputStream(
+        new FileInputStream(new File(kmzFile)))
+
+      var zipEntry = zis.getNextEntry
+      while (zipEntry != null) {
+        Files.copy(zis, Paths.get(kmlFile), StandardCopyOption.REPLACE_EXISTING)
+        zipEntry = zis.getNextEntry
+      }
+
+      zis.closeEntry()
+      /*
+       * STEP #4: Transform latest forecasts for provided
+       * station into *.csv file and write to file system
+       */
+      latestToCSV(kmlFile, stationId)
+
+      Files.delete(Paths.get(kmlFile))
+      Files.delete(Paths.get(kmzFile))
+
+    } else {
+      throw new Exception(result.getError)
+    }
 
   }
   /**
@@ -479,17 +473,17 @@ object MxStations extends HttpConnect with WeLogging {
         var icao = line.substring(6,10)
         if (icao.startsWith("-")) icao = ""
         /*
-         * [11:32] the name of the MOSMIX station
+         * [11:31] the name of the MOSMIX station
          */
-        val name = line.substring(11,33).trim
+        val name = line.substring(11,32).trim
         /*
-         * [33:41] the latitude of the MOSMIX station
+         * [32:38] the latitude of the MOSMIX station
          */
-        val lat = line.substring(33,41).trim
+        val lat = line.substring(32, 39).trim
         /*
-         * [41:46] the longitude of the MOSMIX station
+         * [40:46] the longitude of the MOSMIX station
          */
-        val lon = line.substring(41,46).trim
+        val lon = line.substring(40,46).trim
         /*
          * [46:52] the elevation of the MOSMIX station
          */

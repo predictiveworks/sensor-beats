@@ -33,14 +33,14 @@ object MxFrameUtil extends Serializable {
     value - 273.15
   }}
 
-  def joule2Watt: UserDefinedFunction = udf{ (value:Double) => {
+  def kj2Wh: UserDefinedFunction = udf{ (value:Double) => {
     value * 0.277778
   }}
 }
 
 class MxFrame(session:SparkSession) extends WeLogging {
 
-  private val mosmixCfg = config.getMosmixCfg
+  private val downloadCfg = config.getDownloadCfg
   /**
    * Public method to retrieve the MOSMIX station
    * forecast data for a pre-defined set of params
@@ -52,25 +52,7 @@ class MxFrame(session:SparkSession) extends WeLogging {
    */
   def forecastPV(lat:Double, lon:Double, resolution:Int = 7):DataFrame = {
 
-    val mxParams = Seq(
-      /* Wind direction: 0°..360° */
-      DD,
-      /* Wind speed: m/s */
-      FF,
-      /* Significant Weather: - */
-      ww,
-      /* Global Irradiance: kJ/m2 */
-      Rad1h,
-      /* Global irradiance within the last hour: % (0..80) */
-      RRad1,
-      /* Temperature 2m above surface: K */
-      TTT,
-      /* Surface pressure, reduced: Pa */
-      PPPP,
-      /* Dewpoint 2m above surface: K */
-      Td,
-      /* Total cloud cover: % (0..100) */
-      N)
+    val mxParams = MxParams.getMxSolar
 
     val columns = Seq("timestamp") ++ mxParams.map(_.toString)
     val dataset = forecast(lat, lon, resolution, columns)
@@ -86,7 +68,7 @@ class MxFrame(session:SparkSession) extends WeLogging {
       /*
        * Global radiation is in kJ/m^2, transform into Wh/m^2
        */
-      .withColumn(Rad1h.toString, MxFrameUtil.joule2Watt(col(Rad1h.toString)))
+      .withColumn(Rad1h.toString, MxFrameUtil.kj2Wh(col(Rad1h.toString)))
 
   }
 
@@ -123,9 +105,39 @@ class MxFrame(session:SparkSession) extends WeLogging {
     }
     /*
      * STEP #2: Determine the latest *.csv file that matches
-     * the identified `station`.
+     * the identified `station`, and read DataFrame from file
      */
-    val folder = mosmixCfg.getString("downloads")
+    load(station.get.id)
+
+  }
+  /**
+   * This method retrieves the latest downloaded MOSMIX
+   * station forecast (10 days) file and transforms it
+   * into an Apache Spark [DataFrame].
+   *
+   * This `load` method is usually the initial method
+   * for DataFrame-based weather computation.
+   */
+  def load(stationId:String):DataFrame = {
+
+    val latest = getLatest(stationId)
+    if (latest.isEmpty) return session.emptyDataFrame
+    /*
+     * Load latest station forecasts (10 days)
+     * as Apache spark compliant dataframe
+     */
+    val dataframe =
+      session.read
+        .option("header", value = true)
+        .csv(latest.get.getAbsolutePath)
+
+    dataframe
+
+  }
+
+  private def getLatest(stationId:String):Option[File] = {
+
+    val folder = downloadCfg.getString("folder")
     val file = new File(folder)
 
     if (!file.isDirectory) {
@@ -133,20 +145,30 @@ class MxFrame(session:SparkSession) extends WeLogging {
       val message = s"The download folder `$folder` does not exist"
       error(message)
 
-      return session.emptyDataFrame
+      return None
 
     }
 
-    val postfix = s"_${station.get.id}.csv"
-    val files = file.listFiles()
+    val postfix = s"_$stationId.csv"
+    var files = file.listFiles()
       .filter(f => f.isFile && f.getName.endsWith(postfix))
 
     if (files.isEmpty) {
+      /*
+       * The respective file does not exist, so download
+       * from German Weather Service DWD
+       */
+      try {
 
-      val message = s"No files found for `${station.get.id}`"
-      error(message)
+        MxStations.downloadLatest(stationId)
+        files = file.listFiles()
+          .filter(f => f.isFile && f.getName.endsWith(postfix))
 
-      return session.emptyDataFrame
+        return Some(files.head)
+
+      } catch {
+        case _:Throwable => return None
+      }
 
     }
 
@@ -161,15 +183,7 @@ class MxFrame(session:SparkSession) extends WeLogging {
       })
       .maxBy { case (t, _) => t }._2
 
-    /*
-     * STEP #3: Load latest station forecasts (10 days)
-     * as Apache spark compliant dataframe
-     */
-    val dataframe =
-      session.read.option("header", value = true).csv(latest.getAbsolutePath)
-
-    dataframe
+    Some(latest)
 
   }
-
 }
