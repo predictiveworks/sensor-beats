@@ -18,6 +18,10 @@
         <module>sensor-uradmonitor</module>
         <module>sensor-netvox</module>
         <module>sensor-elsys</module>
+        <module>sensor-dragino</module>
+        <module>sensor-co2sig</module>
+        <module>sensor-airquality</module>
+        <module>sensor-pvgis</module>
     </modules>
 
     <properties>
