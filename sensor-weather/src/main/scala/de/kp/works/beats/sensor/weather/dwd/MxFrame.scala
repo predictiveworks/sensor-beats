@@ -89,7 +89,7 @@ class MxFrame(session:SparkSession) extends WeLogging {
    * This `load` method is usually the initial method
    * for DataFrame-based weather computation.
    */
-  def load(lat:Double, lon:Double, resolution:Int = 7):DataFrame = {
+  def load(lat:Double, lon:Double, resolution:Int = 7, latest:Boolean=true):DataFrame = {
     /*
      * STEP #1: Retrieve available weather station
      * from the provided geospatial location
@@ -107,7 +107,7 @@ class MxFrame(session:SparkSession) extends WeLogging {
      * STEP #2: Determine the latest *.csv file that matches
      * the identified `station`, and read DataFrame from file
      */
-    load(station.get.id)
+    load(station.get.id, latest)
 
   }
   /**
@@ -115,13 +115,17 @@ class MxFrame(session:SparkSession) extends WeLogging {
    * station forecast (10 days) file and transforms it
    * into an Apache Spark [DataFrame].
    *
+   * If `latest` flag=true, a download is initiated,
+   * independent of whether the forecast file exists
+   * already.
+   *
    * This `load` method is usually the initial method
    * for DataFrame-based weather computation.
    */
-  def load(stationId:String):DataFrame = {
+  def load(stationId:String, latest:Boolean):DataFrame = {
 
-    val latest = getLatest(stationId)
-    if (latest.isEmpty) return session.emptyDataFrame
+    val file = getLatest(stationId, latest)
+    if (file.isEmpty) return session.emptyDataFrame
     /*
      * Load latest station forecasts (10 days)
      * as Apache spark compliant dataframe
@@ -129,18 +133,18 @@ class MxFrame(session:SparkSession) extends WeLogging {
     val dataframe =
       session.read
         .option("header", value = true)
-        .csv(latest.get.getAbsolutePath)
+        .csv(file.get.getAbsolutePath)
 
     dataframe
 
   }
 
-  private def getLatest(stationId:String):Option[File] = {
+  private def getLatest(stationId:String, latest:Boolean):Option[File] = {
 
     val folder = downloadCfg.getString("folder")
-    val file = new File(folder)
+    val directory = new File(folder)
 
-    if (!file.isDirectory) {
+    if (!directory.isDirectory) {
 
       val message = s"The download folder `$folder` does not exist"
       error(message)
@@ -150,10 +154,10 @@ class MxFrame(session:SparkSession) extends WeLogging {
     }
 
     val postfix = s"_$stationId.csv"
-    var files = file.listFiles()
+    var files = directory.listFiles()
       .filter(f => f.isFile && f.getName.endsWith(postfix))
 
-    if (files.isEmpty) {
+    if (files.isEmpty || latest) {
       /*
        * The respective file does not exist, so download
        * from German Weather Service DWD
@@ -161,7 +165,7 @@ class MxFrame(session:SparkSession) extends WeLogging {
       try {
 
         MxStations.downloadLatest(stationId)
-        files = file.listFiles()
+        files = directory.listFiles()
           .filter(f => f.isFile && f.getName.endsWith(postfix))
 
         return Some(files.head)
@@ -172,7 +176,7 @@ class MxFrame(session:SparkSession) extends WeLogging {
 
     }
 
-    val latest = files
+    val file = files
       .map(f => {
         val tokens = f.getName
           .replace(postfix, "")
@@ -183,7 +187,7 @@ class MxFrame(session:SparkSession) extends WeLogging {
       })
       .maxBy { case (t, _) => t }._2
 
-    Some(latest)
+    Some(file)
 
   }
 }

@@ -21,10 +21,24 @@ package de.kp.works.beats.sensor.weather
 
 object WeMessages {
 
+  def forecastFailed(t:Throwable):String =
+    s"Retrieving MOSMIX forecast failed: ${t.getLocalizedMessage}"
+
+  def inverterFailed(t:Throwable):String =
+    s"Retrieving CEC inverter failed: ${t.getLocalizedMessage}"
+
   def invertersFailed(t:Throwable):String =
     s"Retrieving CEC inverters failed: ${t.getLocalizedMessage}"
+
+  def irradianceReceived():String =
+    "Request to compute solar irradiance received."
+
+  def moduleFailed(t:Throwable):String =
+    s"Retrieving CEC module failed: ${t.getLocalizedMessage}"
 
   def modulesFailed(t:Throwable):String =
     s"Retrieving CEC modules failed: ${t.getLocalizedMessage}"
 
+  def positionsReceived():String =
+    "Request to compute solar positions received."
 }

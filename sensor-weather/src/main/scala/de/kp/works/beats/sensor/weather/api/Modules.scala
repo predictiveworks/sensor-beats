@@ -19,11 +19,46 @@ package de.kp.works.beats.sensor.weather.api
  *
  */
 
-import com.google.gson.{JsonArray, JsonElement}
+import com.google.gson.{JsonArray, JsonElement, JsonObject}
 import de.kp.works.beats.sensor.BeatMessages
 import de.kp.works.beats.sensor.weather.WeMessages
 import de.kp.works.beats.sensor.weather.sandia.SAMRegistry
 import org.apache.spark.sql.SparkSession
+
+/**
+ * The [Module] actor retrieves a certain CEC
+ * module, identified by its name and manufacturer
+ */
+class Module(session:SparkSession) extends JsonActor {
+
+  override def getEmpty = new JsonObject
+
+  override def executeJson(json: JsonElement): String = {
+
+    val req = mapper.readValue(json.toString, classOf[ModuleReq])
+
+    val manufacturer = req.manufacturer
+    val name         = req.name
+
+    if (manufacturer.isEmpty || name.isEmpty) {
+      warn(BeatMessages.emptySql())
+      return emptyResponse.toString
+    }
+
+    try {
+
+      val module = SAMRegistry.getModule(session, manufacturer, name)
+      module.toString
+
+    } catch {
+      case t: Throwable =>
+        error(WeMessages.moduleFailed(t))
+        emptyResponse.toString
+    }
+
+  }
+}
+
 /**
  * The [Modules] actor retrieves CEC modules,
  * either the entire list of latest modules
@@ -35,7 +70,7 @@ class Modules(session:SparkSession) extends JsonActor {
    * in case of an invalid request, an empty response
    * is returned
    */
-  override var emptyResponse = new JsonArray
+  override def getEmpty = new JsonArray
 
   override def executeJson(json:JsonElement): String = {
 

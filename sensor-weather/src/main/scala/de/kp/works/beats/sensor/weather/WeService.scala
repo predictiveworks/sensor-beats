@@ -28,7 +28,7 @@ import de.kp.works.beats.sensor.BeatOutputs.{FIWARE, ROCKS_DB, SSE, THINGSBOARD}
 import de.kp.works.beats.sensor._
 import de.kp.works.beats.sensor.dl.anomaly.{AnomMonitor, AnomWorker}
 import de.kp.works.beats.sensor.dl.forecast.{ForeMonitor, ForeWorker}
-import de.kp.works.beats.sensor.weather.owea.WeMonitor
+import de.kp.works.beats.sensor.weather.owea.OweaMonitor
 import org.apache.spark.sql.BeatSession
 
 /**
@@ -152,7 +152,7 @@ class WeService(config:WeConf) extends BeatService[WeConf](config) with WeLoggin
      * is the [WeMonitor] that is responsible for
      * sending scheduled requests to OpenWeather API
      */
-    val monitor = new WeMonitor(options)
+    val monitor = new OweaMonitor(options)
     monitor.start()
 
   }

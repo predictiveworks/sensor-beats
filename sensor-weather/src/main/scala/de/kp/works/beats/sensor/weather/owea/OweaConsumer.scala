@@ -30,7 +30,7 @@ import de.kp.works.beats.sensor.weather.{WeLogging, WeOptions}
  * intervals and sends the retrieved data to the output
  * channels
  */
-class WeConsumer(options:WeOptions) extends BeatSource with HttpConnect with WeLogging {
+class OweaConsumer(options:WeOptions) extends BeatSource with HttpConnect with WeLogging {
 
   private val BRAND_NAME = "OpenWeather"
   /**
@@ -70,7 +70,7 @@ class WeConsumer(options:WeOptions) extends BeatSource with HttpConnect with WeL
     val bytes = get(endpoint)
     val response = extractJsonBody(bytes)
 
-    val weather = WeDecoder.decode(response.getAsJsonObject)
+    val weather = OweaDecoder.decode(response.getAsJsonObject)
     weather
 
   }

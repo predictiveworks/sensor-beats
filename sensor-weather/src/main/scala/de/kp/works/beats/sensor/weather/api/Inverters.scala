@@ -19,11 +19,43 @@ package de.kp.works.beats.sensor.weather.api
  *
  */
 
-import com.google.gson.{JsonArray, JsonElement}
+import com.google.gson.{JsonArray, JsonElement, JsonObject}
 import de.kp.works.beats.sensor.BeatMessages
 import de.kp.works.beats.sensor.weather.WeMessages
 import de.kp.works.beats.sensor.weather.sandia.SAMRegistry
 import org.apache.spark.sql.SparkSession
+
+/**
+ * The [Inverter] actor retrieves a certain CEC
+ * inverter, identified by its name
+ */
+class Inverter(session:SparkSession) extends JsonActor {
+
+  override def getEmpty = new JsonObject
+
+  override def executeJson(json: JsonElement): String = {
+
+    val req = mapper.readValue(json.toString, classOf[InverterReq])
+    val name = req.name
+
+    if (name.isEmpty) {
+      warn(BeatMessages.emptySql())
+      return emptyResponse.toString
+    }
+
+    try {
+
+      val inverter = SAMRegistry.getInverter(session, name)
+      inverter.toString
+
+    } catch {
+      case t: Throwable =>
+        error(WeMessages.inverterFailed(t))
+        emptyResponse.toString
+    }
+
+  }
+}
 
 /**
  * The [Inverters] actor retrieves CEC inverters,
@@ -36,7 +68,7 @@ class Inverters(session:SparkSession) extends JsonActor {
    * in case of an invalid request, an empty response
    * is returned
    */
-  override var emptyResponse = new JsonArray
+  override def getEmpty = new JsonArray
 
   override def executeJson(json:JsonElement): String = {
 

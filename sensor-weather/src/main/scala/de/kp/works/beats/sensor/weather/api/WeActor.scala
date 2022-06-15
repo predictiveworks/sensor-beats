@@ -42,7 +42,7 @@ import scala.util.Try
 
 abstract class JsonActor extends WeActor {
 
-  protected var emptyResponse:JsonElement
+  protected val emptyResponse:JsonElement = getEmpty
 
   def execute(request: HttpRequest): String = {
 
@@ -57,6 +57,8 @@ abstract class JsonActor extends WeActor {
   }
 
   def executeJson(json:JsonElement):String
+
+  def getEmpty:JsonElement
 }
 
 abstract class WeActor extends Actor with WeLogging {

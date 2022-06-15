@@ -22,6 +22,7 @@ import com.google.gson.JsonObject
 import com.typesafe.config.Config
 import de.kp.works.beats.sensor.weather.WeLogging
 import PVlibMethods.PVlibMethod
+import akka.actor.ActorRef
 
 import scala.collection.mutable
 import scala.sys.process._
@@ -30,6 +31,16 @@ import scala.util.Try
 trait PVlibHandler {
 
   private var jid:Option[String] = None
+  private var method:Option[PVlibMethod] = None
+
+  private var actor:Option[ActorRef] = None
+
+  def beforeTask(): Unit = {
+
+    if (jid.nonEmpty && method.nonEmpty)
+      PVlibMonitor.beforeTask(jid.get, method.get, actor)
+
+  }
 
   def onComplete(output:Seq[String]):Unit = {
     /*
@@ -39,13 +50,17 @@ trait PVlibHandler {
     if (jid.isEmpty)
       throw new Exception(s"A Python `pvlib` task with an unknown jid hase finished.")
 
-    PVlibMonitor.afterTask(jid.get)
+    PVlibMonitor.afterTask(jid.get, actor)
     /*
      * Continue with the post processing
      * of the Python `pvlib` result
      */
     doComplete(output)
   }
+
+  def setActor(actor:ActorRef):Unit =
+    this.actor = Some(actor)
+
   /**
    * Getter & setter to manage the Python
    * `pvlib` unique job identifier
@@ -56,6 +71,14 @@ trait PVlibHandler {
 
   def setJid(jid:String):Unit = {
     this.jid = Some(jid)
+  }
+
+  def getMethod:Option[PVlibMethod] = {
+    this.method
+  }
+
+  def setMethod(method:PVlibMethod):Unit = {
+    this.method = Some(method)
   }
 
   def doComplete(output:Seq[String]):Unit
@@ -102,9 +125,11 @@ abstract class PVlibWorker extends WeLogging {
      * Build & register Python job
      */
     val jid = s"urn:works:pvlib:${java.util.UUID.randomUUID.toString}"
-    handler.setJid(jid)
 
-    PVlibMonitor.beforeTask(jid, method)
+    handler.setJid(jid)
+    handler.setMethod(method)
+
+    handler.beforeTask()
     /*
      * Enrich provided parameters with control
      * information

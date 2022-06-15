@@ -23,7 +23,7 @@ import de.kp.works.beats.sensor.weather.{WeLogging, WeOptions}
 
 import java.util.concurrent.{Executors, ScheduledExecutorService, TimeUnit}
 
-class WeMonitor(options:WeOptions, numThreads:Int = 1) extends WeLogging {
+class OweaMonitor(options:WeOptions, numThreads:Int = 1) extends WeLogging {
   /**
    * The configured time interval the consumer task
    * is executed
@@ -32,7 +32,7 @@ class WeMonitor(options:WeOptions, numThreads:Int = 1) extends WeLogging {
 
   private var executorService:ScheduledExecutorService = _
 
-  private val consumer = new WeConsumer(options)
+  private val consumer = new OweaConsumer(options)
 
   def start():Unit = {
 

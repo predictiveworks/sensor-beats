@@ -22,7 +22,7 @@ package de.kp.works.beats.sensor.weather.owea
 import com.google.gson.{JsonElement, JsonObject}
 import de.kp.works.beats.sensor.weather.json.JsonUtil
 
-object WeDecoder extends JsonUtil {
+object OweaDecoder extends JsonUtil {
   /**
    * This method extract the attributes provided by
    * the OpenWeather response and transforms them
