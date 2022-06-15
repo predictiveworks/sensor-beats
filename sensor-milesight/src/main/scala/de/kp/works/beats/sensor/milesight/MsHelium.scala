@@ -99,7 +99,7 @@ class MsHelium(options: MsOptions) extends Consumer[MsConf](options.toHelium) wi
 
     } catch {
       case t: Throwable =>
-        val message = s"Publishing Helium Milesight event failed: ${t.getLocalizedMessage}"
+        val message = s"Publishing Helium $BRAND_NAME event failed: ${t.getLocalizedMessage}"
         getLogger.error(message)
     }
 
