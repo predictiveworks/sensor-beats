@@ -18,8 +18,10 @@ package de.kp.works.sensor.weather.pvlib
  * @author Stefan Krusche, Dr. Krusche & Partner PartG
  *
  */
+import com.google.gson.JsonObject
 import com.typesafe.config.Config
 import de.kp.works.sensor.weather.WeLogging
+import de.kp.works.sensor.weather.pvlib.PVlibMethods.PVlibMethod
 
 import scala.collection.mutable
 import scala.sys.process._
@@ -27,8 +29,36 @@ import scala.util.Try
 
 trait PVlibHandler {
 
-  def complete(output:Seq[String]):Unit
+  private var jid:Option[String] = None
 
+  def onComplete(output:Seq[String]):Unit = {
+    /*
+     * Inform the supervisor that the
+     * Python `pvlib` task is finished
+     */
+    if (jid.isEmpty)
+      throw new Exception(s"A Python `pvlib` task with an unknown jid hase finished.")
+
+    PVlibMonitor.afterTask(jid.get)
+    /*
+     * Continue with the post processing
+     * of the Python `pvlib` result
+     */
+    doComplete(output)
+  }
+  /**
+   * Getter & setter to manage the Python
+   * `pvlib` unique job identifier
+   */
+  def getJid:Option[String] = {
+    this.jid
+  }
+
+  def setJid(jid:String):Unit = {
+    this.jid = Some(jid)
+  }
+
+  def doComplete(output:Seq[String]):Unit
 }
 
 abstract class PVlibWorker extends WeLogging {
@@ -48,6 +78,16 @@ abstract class PVlibWorker extends WeLogging {
   else
     throw new Exception(s"Python version `$pythonVersion` is not available.")
 
+  /**
+   * The computation engine used to access
+   * `pvlib`
+   */
+  protected var engine:String
+  /**
+   * The Python program file system path
+   */
+  protected var program:String
+
   private def checkPythonVersion(pythonVersion: Int): Option[(Int, Int, Int)] =
     Try {
       s"python$pythonVersion --version"
@@ -56,6 +96,29 @@ abstract class PVlibWorker extends WeLogging {
           case pythonPackageVersionRegex(major, minor, patch) => (major.toInt, minor.toInt, patch.toInt)
         }
      }.getOrElse(None)
+
+  protected def execute(method:PVlibMethod, params:JsonObject, handler:PVlibHandler):Unit = {
+    /*
+     * Build & register Python job
+     */
+    val jid = s"urn:works:pvlib:${java.util.UUID.randomUUID.toString}"
+    handler.setJid(jid)
+
+    PVlibMonitor.beforeTask(jid, method)
+    /*
+     * Enrich provided parameters with control
+     * information
+     */
+    params.addProperty("engine", engine)
+    params.addProperty("method", s"${method.toString}")
+    /*
+     * Build the python command to retrieve solar
+     * positions from the provided parameters
+     */
+    val command = s"$program -c ${params.toString}"
+    run(command, handler)
+
+  }
 
    protected def run(command:String, handler:PVlibHandler):Unit = {
 
@@ -71,7 +134,7 @@ abstract class PVlibWorker extends WeLogging {
             .lineStream
             .foreach(s => output += s)
 
-          handler.complete(output)
+          handler.onComplete(output)
           this.finalize()
 
         }

@@ -46,6 +46,12 @@ object SAMRegistry extends HttpConnect with WeLogging {
     session.sql(sql)
 
   }
+
+  def getInverters(session:SparkSession):DataFrame = {
+    val sql = s"select * from global_temp.CEC_INVERTERS"
+    session.sql(sql)
+  }
+
   /**
    * Public method to retrieve inverter parameter
    * specification as JSON object that is required
@@ -60,9 +66,31 @@ object SAMRegistry extends HttpConnect with WeLogging {
       JsonNull.INSTANCE
 
     else
-      row2Json(inverter)
+      inverters2Json(inverter)
 
   }
+  /**
+   * Public method to retrieve the inverter parameters of
+   * a certain PV invert registered in SAM's CEC Inverters
+   */
+  def getInverterParams(session:SparkSession, name:String):JsonElement = {
+
+    val json = SAMRegistry.getInverter(session, name)
+    if (json.isJsonNull) return json
+
+    val removables = Seq("Name")
+    val params = json.getAsJsonObject
+
+    removables.foreach(key => params.remove(key))
+    params
+
+  }
+
+  def getModules(session:SparkSession):DataFrame = {
+    val sql = s"select * from global_temp.CEC_MODULES"
+    session.sql(sql)
+  }
+
   /**
    * Public method to retrieve module parameter
    * specification as JSON object that is required
@@ -70,21 +98,46 @@ object SAMRegistry extends HttpConnect with WeLogging {
    */
   def getModule(session:SparkSession, manufacturer:String, name:String):JsonElement = {
 
-    val sql = s"select * from global_temp.CEC_MODULES where Name like '%$name%' or Manufacturer like '%$manufacturer%'"
+    val sql = s"select * from global_temp.CEC_MODULES where Name like '%$name%' and Manufacturer like '%$manufacturer%'"
     val module = session.sql(sql)
 
     if (module.isEmpty)
       JsonNull.INSTANCE
 
     else
-      row2Json(module)
+      module2Json(module)
 
   }
+  /**
+   * Public method to retrieve the module parameters
+   * of a certain PV module (system) registered in
+   * SAM's CEC Modules
+   */
+  def getModuleParams(session:SparkSession, manufacturer:String, name:String):JsonElement = {
+
+    val json = SAMRegistry.getModule(session, manufacturer, name)
+    if (json.isJsonNull) return json
+
+    val removables = Seq("Date", "Manufacturer", "Name", "Version")
+    val params = json.getAsJsonObject
+
+    removables.foreach(key => params.remove(key))
+    params
+
+  }
+
   /**
    * This private method transforms the first row
    * of the provided dataset into a JSON object
    */
-  private def row2Json(dataset:DataFrame):JsonElement = {
+  private def module2Json(dataset:DataFrame):JsonElement = {
+
+    val doubles = Seq(
+      "STC", "PTC", "A_c", "Length", "Width", "I_sc_ref", "V_oc_ref", "I_mp_ref",
+      "V_mp_ref",  "alpha_sc",  "beta_oc", "T_NOCT", "a_ref", "I_L_ref", "I_o_ref",
+      "R_s", "R_sh_ref", "Adjust", "gamma_r")
+
+    val integers = Seq("Bifacial", "N_s")
 
     val schema = dataset.schema
     val fields = schema.fields
@@ -119,7 +172,91 @@ object SAMRegistry extends HttpConnect with WeLogging {
           json.addProperty(fname, row.getShort(fidex))
 
         case StringType =>
-          json.addProperty(fname, row.getString(fidex))
+          val str = row.getString(fidex)
+
+          if (str == null) json.add(fname, null)
+          else {
+            if (doubles.contains(fname))
+              json.addProperty(fname, str.toDouble)
+
+            else if (integers.contains(fname))
+              json.addProperty(fname, str.toInt)
+
+            else
+              json.addProperty(fname, str)
+
+          }
+
+        case _ =>
+          throw new Exception(s"Data type `${ftype.simpleString}` not supported")
+      }
+
+    })
+
+    json
+
+  }
+  /**
+   * This private method transforms the first row
+   * of the provided dataset into a JSON object
+   */
+  private def inverters2Json(dataset:DataFrame):JsonElement = {
+
+    val doubles = Seq(
+      "Pso", "Pdco", "C0", "C1", "C2", "C3", "Pnt", "Idcmax"
+    )
+
+    val integers = Seq(
+      "Vac", "Paco", "Vdco", "Vdcmax", "Mppt_low"
+    )
+
+    val schema = dataset.schema
+    val fields = schema.fields
+
+    val json = new JsonObject
+    val row = dataset.collect().head
+
+    fields.foreach(field => {
+
+      val fname = field.name
+      val fidex = schema.fieldIndex(fname)
+
+      val ftype = field.dataType
+      ftype match {
+
+        case BooleanType =>
+          json.addProperty(fname, row.getBoolean(fidex))
+
+        case DoubleType =>
+          json.addProperty(fname, row.getDouble(fidex))
+
+        case FloatType =>
+          json.addProperty(fname, row.getFloat(fidex))
+
+        case IntegerType =>
+          json.addProperty(fname, row.getInt(fidex))
+
+        case LongType =>
+          json.addProperty(fname, row.getLong(fidex))
+
+        case ShortType =>
+          json.addProperty(fname, row.getShort(fidex))
+
+        case StringType =>
+          val str = row.getString(fidex)
+
+          if (str == null) json.add(fname, null)
+          else {
+            if (doubles.contains(fname))
+              json.addProperty(fname, str.toDouble)
+
+            else if (integers.contains(fname))
+              json.addProperty(fname, str.toInt)
+
+            else
+              json.addProperty(fname, str)
+
+          }
 
         case _ =>
           throw new Exception(s"Data type `${ftype.simpleString}` not supported")
@@ -153,13 +290,11 @@ object SAMRegistry extends HttpConnect with WeLogging {
 
     val file = s"$folder/$CEC_INVERTERS"
     if (filtered.isEmpty) {
-      invertersAsView(session, file)
+      invertersAsView(session, file, replace = true)
 
     }
     else {
-
-      if (replace) Files.delete(Paths.get(file))
-      invertersAsView(session, file)
+      invertersAsView(session, file, replace)
 
     }
 
@@ -172,22 +307,42 @@ object SAMRegistry extends HttpConnect with WeLogging {
 
     val file = s"$folder/$CEC_MODULES"
     if (filtered.isEmpty) {
-      modulesAsView(session, file)
+      modulesAsView(session, file, replace = true)
 
     }
     else {
-
-      if (replace) Files.delete(Paths.get(file))
-      modulesAsView(session, file)
+      modulesAsView(session, file, replace)
 
     }
   }
 
-  private def invertersAsView(session:SparkSession, file:String):Unit = {
+  private def invertersAsView(session:SparkSession, file:String, replace:Boolean):Unit = {
 
-    val result = download(CEC_INVERTERS_URL, file)
-    if (!result.status.isSuccess) {
-      error(s"Downloading CEC inverters failed.")
+    if (replace) {
+
+      Files.delete(Paths.get(file))
+
+      val result = download(CEC_INVERTERS_URL, file)
+      if (!result.status.isSuccess) {
+        error(s"Downloading CEC inverters failed.")
+      }
+      else {
+        /*
+         * Read *.csv file as [DataFrame] and remove SAM
+         * specification rows
+         */
+        val dataframe =
+          session.read
+            .option("header", value = true)
+            .csv(file)
+            .filter(col("Name") =!= "Units" && col("Name") =!= "[0]")
+        /*
+         * Register dataframe as global table
+         */
+        dataframe.createOrReplaceGlobalTempView("CEC_INVERTERS")
+
+      }
+
     }
     else {
       /*
@@ -208,11 +363,33 @@ object SAMRegistry extends HttpConnect with WeLogging {
 
   }
 
-  private def modulesAsView(session:SparkSession, file:String):Unit = {
+  private def modulesAsView(session:SparkSession, file:String, replace:Boolean):Unit = {
 
-    val result = download(CEC_MODULES_URL, file)
-    if (!result.status.isSuccess) {
-      error(s"Downloading CEC modules failed.")
+    if (replace) {
+
+      Files.delete(Paths.get(file))
+
+      val result = download(CEC_MODULES_URL, file)
+      if (!result.status.isSuccess) {
+        error(s"Downloading CEC modules failed.")
+      }
+      else {
+        /*
+         * Read *.csv file as [DataFrame] and remove SAM
+         * specification rows
+         */
+        val dataframe =
+          session.read
+            .option("header", value = true)
+            .csv(file)
+            .filter(col("Name") =!= "Units" && col("Name") =!= "[0]")
+        /*
+         * Register dataframe as global table
+         */
+        dataframe.createOrReplaceGlobalTempView("CEC_MODULES")
+
+      }
+
     }
     else {
       /*

@@ -34,7 +34,7 @@ object MxFrameUtil extends Serializable {
   }}
 
   def kj2Wh: UserDefinedFunction = udf{ (value:Double) => {
-    value * 0.277778
+    if (value.isNaN) 0D else value * 0.277778
   }}
 }
 
@@ -69,7 +69,7 @@ class MxFrame(session:SparkSession) extends WeLogging {
        * Global radiation is in kJ/m^2, transform into Wh/m^2
        */
       .withColumn(Rad1h.toString, MxFrameUtil.kj2Wh(col(Rad1h.toString)))
-
+      .sort(col("timestamp").asc)
   }
 
   def forecast(lat:Double, lon:Double, resolution:Int = 7, columns:Seq[String]):DataFrame = {

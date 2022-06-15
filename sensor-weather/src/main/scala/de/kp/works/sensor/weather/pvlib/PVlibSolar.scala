@@ -19,10 +19,16 @@ package de.kp.works.sensor.weather.pvlib
  *
  */
 
-import com.google.gson.{JsonArray, JsonElement, JsonNull, JsonObject}
+import com.google.gson._
 import de.kp.works.sensor.weather.dwd.MxFrame
+import de.kp.works.sensor.weather.pvlib.PVlibMethods._
+import de.kp.works.sensor.weather.sandia.SAMRegistry
 import org.apache.spark.sql.functions.col
+import org.apache.spark.sql.types._
 import org.apache.spark.sql.{DataFrame, Row, SparkSession}
+
+import scala.collection.JavaConversions.asScalaSet
+import scala.collection.JavaConverters.seqAsJavaListConverter
 /**
  * [PVlibSolar] is made to bridge between Scala
  * and Python and expose the `pvlib` library to
@@ -54,7 +60,8 @@ class PVlibSolar(
   /**
    * Python program indicator
    */
-  private val program = pythonCfg.getString("solar")
+  override var engine:String = "solar"
+  override var program: String = pythonCfg.getString("solar")
   /**
    * Load the MOSMIX station forecast data for the
    * provided geospatial coordinate
@@ -69,10 +76,10 @@ class PVlibSolar(
    * are assigned to the end of the period, whereas the
    * PVLIB values are assigned to the beginning of a cycle.
    */
-  private def toTimerange(sample:Array[Row], pos:Int):JsonArray = {
+  private def toTimerange(sample: Array[Row]):JsonArray = {
 
     val values = sample
-      .map(row => row.getString(pos).toLong - 3600 * 1000)
+      .map(row => row.getString(0).toLong - 3600 * 1000)
 
     val json = new JsonArray
     values.foreach(value => json.add(value))
@@ -80,31 +87,24 @@ class PVlibSolar(
     json
 
   }
-  /**
-   * Extract the Global Horizontal Irradiance (GHI)
-   */
-  private def toGHI(sample:Array[Row], pos:Int):JsonArray = {
+
+  private def toJsonArray(sample:Array[Row], pos:Int):JsonElement = {
+
+    val schema = sample.head.schema
+    val ftype = schema.fields(pos).dataType
 
     val values = sample
-      .map(row => row.getDouble(pos))
+      .map(row => {
+        ftype match {
 
-    val filtered = values.filter(v => !v.isNaN)
+          case DoubleType =>
+            row.getDouble(pos)
 
-    val json = new JsonArray
+          case StringType =>
+            row.getString(pos).toDouble
+        }
 
-    if (values.length == filtered.length)
-      values.foreach(value => json.add(value))
-
-    json
-
-  }
-  /**
-   * Extract the Surface pressure, reduced: Pa
-   */
-  private def toPressure(sample:Array[Row], pos:Int):JsonElement = {
-
-    val values = sample
-      .map(row => row.getString(pos).toDouble)
+      })
 
     val filtered = values.filter(v => !v.isNaN)
 
@@ -117,26 +117,6 @@ class PVlibSolar(
     } else JsonNull.INSTANCE
 
   }
-  /**
-   * Extract the Surface pressure, reduced: Pa
-   */
-  private def toDewpoint(sample:Array[Row], pos:Int):JsonElement = {
-
-    val values = sample
-      .map(row => row.getString(pos).toDouble)
-
-    val filtered = values.filter(v => !v.isNaN)
-
-    if (values.length == filtered.length) {
-      val json = new JsonArray
-      values.foreach(value => json.add(value))
-
-      json
-
-    } else JsonNull.INSTANCE
-
-  }
-
   /**
    * Public method to compute the solar positions for a certain
    * geospatial position and the timerange extracted from the
@@ -145,7 +125,7 @@ class PVlibSolar(
   def positions(handler:PVlibHandler):Unit = {
 
     if (dataset.isEmpty)
-      handler.complete(output=Seq.empty[String])
+      handler.onComplete(output=Seq.empty[String])
 
     else {
       /*
@@ -156,7 +136,7 @@ class PVlibSolar(
       val selcols = Seq("timestamp").map(col)
       val sample = dataset.select(selcols:_*).collect
 
-      val timerange = toTimerange(sample, pos=0)
+      val timerange = toTimerange(sample)
       /*
        * Build PVLIB request
        */
@@ -169,25 +149,9 @@ class PVlibSolar(
       request.addProperty("altitude", altitude)
       request.add("timerange", timerange)
 
-      positions(request, handler)
+      execute(POSITIONS, request, handler)
 
     }
-  }
-
-  private def positions(params:JsonObject, handler:PVlibHandler):Unit = {
-    /*
-     * Enrich provided parameters with control
-     * information
-     */
-    params.addProperty("engine", "solar")
-    params.addProperty("method", "positions")
-    /*
-     * Build the python command to retrieve solar
-     * positions from the provided parameters
-     */
-    val command = s"$program -c ${params.toString}"
-    run(command, handler)
-
   }
   /**
    * Public method to determine DNI from GHI using the DIRINT modification
@@ -209,7 +173,7 @@ class PVlibSolar(
   def dniByDirint(handler:PVlibHandler):Unit = {
 
     if (dataset.isEmpty)
-      handler.complete(output=Seq.empty[String])
+      handler.onComplete(output=Seq.empty[String])
 
     else {
       /*
@@ -223,11 +187,11 @@ class PVlibSolar(
       val selcols = Seq("timestamp", "Rad1h", "PPPP", "Td").map(col)
       val sample = dataset.select(selcols:_*).collect
 
-      val timerange = toTimerange(sample, pos=0)
-      val ghi = toGHI(sample, pos=1)
+      val timerange = toTimerange(sample)
 
-      val pressure = toPressure(sample, pos=2)
-      val dewpoint = toDewpoint(sample, pos=3)
+      val ghi      = toJsonArray(sample, pos=1)
+      val pressure = toJsonArray(sample, pos=2)
+      val dewpoint = toJsonArray(sample, pos=3)
       /*
        * Build PVLIB request
        */
@@ -240,7 +204,8 @@ class PVlibSolar(
       request.addProperty("altitude", altitude)
       request.add("timerange", timerange)
 
-      request.add("ghi", ghi)
+      if (!ghi.isJsonNull)
+        request.add("ghi", ghi)
 
       if (!pressure.isJsonNull)
         request.add("pressure", pressure)
@@ -248,25 +213,14 @@ class PVlibSolar(
       if (!dewpoint.isJsonNull)
         request.add("dew_point", dewpoint)
 
-      dniByDirint(request, handler)
+      /*
+       * Minimum requirement to retrieve estimates
+       * from `pvlib` is global irradiance
+       */
+      if (request.has("ghi"))
+        execute(DNI_DIRINT, request, handler)
 
     }
-
-  }
-
-  private def dniByDirint(params:JsonObject, handler:PVlibHandler):Unit = {
-    /*
-     * Enrich provided parameters with control
-     * information
-     */
-    params.addProperty("engine", "solar")
-    params.addProperty("method", "dni_dirint")
-    /*
-     * Build the python command to retrieve solar
-     * positions from the provided parameters
-     */
-    val command = s"$program -c ${params.toString}"
-    run(command, handler)
 
   }
   /**
@@ -285,7 +239,7 @@ class PVlibSolar(
   def dniByDisc(handler:PVlibHandler):Unit = {
 
     if (dataset.isEmpty)
-      handler.complete(output=Seq.empty[String])
+      handler.onComplete(output=Seq.empty[String])
 
     else {
       /*
@@ -298,11 +252,10 @@ class PVlibSolar(
       val selcols = Seq("timestamp", "Rad1h", "PPPP").map(col)
       val sample = dataset.select(selcols:_*).collect
 
-      val timerange = toTimerange(sample, pos=0)
+      val timerange = toTimerange(sample)
 
-      val ghi = toGHI(sample, pos=1)
-      println(ghi)
-      val pressure = toPressure(sample, pos=2)
+      val ghi = toJsonArray(sample, pos=1)
+      val pressure = toJsonArray(sample, pos=2)
       /*
        * Build PVLIB request
        */
@@ -319,28 +272,16 @@ class PVlibSolar(
       if (!pressure.isJsonNull)
         request.add("pressure", pressure)
 
-      dniByDisc(request, handler)
+      /*
+       * Minimum requirement to retrieve estimates
+       * from `pvlib` is global irradiance
+       */
+      if (request.has("ghi"))
+        execute(DNI_DISC, request, handler)
 
     }
 
   }
-
-  private def dniByDisc(params:JsonObject, handler:PVlibHandler):Unit = {
-    /*
-     * Enrich provided parameters with control
-     * information
-     */
-    params.addProperty("engine", "solar")
-    params.addProperty("method", "dni_disc")
-    /*
-     * Build the python command to retrieve solar
-     * positions from the provided parameters
-     */
-    val command = s"$program -c ${params.toString}"
-    run(command, handler)
-
-  }
-
   /**
    * Public method to estimate DNI and DHI from Global Horizontal
    * Irradiance using the Erbs model. The Erbs model estimates the
@@ -354,7 +295,7 @@ class PVlibSolar(
   def dniByErbs(handler:PVlibHandler):Unit = {
 
     if (dataset.isEmpty)
-      handler.complete(output=Seq.empty[String])
+      handler.onComplete(output=Seq.empty[String])
 
     else {
       /*
@@ -366,8 +307,8 @@ class PVlibSolar(
       val selcols = Seq("timestamp", "Rad1h").map(col)
       val sample = dataset.select(selcols:_*).collect
 
-      val timerange = toTimerange(sample, pos=0)
-      val ghi = toGHI(sample, pos=1)
+      val timerange = toTimerange(sample)
+      val ghi = toJsonArray(sample, pos=1)
       /*
        * Build PVLIB request
        */
@@ -380,27 +321,250 @@ class PVlibSolar(
       request.addProperty("altitude", altitude)
       request.add("timerange", timerange)
 
-      request.add("ghi", ghi)
+      if (!ghi.isJsonNull)
+        request.add("ghi", ghi)
 
-      dniByErbs(request, handler)
+      /*
+       * Minimum requirement to retrieve estimates
+       * from `pvlib` is global irradiance
+       */
+      if (request.has("ghi"))
+        execute(DNI_ERBS, request, handler)
 
     }
 
   }
 
-  private def dniByErbs(params:JsonObject, handler:PVlibHandler):Unit = {
+  def systemByDisc(handler:PVlibHandler):Unit = {
+
+    if (dataset.isEmpty)
+      handler.onComplete(output=Seq.empty[String])
+
+    else {
+      /*
+       * Extract data from MOSMIX forecasts:
+       *
+       * - timerange
+       * - global horizontal irradiance (Rad1h)
+       * - surface pressure, reduced (PPPP)
+       * - dewpoint 2m above surface (Td)
+       * - temperature 2m above surface (TTT)
+       * - wind speed (FF)
+       */
+
+      val selcols = Seq("timestamp", "Rad1h", "PPPP", "Td", "TTT", "FF").map(col)
+      val sample = dataset.select(selcols:_*).collect
+
+      val timerange = toTimerange(sample)
+
+      val ghi        = toJsonArray(sample, pos=1)
+      val pressure   = toJsonArray(sample, pos=2)
+      val dewpoint   = toJsonArray(sample, pos=3)
+      val temp_air   = toJsonArray(sample, pos=4)
+      val wind_speed = toJsonArray(sample, pos=5)
+      /*
+       * Build PVLIB request
+       */
+      val request = new JsonObject
+      request.addProperty("timezone", TIMEZONE)
+
+      request.addProperty("latitude", latitude)
+      request.addProperty("longitude", longitude)
+
+      request.addProperty("altitude", altitude)
+      request.add("timerange", timerange)
+
+      if (!ghi.isJsonNull)
+        request.add("ghi", ghi)
+
+      if (!pressure.isJsonNull)
+        request.add("pressure", pressure)
+
+      if (!dewpoint.isJsonNull)
+        request.add("dew_point", dewpoint)
+
+      if (!temp_air.isJsonNull)
+        request.add("temp_air", temp_air)
+
+      if (!wind_speed.isJsonNull)
+        request.add("wind_speed", wind_speed)
+
+      /*
+       * Extract data from PV system configuration
+       */
+      systemFromCfg(request)
+      /*
+       * Minimum requirement to retrieve estimates
+       * from `pvlib` is global irradiance
+       */
+      //if (request.has("ghi"))
+      execute(SYSTEM_DISC, request, handler)
+
+    }
+
+  }
+
+  private def systemFromCfg(request:JsonObject):Unit = {
+
+     val modules = new JsonArray
+
+    // TESTING
+    val module = new JsonObject
+    module.addProperty("id", "my_module")
+
+    module.addProperty("surface_tilt", 40) // elevation
+    module.addProperty("surface_azimuth", 101)
+
+    module.addProperty("albedo", 0.14)
+    module.addProperty("modules_per_string", 7)
+
+    module.addProperty("module", "LG_Electronics_Inc__LG355N1C_V5")
+
+    val module_parameters = SAMRegistry
+      .getModuleParams(session, manufacturer = "LG Electronics Inc", name = "LG355N1C-V5")
+    module.add("module_parameters", module_parameters)
+
+    modules.add(module)
+
+    module.addProperty("inverter", "LG_Electronics_Inc_LG350M1K_L5_[240V]")
+
+    // LG Electronics Inc : LG350M1K-L5 [240V]
+    // LG350M1K-L5 [240V]
+    val inverter_parameters = SAMRegistry
+      .getInverterParams(session, "LG350M1K-L5 [240V]")
+    module.add("inverter_parameters", inverter_parameters)
+
+    request.add("modules", modules)
     /*
-     * Enrich provided parameters with control
-     * information
+            """
+            Describes the module's construction. Valid strings are
+            'glass_polymer' and 'glass_glass'.
+
+            Used for cell and module temperature calculations.
+            """
+            module_type = spec.get("module_type", None)
+            temperature_model_parameters = spec.get("temperature_model_parameters", None)
+
+            strings_per_inverter = spec.get("strings_per_inverter", 1)
+
+            racking_model = spec.get("racking_model", "open_rack")
+            losses_parameters = spec.get("losses_parameters", None)
+
      */
-    params.addProperty("engine", "solar")
-    params.addProperty("method", "dni_erbs")
+  }
+
+  def systemToDF(input:String):DataFrame = {
+
+    val json = JsonParser.parseString(input).getAsJsonObject
     /*
-     * Build the python command to retrieve solar
-     * positions from the provided parameters
+     * The result specifies a JSON object, where
+     * each field specifies a timeseries
      */
-    val command = s"$program -c ${params.toString}"
-    run(command, handler)
+    val fnames = json.keySet()
+    val result = fnames.flatMap(fname => {
+
+      /* The timeseries is formatted as JSON object */
+      val series = json.get(fname).getAsJsonObject
+      series.keySet().map(ts => {
+
+        val value = series.get(ts)
+
+        if (value.isJsonNull)
+          (ts.toLong, fname, Double.NaN)
+
+        else
+          (ts.toLong, fname, value.getAsDouble)
+
+      })
+
+    }).toArray
+
+    var fields = fnames.to.distinct.sorted
+      .map(fieldName => StructField(fieldName, DoubleType, nullable = true)).toArray
+    /*
+     * Append `timestamp` and specify the respective schema
+     */
+    fields = Array(StructField("timestamp", LongType, nullable = false)) ++ fields
+    val schema = StructType(fields)
+
+    val rows = result
+      .groupBy{case(ts, _, _) => ts}
+      /*
+       * Transform the respective row into an ordered
+       * row
+       */
+      .map{case(ts, columns) =>
+        val values = Seq(ts) ++ columns.sortBy{case(_, name, _) => name}.map{case(_, _, value) => value}
+        Row.fromSeq(values)
+      }
+      .toList
+
+    session.createDataFrame(rows.asJava, schema)
+
+  }
+
+  def weatherByDisc(handler:PVlibHandler):Unit = {
+
+    if (dataset.isEmpty)
+      handler.onComplete(output=Seq.empty[String])
+
+    else {
+      /*
+       * Extract data from MOSMIX forecasts:
+       *
+       * - timerange
+       * - global horizontal irradiance (Rad1h)
+       * - surface pressure, reduced (PPPP)
+       * - dewpoint 2m above surface (Td)
+       * - temperature 2m above surface (TTT)
+       * - wind speed (FF)
+       */
+
+      val selcols = Seq("timestamp", "Rad1h", "PPPP", "Td", "TTT", "FF").map(col)
+      val sample = dataset.select(selcols:_*).collect
+
+      val timerange = toTimerange(sample)
+
+      val ghi        = toJsonArray(sample, pos=1)
+      val pressure   = toJsonArray(sample, pos=2)
+      val dewpoint   = toJsonArray(sample, pos=3)
+      val temp_air   = toJsonArray(sample, pos=4)
+      val wind_speed = toJsonArray(sample, pos=5)
+      /*
+       * Build PVLIB request
+       */
+      val request = new JsonObject
+      request.addProperty("timezone", TIMEZONE)
+
+      request.addProperty("latitude", latitude)
+      request.addProperty("longitude", longitude)
+
+      request.addProperty("altitude", altitude)
+      request.add("timerange", timerange)
+
+      if (!ghi.isJsonNull)
+        request.add("ghi", ghi)
+
+      if (!pressure.isJsonNull)
+        request.add("pressure", pressure)
+
+      if (!dewpoint.isJsonNull)
+        request.add("dew_point", dewpoint)
+
+      if (!temp_air.isJsonNull)
+        request.add("temp_air", temp_air)
+
+      if (!wind_speed.isJsonNull)
+        request.add("wind_speed", wind_speed)
+
+      /*
+       * Minimum requirement to retrieve estimates
+       * from `pvlib` is global irradiance
+       */
+      //if (request.has("ghi"))
+      execute(WEATHER_DISC, request, handler)
+
+    }
 
   }
 

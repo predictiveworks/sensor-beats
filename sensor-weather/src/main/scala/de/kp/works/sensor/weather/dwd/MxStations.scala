@@ -27,8 +27,7 @@ import org.apache.spark.sql.types.{DoubleType, LongType, StructField, StructType
 
 import java.io.{File, FileInputStream, PrintWriter}
 import java.nio.file.{Files, Paths, StandardCopyOption}
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
+import java.time.Instant
 import java.util.TimeZone
 import java.util.zip.ZipInputStream
 import scala.xml.XML
@@ -160,12 +159,7 @@ object MxStations extends HttpConnect with WeLogging {
   }
 
   private def toEpochMillis(datetime:String):Long = {
-
-    val localDate = LocalDate
-      .parse(datetime, DateTimeFormatter.ISO_ZONED_DATE_TIME)
-
-    localDate.atStartOfDay(timezone.toZoneId).toInstant.toEpochMilli
-
+    Instant.parse(datetime).toEpochMilli
   }
 
   def extractLatest(kmlFile:String):(Long, Seq[MxDot]) = {
@@ -315,7 +309,6 @@ object MxStations extends HttpConnect with WeLogging {
           })
 
         timestamps.zip(values).map{case(k,v) => MxDot(k,name, v)}
-
       })
 
     val folder = downloadCfg.getString("folder")
@@ -387,7 +380,7 @@ object MxStations extends HttpConnect with WeLogging {
        */
       latestToCSV(kmlFile, stationId)
 
-      Files.delete(Paths.get(kmlFile))
+      //Files.delete(Paths.get(kmlFile))
       Files.delete(Paths.get(kmzFile))
 
     } else {
