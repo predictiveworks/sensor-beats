@@ -53,23 +53,6 @@ class MsService(config:MsConf) extends BeatService[MsConf](config) with MsLoggin
   /**
    * Public method to build the micro services (actors)
    * that refer to the REST API of the `SensorBeat`
-   *
-   * +---------- REST API ----------
-   * :
-   * : - train anomaly detection model &
-   * :   retrieve anomalies
-   * :
-   * : - train time series prediction model &
-   * :   retrieve forecasts
-   * :
-   * : - retrieve sensor readings via SQL query
-   * :
-   * : - retrieve sensor trends via SQL query
-   * :
-   * : - provide sensor events & inferred info
-   * :   via Server Sent Event listing
-   * :
-   * +------------------------------
    */
   override def buildApiActors(queue: SourceQueueWithComplete[String]): Map[String, ActorRef] = {
 
