@@ -20,12 +20,16 @@ package de.kp.works.beats.sensor.uradmonitor
  */
 
 import ch.qos.logback.classic.Logger
-import de.kp.works.beats.sensor.thingsstack.Consumer
-import org.eclipse.paho.client.mqttv3.MqttMessage
+import de.kp.works.beats.sensor.loriot.{Consumer, LoriotUplink}
 
 import scala.collection.JavaConversions.asScalaSet
 
-class UmStack(options: UmOptions) extends Consumer[UmConf](options.toStack) with UmLogging {
+/**
+ * The [UmLoriot] input channel focuses on the
+ * extraction of the unique device identifier
+ * and the provided sensor readings
+ */
+class UmLoriot(options: UmOptions) extends Consumer[UmConf](options.toLoriot) with UmLogging {
 
   private val BRAND_NAME = "Uradmonitor"
   /**
@@ -36,28 +40,41 @@ class UmStack(options: UmOptions) extends Consumer[UmConf](options.toStack) with
 
   override protected def getLogger: Logger = logger
 
-  override protected def publish(mqttMessage: MqttMessage): Unit = {
+  override protected def publish(message: LoriotUplink): Unit = {
 
     try {
-
-      val (deviceId, sensorReadings) = unpack(mqttMessage)
       /*
-       * Remove provided fields that are not relevant
-       * for measurements and computing insights
+       * Make sure the extracted message is a LORIOT
+       uplink message
        */
-      val excluded = Seq(
-        "firmware_version",
-        "hardware_version",
-        "model"
-      )
-
-      excluded.foreach(exclude =>
-        if (sensorReadings.has(exclude)) sensorReadings.remove(exclude)
-      )
+      if (message.cmd != "rx") return
       /*
-       * Convert decoded sensors that refer to textual values
+       * The current implementation of SensorBeat does not
+       * supported encrypted data payloads (which refers to
+       * a missing APP KEY
+       */
+      if (message.encdata.nonEmpty || message.data.isEmpty) return
+      /*
+       * Send sensor readings (payload) to the configured
+       * data sinks; note, attributes are restricted to [Number]
+       * fields.
+       *
+       * This restriction is ensured by the Milesight decoders
+       * provided with this project
        */
       val product = options.getProduct
+      var sensorReadings = UmDecoder.decodeHex(product, message.data.get)
+      /*
+       * Check whether the sensor readings are wrapped
+       * in a {data: ...} object
+       */
+      if (sensorReadings.has("data")) {
+        /*
+         * Flatten the sensor readings
+         */
+        val data = sensorReadings.remove("data").getAsJsonObject
+        sensorReadings = data
+      }
       /*
        * Apply field mappings and replace those decoded field
        * names by their aliases that are specified on the
@@ -75,14 +92,18 @@ class UmStack(options: UmOptions) extends Consumer[UmConf](options.toStack) with
           }
         })
       }
-
+      /*
+       * Note, the EUI value is used as unique device identifier
+       */
+      val deviceId = message.EUI
       send2Sinks(deviceId, BRAND_NAME, product.toString, sensorReadings, sinks)
 
     } catch {
       case t: Throwable =>
-        val message = s"Publishing Things Stack $BRAND_NAME event failed: ${t.getLocalizedMessage}"
+        val message = s"Publishing LORIOT $BRAND_NAME event failed: ${t.getLocalizedMessage}"
         getLogger.error(message)
     }
+
   }
 
 }

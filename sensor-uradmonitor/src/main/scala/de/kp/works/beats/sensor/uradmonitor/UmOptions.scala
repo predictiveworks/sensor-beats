@@ -33,6 +33,12 @@ import de.kp.works.beats.sensor.{BeatInputs, BeatOutputs}
  */
 class UmOptions(config:UmConf) {
   /**
+   * Public method to retrieve the field name
+   * mappings for generic decoded fields
+   */
+  def getMappings:Map[String, String] =
+    config.getMappings
+  /**
    * Public method to retrieve the supported
    * Uradmonitor product name; in case of an
    * unsupported sensor, an exception is thrown

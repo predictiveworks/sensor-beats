@@ -20,12 +20,12 @@ package de.kp.works.beats.sensor.uradmonitor
  */
 
 import ch.qos.logback.classic.Logger
-import de.kp.works.beats.sensor.thingsstack.Consumer
-import org.eclipse.paho.client.mqttv3.MqttMessage
+import de.kp.works.beats.sensor.helium.{Consumer, HeliumUplink}
 
+import java.util.Base64
 import scala.collection.JavaConversions.asScalaSet
 
-class UmStack(options: UmOptions) extends Consumer[UmConf](options.toStack) with UmLogging {
+class UmHelium(options: UmOptions) extends Consumer[UmConf](options.toHelium) with UmLogging {
 
   private val BRAND_NAME = "Uradmonitor"
   /**
@@ -36,28 +36,39 @@ class UmStack(options: UmOptions) extends Consumer[UmConf](options.toStack) with
 
   override protected def getLogger: Logger = logger
 
-  override protected def publish(mqttMessage: MqttMessage): Unit = {
+  override protected def publish(message: HeliumUplink): Unit = {
 
     try {
-
-      val (deviceId, sensorReadings) = unpack(mqttMessage)
       /*
-       * Remove provided fields that are not relevant
-       * for measurements and computing insights
+       * Data transmitted by the device is a base64 encoded String.
        */
-      val excluded = Seq(
-        "firmware_version",
-        "hardware_version",
-        "model"
-      )
-
-      excluded.foreach(exclude =>
-        if (sensorReadings.has(exclude)) sensorReadings.remove(exclude)
-      )
+      val decodedPayload = Base64.getDecoder.decode(message.payload)
       /*
-       * Convert decoded sensors that refer to textual values
+       * The uplink message provides the size of the payload and this
+       * parameter is used to verify the payload
+       */
+      if (decodedPayload.length != message.payload_size.intValue()) return
+      /*
+       * Send sensor readings (payload) to the configured
+       * data sinks; note, attributes are restricted to [Number]
+       * fields.
+       *
+       * This restriction is ensured by the Milesight decoders
+       * provided with this project
        */
       val product = options.getProduct
+      var sensorReadings = UmDecoder.decodeHex(product, new String(decodedPayload))
+      /*
+       * Check whether the sensor readings are wrapped
+       * in a {data: ...} object
+       */
+      if (sensorReadings.has("data")) {
+        /*
+         * Flatten the sensor readings
+         */
+        val data = sensorReadings.remove("data").getAsJsonObject
+        sensorReadings = data
+      }
       /*
        * Apply field mappings and replace those decoded field
        * names by their aliases that are specified on the
@@ -75,14 +86,23 @@ class UmStack(options: UmOptions) extends Consumer[UmConf](options.toStack) with
           }
         })
       }
-
+      /*
+       * The `dev_eui` is used as a unique device identifier:
+       *
+       * LoRaWAN 64-bit Device Identifier (DevEUI) in MSB hex;
+       * conventionally this is used to identify a unique device
+       * within a specific application (AppEUI) or even within an
+       * entire organization
+       */
+      val deviceId = message.dev_eui
       send2Sinks(deviceId, BRAND_NAME, product.toString, sensorReadings, sinks)
 
     } catch {
       case t: Throwable =>
-        val message = s"Publishing Things Stack $BRAND_NAME event failed: ${t.getLocalizedMessage}"
+        val message = s"Publishing Helium $BRAND_NAME event failed: ${t.getLocalizedMessage}"
         getLogger.error(message)
     }
+
   }
 
 }
