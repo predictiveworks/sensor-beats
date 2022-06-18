@@ -40,11 +40,6 @@ class ExService(config:ExConf) extends BeatService[ExConf](config) with ExLoggin
 
   override protected var serviceName: String = "ExService"
   private val options = new ExOptions(config)
-  /**
-   * Initialize the local RocksDB storage
-   */
-  BeatRocksApi
-    .getInstance(options.getRocksTables, options.getRocksFolder)
 
   import BeatRoute._
   override def buildRoute(queue: SourceQueueWithComplete[String],
