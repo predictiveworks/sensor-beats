@@ -41,6 +41,16 @@ trait BaseDecoder {
 
   def fields: Seq[String]
 
+  def readString(byte:Int):String = {
+
+    val zero = "00"
+    val hex  = Integer.toString(byte, 16)
+
+    val tmp  = 2 - hex.length
+    zero.substring(0, tmp) + hex + " "
+
+  }
+
   def timestamp2Date(ts:Int):String = {
     /*
      * Check whether the timestamp describes

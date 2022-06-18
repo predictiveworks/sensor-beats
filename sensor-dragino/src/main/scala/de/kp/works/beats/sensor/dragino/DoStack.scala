@@ -20,7 +20,7 @@ package de.kp.works.beats.sensor.dragino
  */
 
 import ch.qos.logback.classic.Logger
-import de.kp.works.beats.sensor.dragino.enums.DoProducts.{LDDS04, LDDS20, LDDS45}
+import de.kp.works.beats.sensor.dragino.enums.DoProducts.{LDDS04, LDDS20, LDDS45, LHT65}
 import de.kp.works.beats.sensor.thingsstack.Consumer
 import org.eclipse.paho.client.mqttv3.MqttMessage
 
@@ -43,8 +43,8 @@ class DoStack(options: DoOptions) extends Consumer[DoConf](options.toStack) with
 
       val (deviceId, sensorReadings) = unpack(mqttMessage)
       /*
-        * Convert decoded sensors that refer to textual values
-        */
+       * Convert decoded sensors that refer to textual values
+       */
       val product = options.getProduct
       product match {
         case LDDS04 =>
@@ -81,6 +81,34 @@ class DoStack(options: DoOptions) extends Consumer[DoConf](options.toStack) with
             case _: Throwable => /* Do nothing */
           }
 
+        case LHT65 =>
+          try {
+            /*
+             * Remove fields fields from decoded
+             * object
+             */
+            val removables = Seq("No_connect", "Ext_sensor", "Work_mode", "ID")
+            removables.foreach(key =>
+              if (sensorReadings.has(key)) sensorReadings.remove(key))
+
+            // Exti_pin_level
+            {
+              val key = "Exti_pin_level"
+              val value = sensorReadings.remove(key).getAsString
+              sensorReadings.addProperty(key, if (value.toLowerCase == "high") 1D else 0D)
+            }
+
+            // Exti_status
+            {
+              val key = "Exti_status"
+              val value = sensorReadings.remove(key).getAsString
+              sensorReadings.addProperty(key, if (value.toLowerCase == "true") 1D else 0D)
+            }
+
+          } catch {
+            case _: Throwable => /* Do nothing */
+          }
+
         case _ => /* Do nothing */
 
       }
@@ -102,9 +130,8 @@ class DoStack(options: DoOptions) extends Consumer[DoConf](options.toStack) with
         })
       }
       /*
-       * STEP #4: Send sensor readings (payload) to the
-       * configured data sinks; note, attributes are
-       * restricted to [Number] fields.
+       * Send sensor readings (payload) to the configured data
+       * sinks; note, attributes are restricted to [Number] fields.
        */
       send2Sinks(deviceId, BRAND_NAME, product.toString, sensorReadings, sinks)
 

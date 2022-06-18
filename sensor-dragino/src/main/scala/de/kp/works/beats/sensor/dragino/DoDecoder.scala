@@ -42,6 +42,12 @@ object DoDecoder {
       case LDDS45 =>
         decoders.LDDS45.decodeHex(hexstring, fport)
 
+      case LHT52 =>
+        decoders.LHT52.decodeHex(hexstring, fport)
+
+      case LHT65 =>
+        decoders.LHT65.decodeHex(hexstring, fport)
+
       case LLDS12 =>
         decoders.LLDS12.decodeHex(hexstring, fport)
 
@@ -80,6 +86,12 @@ object DoDecoder {
 
       case LDDS20 =>
         decoders.LDDS45.fields
+
+      case LHT52 =>
+        decoders.LHT52.fields
+
+      case LHT65 =>
+        decoders.LHT65.fields
 
       case LLDS12 =>
         decoders.LLDS12.fields
