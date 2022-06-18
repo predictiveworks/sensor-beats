@@ -335,7 +335,7 @@ class PVlibSolar(
 
   }
 
-  def systemByDisc(handler:PVlibHandler):Unit = {
+  def systemByDisc(handler:PVlibHandler, modules:Option[JsonArray]=None):Unit = {
 
     if (dataset.isEmpty)
       handler.onComplete(output=Seq.empty[String])
@@ -389,10 +389,11 @@ class PVlibSolar(
       if (!wind_speed.isJsonNull)
         request.add("wind_speed", wind_speed)
 
-      /*
-       * Extract data from PV system configuration
-       */
-      systemFromCfg(request)
+      if (modules.isEmpty)
+        request.add("modules", modulesFromCfg)
+
+      else
+        request.add("modules", modules.get)
       /*
        * Minimum requirement to retrieve estimates
        * from `pvlib` is global irradiance
@@ -404,7 +405,7 @@ class PVlibSolar(
 
   }
 
-  private def systemFromCfg(request:JsonObject):Unit = {
+  private def modulesFromCfg:JsonArray = {
 
      val modules = new JsonArray
 
@@ -434,7 +435,6 @@ class PVlibSolar(
       .getInverterParams(session, "LG350M1K-L5 [240V]")
     module.add("inverter_parameters", inverter_parameters)
 
-    request.add("modules", modules)
     /*
             """
             Describes the module's construction. Valid strings are
@@ -451,6 +451,8 @@ class PVlibSolar(
             losses_parameters = spec.get("losses_parameters", None)
 
      */
+    modules
+
   }
 
   def systemToDF(input:String):DataFrame = {

@@ -41,4 +41,8 @@ object WeMessages {
 
   def positionsReceived():String =
     "Request to compute solar positions received."
+
+  def powerReceived():String =
+    "Request to compute PV power generation received."
+
 }

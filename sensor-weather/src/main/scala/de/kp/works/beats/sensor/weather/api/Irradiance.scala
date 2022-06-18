@@ -60,6 +60,12 @@ class IrradianceWorker(
 
         case "erbs" =>
           solar.dniByErbs(handler)
+        /*
+         * This request returns the MOSMIX weather
+         * forecast enriched with DNI & DHI
+         */
+        case "disc_erbs" =>
+          solar.weatherByDisc(handler)
 
         case other =>
 

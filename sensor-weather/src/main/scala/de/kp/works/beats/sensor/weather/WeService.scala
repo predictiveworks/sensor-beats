@@ -22,12 +22,14 @@ package de.kp.works.beats.sensor.weather
 import akka.NotUsed
 import akka.actor.{ActorRef, Props}
 import akka.http.scaladsl.model.sse.ServerSentEvent
+import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import akka.stream.scaladsl.{Source, SourceQueueWithComplete}
 import de.kp.works.beats.sensor.BeatOutputs.{FIWARE, ROCKS_DB, SSE, THINGSBOARD}
 import de.kp.works.beats.sensor._
 import de.kp.works.beats.sensor.dl.anomaly.{AnomMonitor, AnomWorker}
 import de.kp.works.beats.sensor.dl.forecast.{ForeMonitor, ForeWorker}
+import de.kp.works.beats.sensor.weather.api._
 import de.kp.works.beats.sensor.weather.owea.OweaMonitor
 import org.apache.spark.sql.BeatSession
 
@@ -42,61 +44,67 @@ class WeService(config:WeConf) extends BeatService[WeConf](config) with WeLoggin
   private val options = new WeOptions(config)
 
   import BeatRoute._
+  import WeRoute._
+
+  private val session = BeatSession.getSession
+
   override def buildRoute(queue: SourceQueueWithComplete[String],
                           source: Source[ServerSentEvent, NotUsed]): Route = {
 
     val actors = buildApiActors(queue)
-    val beatRoute = new BeatRoute(actors, source)
 
-    beatRoute.getRoutes
+    val beatRoute = new BeatRoute(actors, source)
+    val weRoute = new WeRoute(actors)
+
+    beatRoute.getRoutes ~ weRoute.getRoutes
 
   }
   /**
    * Public method to build the micro services (actors)
    * that refer to the REST API of the `SensorBeat`
-   *
-   * +---------- REST API ----------
-   * :
-   * : - train anomaly detection model &
-   * :   retrieve anomalies
-   * :
-   * : - train time series prediction model &
-   * :   retrieve forecasts
-   * :
-   * : - retrieve sensor readings via SQL query
-   * :
-   * : - retrieve sensor trends via SQL query
-   * :
-   * : - provide sensor events & inferred info
-   * :   via Server Sent Event listing
-   * :
-   * +------------------------------
    */
   override def buildApiActors(queue: SourceQueueWithComplete[String]): Map[String, ActorRef] = {
-
-    Map(
+    /*
+     * +---------- BEAT API ----------
+     * :
+     * : - train anomaly detection model &
+     * :   retrieve anomalies
+     * :
+     * : - train time series prediction model &
+     * :   retrieve forecasts
+     * :
+     * : - retrieve sensor readings via SQL query
+     * :
+     * : - retrieve sensor trends via SQL query
+     * :
+     * : - provide sensor events & inferred info
+     * :   via Server Sent Event listing
+     * :
+     * +------------------------------
+     */
+    val beatActors = Map(
       /*
        * Train anomaly detection model &
        * retrieve anomalies
        */
       BEAT_ANOMALY_ACTOR ->
-        system.actorOf(Props(new WeAnomActor(config)), BEAT_ANOMALY_ACTOR),
+      system.actorOf(Props(new WeAnomActor(config)), BEAT_ANOMALY_ACTOR),
       /*
        * Train time series prediction model
        * & retrieve forecasts
        */
       BEAT_FORECAST_ACTOR ->
-        system.actorOf(Props(new WeForeActor(config)), BEAT_FORECAST_ACTOR),
+      system.actorOf(Props(new WeForeActor(config)), BEAT_FORECAST_ACTOR),
       /*
        * Retrieve sensor inferred readings via SQL query
        */
       BEAT_INSIGHT_ACTOR ->
-        system.actorOf(Props(new WeInsightActor(config)), BEAT_INSIGHT_ACTOR),
+      system.actorOf(Props(new WeInsightActor(config)), BEAT_INSIGHT_ACTOR),
       /*
        * Retrieve sensor readings via SQL query
        */
       BEAT_MONITOR_ACTOR ->
-        system.actorOf(Props(new WeMonitorActor(config)), BEAT_MONITOR_ACTOR),
+      system.actorOf(Props(new WeMonitorActor(config)), BEAT_MONITOR_ACTOR),
       /*
        * Retrieve sensor trend via SQL query
        */
@@ -104,6 +112,49 @@ class WeService(config:WeConf) extends BeatService[WeConf](config) with WeLoggin
       system.actorOf(Props(new WeTrendActor(config)), BEAT_TREND_ACTOR)
 
     )
+    /*
+     * +---------- WEATHER API ----------
+     * :
+     * : - MOSIX weather forecasts for the
+     * :   next 10 days
+     * :
+     * : - CEC inverter & inverters
+     * :
+     * : - MOSIX weather forecasts enriched
+     * :   with solar irradiance estimation
+     * :
+     * : - CEC module & modules
+     * :
+     * : - Solar position forecast
+     * :
+     * : - PV power generation forecast
+     */
+    val weatherActors = Map(
+      WE_FORECAST_ACTOR ->
+      system.actorOf(Props(new Forecast(session)), WE_FORECAST_ACTOR),
+
+      WE_INVERTER_ACTOR ->
+      system.actorOf(Props(new Inverter(session)), WE_INVERTER_ACTOR),
+
+      WE_INVERTERS_ACTOR ->
+      system.actorOf(Props(new Inverters(session)), WE_INVERTERS_ACTOR),
+
+      WE_IRRADIANCE_ACTOR ->
+      system.actorOf(Props(new Irradiance(queue,session)), WE_IRRADIANCE_ACTOR),
+
+      WE_MODULE_ACTOR ->
+      system.actorOf(Props(new Module(session)), WE_MODULE_ACTOR),
+
+      WE_MODULES_ACTOR ->
+      system.actorOf(Props(new Modules(session)), WE_MODULES_ACTOR),
+
+      WE_POSITIONS_ACTOR ->
+      system.actorOf(Props(new Positions(queue,session)), WE_POSITIONS_ACTOR),
+
+      WE_POWER_ACTOR ->
+      system.actorOf(Props(new Power(queue,session)), WE_POWER_ACTOR))
+
+    beatActors ++ weatherActors
 
   }
   /**
