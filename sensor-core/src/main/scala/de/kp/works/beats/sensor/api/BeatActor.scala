@@ -37,9 +37,9 @@ import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContextExecutor}
 import scala.util.Try
 
-abstract class ApiActor[C <: BeatConf](config:C) extends Actor {
+abstract class BeatActor[C <: BeatConf](config:C) extends Actor {
 
-  import ApiActor._
+  import BeatActor._
 
   protected val mapper = new ObjectMapper()
   mapper.registerModule(DefaultScalaModule)
@@ -172,7 +172,7 @@ abstract class ApiActor[C <: BeatConf](config:C) extends Actor {
 
 }
 
-object ApiActor {
+object BeatActor {
 
   case class Response(status: Try[_])
 

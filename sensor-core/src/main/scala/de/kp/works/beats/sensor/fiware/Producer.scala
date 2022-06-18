@@ -78,7 +78,8 @@ abstract class Producer[T <: BeatConf](options:Options[T])
      * to update request.
      */
     if (sensorExists(sensor))
-      patchSensor(sensor)
+      return patchSensor(sensor)
+
     /*
      * STEP #2: Create a non-existing sensor
      */
@@ -97,7 +98,7 @@ abstract class Producer[T <: BeatConf](options:Options[T])
      * to create request.
      */
     if (!sensorExists(sensor))
-      postSensor(sensor)
+      return postSensor(sensor)
     /*
      * STEP #2: Update attributes of an existing
      * sensor

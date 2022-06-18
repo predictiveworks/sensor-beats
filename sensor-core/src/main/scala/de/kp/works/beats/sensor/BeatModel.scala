@@ -19,7 +19,7 @@ package de.kp.works.beats.sensor
  *
  */
 
-import com.google.gson.JsonObject
+import com.google.gson.{JsonArray, JsonObject}
 
 object BeatActions extends Enumeration {
   type BeatAction = Value
@@ -108,18 +108,38 @@ case class BeatSensor(
   sensorAttrs:Seq[BeatAttr]) {
 
   def toJson:JsonObject = {
-
+    /*
+     * Device model specification
+     *
+     * https://github.com/smart-data-models/dataModel.Device/blob/master/Device/model.yaml
+     *
+     * - id
+     * - type
+     *
+     */
     val json = new JsonObject
     json.addProperty("id", sensorId)
-    json.addProperty("type", sensorType)
     /*
-     * Brand as a regular NGSI attribute
+     * Parameters `category` and `type` are adopted
+     * from the FIWARE device model
+     */
+    json.addProperty("type", "Device")
+
+    val category = new JsonArray
+    category.add("sensor")
+
+    json.add("category", category)
+    json.addProperty("dataProvider", "SensorBeat")
+
+    json.addProperty("provider", sensorBrand)
+    /*
+     * Sensor type as a regular NGSI attribute
      */
     val brand = new JsonObject
     brand.addProperty("type", "String")
-    brand.addProperty("value", sensorBrand)
+    brand.addProperty("value", sensorType)
 
-    json.add("brand", brand)
+    json.add("sensor", brand)
     /*
      * Information type as a regular NGSI attribute
      */

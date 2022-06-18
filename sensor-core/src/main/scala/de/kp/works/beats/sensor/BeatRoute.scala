@@ -28,7 +28,7 @@ import akka.http.scaladsl.server._
 import akka.pattern.ask
 import akka.stream.scaladsl.Source
 import akka.util.{ByteString, Timeout}
-import de.kp.works.beats.sensor.api.ApiActor.Response
+import de.kp.works.beats.sensor.api.BeatActor.Response
 
 import scala.concurrent.{Await, ExecutionContextExecutor, Future}
 import scala.concurrent.duration.{DurationInt, FiniteDuration}

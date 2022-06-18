@@ -35,7 +35,7 @@ import de.kp.works.beats.sensor.{BeatConf, BeatJobs, BeatMessages, BeatRocks, Be
  * performed on a scheduled basis, but can also be executed
  * on demand as well.
  */
-abstract class DeepActor[C <: BeatConf](config:C) extends ApiActor(config) {
+abstract class DeepActor[C <: BeatConf](config:C) extends BeatActor(config) {
   /**
    * The response of this request is a JsonArray;
    * in case of an invalid request, an empty response
@@ -76,7 +76,7 @@ abstract class DeepActor[C <: BeatConf](config:C) extends ApiActor(config) {
  * This actor is part of the `Sensor as a Table`
  * approach.
  */
-abstract class InsightActor[C <: BeatConf](config:C) extends ApiActor(config) {
+abstract class InsightActor[C <: BeatConf](config:C) extends BeatActor(config) {
   /**
    * The response of this request is a JsonArray;
    * in case of an invalid request, an empty response
@@ -129,7 +129,7 @@ abstract class InsightActor[C <: BeatConf](config:C) extends ApiActor(config) {
  * The [JobActor] supports the provisioning of
  * status information about deep learning jobs
  */
-abstract class JobActor[C <: BeatConf](config:C) extends ApiActor(config) {
+abstract class JobActor[C <: BeatConf](config:C) extends BeatActor(config) {
   /**
    * The response of this request is a JsonObject;
    * in case of an invalid request, an empty response
@@ -242,7 +242,7 @@ abstract class LearnActor extends Actor {
  * sensor events based on a SQL statement. This actor
  * is part of the `Sensor as a Table` approach.
  */
-abstract class MonitorActor[C <: BeatConf](config:C) extends ApiActor(config) {
+abstract class MonitorActor[C <: BeatConf](config:C) extends BeatActor(config) {
   /**
    * The response of this request is a JsonArray;
    * in case of an invalid request, an empty response
@@ -296,7 +296,7 @@ abstract class MonitorActor[C <: BeatConf](config:C) extends ApiActor(config) {
  * This actor is part of the `Sensor as a Table`
  * approach.
  */
-abstract class TrendActor[C <: BeatConf](config:C) extends ApiActor(config) {
+abstract class TrendActor[C <: BeatConf](config:C) extends BeatActor(config) {
   /**
    * The response of this request is a JsonArray;
    * in case of an invalid request, an empty response

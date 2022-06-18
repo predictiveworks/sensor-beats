@@ -39,7 +39,7 @@ class ForeMonitor[C <: BeatConf](config:C, numThreads:Int = 1)
       /*
        * Create the next timeseries forecasting
        * task for each specific column family of
-       * the Milesight sensor
+       * the supported sensor
        */
       val createdAt = System.currentTimeMillis
       config.getRocksTables
