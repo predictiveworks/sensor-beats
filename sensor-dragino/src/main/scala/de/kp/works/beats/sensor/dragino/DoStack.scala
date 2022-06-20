@@ -24,9 +24,7 @@ import de.kp.works.beats.sensor.dragino.enums.DoProducts.{LDDS04, LDDS20, LDDS45
 import de.kp.works.beats.sensor.thingsstack.Consumer
 import org.eclipse.paho.client.mqttv3.MqttMessage
 
-import scala.collection.JavaConversions.asScalaSet
-
-class DoStack(options: DoOptions) extends Consumer[DoConf](options.toStack) with DoLogging {
+class DoStack(options: DoOptions) extends Consumer[DoConf](options.toStack) with DoTransform with DoLogging {
 
   private val BRAND_NAME = "Dragino"
   /**
@@ -112,28 +110,13 @@ class DoStack(options: DoOptions) extends Consumer[DoConf](options.toStack) with
         case _ => /* Do nothing */
 
       }
-      /*
-       * Apply field mappings and replace those decoded field
-       * names by their aliases that are specified on the
-       * provided mappings
-       */
-      val mappings = options.getMappings
-      if (mappings.nonEmpty) {
-        val fields = sensorReadings.keySet()
-        fields.foreach(name => {
-          if (mappings.contains(name)) {
-            val alias = mappings(name)
-            val property = sensorReadings.remove(name)
 
-            sensorReadings.addProperty(alias, property.getAsDouble)
-          }
-        })
-      }
+      val newReadings = transform(sensorReadings, options.getMappings)
       /*
        * Send sensor readings (payload) to the configured data
        * sinks; note, attributes are restricted to [Number] fields.
        */
-      send2Sinks(deviceId, BRAND_NAME, product.toString, sensorReadings, sinks)
+      send2Sinks(deviceId, BRAND_NAME, product.toString, newReadings, sinks)
 
     } catch {
       case t: Throwable =>
