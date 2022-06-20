@@ -22,14 +22,12 @@ package de.kp.works.beats.sensor.elsys
 import ch.qos.logback.classic.Logger
 import de.kp.works.beats.sensor.loriot.{Consumer, LoriotUplink}
 
-import scala.collection.JavaConversions.asScalaSet
-
 /**
  * The [EsLoriot] input channel focuses on the
  * extraction of the unique device identifier
  * and the provided sensor readings
  */
-class EsLoriot(options: EsOptions) extends Consumer[EsConf](options.toLoriot) with EsLogging {
+class EsLoriot(options: EsOptions) extends Consumer[EsConf](options.toLoriot) with EsTransform with EsLogging {
 
   private val BRAND_NAME = "Elsys"
   /**
@@ -63,56 +61,14 @@ class EsLoriot(options: EsOptions) extends Consumer[EsConf](options.toLoriot) wi
        * provided with this project
        */
       val product = options.getProduct
-      var sensorReadings = EsDecoder.decodeHex(product, message.data.get)
-      /*
-       * The current implementation of the decoded payload
-       * has the following format:
-       *
-       * {
-       *    data: ...
-       * }
-       *
-       * SensorBeat is based on a common {key, value} format
-       */
-      if (sensorReadings.has("data")) {
-        /*
-         * Flatten the sensor readings
-         */
-        val data = sensorReadings.remove("data").getAsJsonObject
-        sensorReadings = data
-      }
-      /*
-       * The current implementation of SensorBeat supports
-       * primitive field value, i.e. `externalTemperature2`
-       * and other JSONArray fields are excluded
-       */
-      val fields = sensorReadings.keySet()
-      fields.foreach(name => {
-        val value = sensorReadings.get(name)
-        if (!value.isJsonPrimitive)
-          sensorReadings.remove(name)
-      })
-      /*
-       * Apply field mappings and replace those decoded field
-       * names by their aliases that are specified on the
-       * provided mappings
-       */
-      val mappings = options.getMappings
-      if (mappings.nonEmpty) {
-        fields.foreach(name => {
-          if (mappings.contains(name)) {
-            val alias = mappings(name)
-            val property = sensorReadings.remove(name)
 
-            sensorReadings.addProperty(alias, property.getAsDouble)
-          }
-        })
-      }
+      var sensorReadings = EsDecoder.decodeHex(product, message.data.get)
+      val newReadings = transform(sensorReadings, options.getMappings)
       /*
        * Note, the EUI value is used as unique device identifier
        */
       val deviceId = message.EUI
-      send2Sinks(deviceId, BRAND_NAME, product.toString, sensorReadings, sinks)
+      send2Sinks(deviceId, BRAND_NAME, product.toString, newReadings, sinks)
 
     } catch {
       case t: Throwable =>

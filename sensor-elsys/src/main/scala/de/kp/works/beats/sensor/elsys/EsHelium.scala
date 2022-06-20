@@ -23,9 +23,8 @@ import ch.qos.logback.classic.Logger
 import de.kp.works.beats.sensor.helium.{Consumer, HeliumUplink}
 
 import java.util.Base64
-import scala.collection.JavaConversions.asScalaSet
 
-class EsHelium(options: EsOptions) extends Consumer[EsConf](options.toHelium) with EsLogging {
+class EsHelium(options: EsOptions) extends Consumer[EsConf](options.toHelium) with EsTransform with EsLogging {
 
   private val BRAND_NAME = "Elsys"
   /**
@@ -57,51 +56,9 @@ class EsHelium(options: EsOptions) extends Consumer[EsConf](options.toHelium) wi
        * provided with this project
        */
       val product = options.getProduct
-      var sensorReadings = EsDecoder.decodeHex(product, new String(decodedPayload))
-      /*
-       * The current implementation of the decoded payload
-       * has the following format:
-       *
-       * {
-       *    data: ...
-       * }
-       *
-       * SensorBeat is based on a common {key, value} format
-       */
-      if (sensorReadings.has("data")) {
-        /*
-         * Flatten the sensor readings
-         */
-        val data = sensorReadings.remove("data").getAsJsonObject
-        sensorReadings = data
-      }
-      /*
-       * The current implementation of SensorBeat supports
-       * primitive field value, i.e. `externalTemperature2`
-       * and other JSONArray fields are excluded
-       */
-      val fields = sensorReadings.keySet()
-      fields.foreach(name => {
-        val value = sensorReadings.get(name)
-        if (!value.isJsonPrimitive)
-          sensorReadings.remove(name)
-      })
-      /*
-       * Apply field mappings and replace those decoded field
-       * names by their aliases that are specified on the
-       * provided mappings
-       */
-      val mappings = options.getMappings
-      if (mappings.nonEmpty) {
-        fields.foreach(name => {
-          if (mappings.contains(name)) {
-            val alias = mappings(name)
-            val property = sensorReadings.remove(name)
 
-            sensorReadings.addProperty(alias, property.getAsDouble)
-          }
-        })
-      }
+      val sensorReadings = EsDecoder.decodeHex(product, new String(decodedPayload))
+      val newReadings = transform(sensorReadings, options.getMappings)
       /*
        * The `dev_eui` is used as a unique device identifier:
        *
@@ -111,11 +68,11 @@ class EsHelium(options: EsOptions) extends Consumer[EsConf](options.toHelium) wi
        * entire organization
        */
       val deviceId = message.dev_eui
-      send2Sinks(deviceId, BRAND_NAME, product.toString, sensorReadings, sinks)
+      send2Sinks(deviceId, BRAND_NAME, product.toString, newReadings, sinks)
 
     } catch {
       case t: Throwable =>
-        val message = s"Publishing Helium Elsys event failed: ${t.getLocalizedMessage}"
+        val message = s"Publishing Helium $BRAND_NAME event failed: ${t.getLocalizedMessage}"
         getLogger.error(message)
     }
 

@@ -23,9 +23,7 @@ import ch.qos.logback.classic.Logger
 import de.kp.works.beats.sensor.thingsstack.Consumer
 import org.eclipse.paho.client.mqttv3.MqttMessage
 
-import scala.collection.JavaConversions.asScalaSet
-
-class EsStack(options: EsOptions) extends Consumer[EsConf](options.toStack) with EsLogging {
+class EsStack(options: EsOptions) extends Consumer[EsConf](options.toStack) with EsTransform with EsLogging {
 
   private val BRAND_NAME = "Elsys"
   /**
@@ -41,39 +39,13 @@ class EsStack(options: EsOptions) extends Consumer[EsConf](options.toStack) with
     try {
 
       val (deviceId, sensorReadings) = unpack(mqttMessage)
-     /*
-       * The current implementation of SensorBeat supports
-       * primitive field value, i.e. `externalTemperature2`
-       * and other JSONArray fields are excluded
-       */
-      val fields = sensorReadings.keySet()
-      fields.foreach(name => {
-        val value = sensorReadings.get(name)
-        if (!value.isJsonPrimitive)
-          sensorReadings.remove(name)
-      })
-      /*
-       * Apply field mappings and replace those decoded field
-       * names by their aliases that are specified on the
-       * provided mappings
-       */
-      val mappings = options.getMappings
-      if (mappings.nonEmpty) {
-        fields.foreach(name => {
-          if (mappings.contains(name)) {
-            val alias = mappings(name)
-            val property = sensorReadings.remove(name)
-
-            sensorReadings.addProperty(alias, property.getAsDouble)
-          }
-        })
-      }
+      val newReadings = transform(sensorReadings, options.getMappings)
       /*
        * Send sensor readings (payload) to the configured data
        * sinks; note, attributes are restricted to [Number] fields.
        */
       val product = options.getProduct
-      send2Sinks(deviceId, BRAND_NAME, product.toString, sensorReadings, sinks)
+      send2Sinks(deviceId, BRAND_NAME, product.toString, newReadings, sinks)
 
     } catch {
       case t: Throwable =>

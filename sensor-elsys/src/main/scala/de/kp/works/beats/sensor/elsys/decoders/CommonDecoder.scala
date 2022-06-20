@@ -25,6 +25,8 @@ import com.google.gson.{JsonArray, JsonObject}
  * Common decoder to decode all Elsys sensor payloads
  *
  * Source: https://github.com/TheThingsNetwork/lorawan-devices/blob/master/vendor/elsys/elsys.js
+ *
+ * https://elsys.se/public/documents/Elsys-LoRa-payload.pdf
  */
 abstract class CommonDecoder extends BaseDecoder {
 
@@ -64,7 +66,7 @@ abstract class CommonDecoder extends BaseDecoder {
 
     var i = 0
     while (i < bytes.length) {
-
+      //0x01, 0x00, 0xE2, || 0x02, 0x29, || 0x03, 0x01, 0x27, 0x05, || 0x14, 0x06, 0x01, 0x01, 0x11, || 0x0E, 0x23, 0x11
       val byte = bytes(i)
       byte match {
         // Temperature
@@ -74,6 +76,7 @@ abstract class CommonDecoder extends BaseDecoder {
 
           decoded.addProperty("temperature", temperature)
           i += 3
+
         // Humidity
         case TYPE_RH =>
           val humidity = bytes(i+1)
@@ -99,7 +102,7 @@ abstract class CommonDecoder extends BaseDecoder {
           decoded.addProperty("light", light)
           i+=3
 
-        // Motion sensor (PIR)
+        // Motion sensor (PIR): 0-255	(Number	of motion count)
         case TYPE_MOTION =>
           val motion = bytes(i+1)
           decoded.addProperty("motion", motion)
@@ -183,7 +186,24 @@ abstract class CommonDecoder extends BaseDecoder {
 
           i+=5
 
-        // Body occupancy
+        /*
+         * Body occupancy - Supported values: 0 - 255
+         *
+         * 0	-->	no body,
+         * 1  --> body,
+         * 2  -->	Body
+         *
+         * ERS Desk:
+         * 0	-->	no	body
+         * 1 --> Pending (entering, leaving),
+         * 2 -->	Occupied
+         *
+         * ERS Eye:
+         * 0	-->	no	body,
+         * 1  --> PIR	triggered,
+         * 2  -->	Heat triggered
+         *
+         */
         case TYPE_OCCUPANCY =>
           val occupancy = bytes(i+1)
           decoded.addProperty("occupancy", occupancy)
@@ -288,7 +308,7 @@ abstract class CommonDecoder extends BaseDecoder {
         case TYPE_EXT_ANALOG_UV =>
           val analogUv = (bytes(i+1) << 24) | (bytes(i+2) << 16) | (bytes(i+3) << 8) | bytes(i+4)
           decoded.addProperty("analogUv", analogUv)
-          i += 3
+          i += 5
 
         // Total volatile organic compounds ppb
         case TYPE_TVOC =>
