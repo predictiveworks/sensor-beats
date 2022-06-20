@@ -23,9 +23,8 @@ import ch.qos.logback.classic.Logger
 import de.kp.works.beats.sensor.helium.{Consumer, HeliumUplink}
 
 import java.util.Base64
-import scala.collection.JavaConversions.asScalaSet
 
-class SeHelium(options: SeOptions) extends Consumer[SeConf](options.toHelium) with SeLogging {
+class SeHelium(options: SeOptions) extends Consumer[SeConf](options.toHelium) with SeTransform with SeLogging {
 
   private val BRAND_NAME = "Sensedge"
   /**
@@ -59,35 +58,9 @@ class SeHelium(options: SeOptions) extends Consumer[SeConf](options.toHelium) wi
        * provided with this project
        */
       val product = options.getProduct
-      var sensorReadings = SeDecoder.decodeHex(product, new String(decodedPayload), fport)
-      /*
-       * Check whether the sensor readings are wrapped
-       * in a {data: ...} object
-       */
-      if (sensorReadings.has("data")) {
-        /*
-         * Flatten the sensor readings
-         */
-        val data = sensorReadings.remove("data").getAsJsonObject
-        sensorReadings = data
-      }
-      /*
-       * Apply field mappings and replace those decoded field
-       * names by their aliases that are specified on the
-       * provided mappings
-       */
-      val mappings = options.getMappings
-      if (mappings.nonEmpty) {
-        val fields = sensorReadings.keySet()
-        fields.foreach(name => {
-          if (mappings.contains(name)) {
-            val alias = mappings(name)
-            val property = sensorReadings.remove(name)
 
-            sensorReadings.addProperty(alias, property.getAsDouble)
-          }
-        })
-      }
+      val sensorReadings = SeDecoder.decodeHex(product, new String(decodedPayload), fport)
+      val newReadings = transform(sensorReadings, options.getMappings)
       /*
        * The `dev_eui` is used as a unique device identifier:
        *
@@ -97,7 +70,7 @@ class SeHelium(options: SeOptions) extends Consumer[SeConf](options.toHelium) wi
        * entire organization
        */
       val deviceId = message.dev_eui
-      send2Sinks(deviceId, BRAND_NAME, product.toString, sensorReadings, sinks)
+      send2Sinks(deviceId, BRAND_NAME, product.toString, newReadings, sinks)
 
     } catch {
       case t: Throwable =>
