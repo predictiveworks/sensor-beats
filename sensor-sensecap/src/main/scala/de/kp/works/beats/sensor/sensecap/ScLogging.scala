@@ -27,7 +27,7 @@ trait ScLogging {
    * Initialize the overall `SensorBeat` configuration
    * that is specific for SenseCap Sensors
    */
-  private val config = ScConf.getInstance
+  val config: ScConf = ScConf.getInstance
   if (!config.isInit) config.init()
 
   private val loggerName = "ScLogger"

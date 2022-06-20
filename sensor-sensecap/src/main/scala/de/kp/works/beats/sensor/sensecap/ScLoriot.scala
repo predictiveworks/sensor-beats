@@ -20,11 +20,14 @@ package de.kp.works.beats.sensor.sensecap
  */
 
 import ch.qos.logback.classic.Logger
-import de.kp.works.beats.sensor.helium.{Consumer, HeliumUplink}
+import de.kp.works.beats.sensor.loriot.{Consumer, LoriotUplink}
 
-import java.util.Base64
-
-class ScHelium(options: ScOptions) extends Consumer[ScConf](options.toHelium) with ScTransform with ScLogging {
+/**
+ * The [ScLoriot] input channel focuses on the
+ * extraction of the unique device identifier
+ * and the provided sensor readings
+ */
+class ScLoriot(options: ScOptions) extends Consumer[ScConf](options.toLoriot) with ScTransform with ScLogging {
 
   private val BRAND_NAME = "Sensecap"
   /**
@@ -35,18 +38,20 @@ class ScHelium(options: ScOptions) extends Consumer[ScConf](options.toHelium) wi
 
   override protected def getLogger: Logger = logger
 
-  override protected def publish(message: HeliumUplink): Unit = {
+  override protected def publish(message: LoriotUplink): Unit = {
 
     try {
       /*
-       * Data transmitted by the device is a base64 encoded String.
+       * Make sure the extracted message is a LORIOT
+       uplink message
        */
-      val decodedPayload = Base64.getDecoder.decode(message.payload)
+      if (message.cmd != "rx") return
       /*
-       * The uplink message provides the size of the payload and this
-       * parameter is used to verify the payload
+       * The current implementation of SensorBeat does not
+       * supported encrypted data payloads (which refers to
+       * a missing APP KEY
        */
-      if (decodedPayload.length != message.payload_size.intValue()) return
+      if (message.encdata.nonEmpty || message.data.isEmpty) return
       /*
        * Send sensor readings (payload) to the configured
        * data sinks; note, attributes are restricted to [Number]
@@ -56,7 +61,7 @@ class ScHelium(options: ScOptions) extends Consumer[ScConf](options.toHelium) wi
        * provided with this project
        */
       val product = options.getProduct
-      val sensorReadings = ScDecoder.decodeHex(product, new String(decodedPayload))
+      var sensorReadings = ScDecoder.decodeHex(product, message.data.get)
       /*
        * SenseCap leverage a data format that describes
        * sensor readings in form of telemetry messages
@@ -66,21 +71,16 @@ class ScHelium(options: ScOptions) extends Consumer[ScConf](options.toHelium) wi
 
         val newReadings = transformed.getAsJsonObject
         /*
-         * The `dev_eui` is used as a unique device identifier:
-         *
-         * LoRaWAN 64-bit Device Identifier (DevEUI) in MSB hex;
-         * conventionally this is used to identify a unique device
-         * within a specific application (AppEUI) or even within an
-         * entire organization
+         * Note, the EUI value is used as unique device identifier
          */
-        val deviceId = message.dev_eui
+        val deviceId = message.EUI
         send2Sinks(deviceId, BRAND_NAME, product.toString, newReadings, sinks)
 
       }
 
     } catch {
       case t: Throwable =>
-        val message = s"Publishing Helium $BRAND_NAME event failed: ${t.getLocalizedMessage}"
+        val message = s"Publishing LORIOT $BRAND_NAME event failed: ${t.getLocalizedMessage}"
         getLogger.error(message)
     }
 
