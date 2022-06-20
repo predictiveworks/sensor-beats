@@ -18,19 +18,23 @@ package de.kp.works.beats.sensor.sensecap.decoders
  * @author Stefan Krusche, Dr. Krusche & Partner PartG
  *
  */
+import de.kp.works.beats.sensor.sensecap.enums.ScFields.{SoilTemperature, SoilVolumetricWaterContent}
 
-import de.kp.works.beats.sensor.sensecap.enums.ScFields
-
-object CO2 extends CommonDecoder {
+object SOIL_MT extends CommonDecoder {
   /*
-   * SenseCAP Wireless CO2 Sensor measures the level of carbon dioxide (CO2)
-   * gas at the range of 0 ~ 40000 ppm in the atmosphere, applicable for
-   * indoor environments.
+   * SenseCAP Wireless Soil Moisture & Temperature Sensor measures
+   * soil volumetric water content (VWC) and soil temperature at the
+   * range of 0 ~ 100% (m³/m³) and -30 ~ 70° Celsius respectively.
    *
-   * It is perfect for monitoring CO2 ppm in greenhouses, industrial campuses,
-   * factories, schools, office buildings, hotels, hospitals, transportation
-   * stations, and anywhere that data of CO2 emission is needed.
+   * With the high-quality soil moisture and temperature probe,
+   * this sensor features high precision and sensitivity regardless
+   * of soil variability, making it widely applicable in industrial
+   * IoT (IIoT) scenarios such as water-saving irrigation, outdoor
+   * fields, greenhouses, and more.
    */
   override def fields: Seq[String] =
-    Seq(ScFields.CO2)
+    Seq(
+      SoilVolumetricWaterContent,
+      SoilTemperature
+    )
 }

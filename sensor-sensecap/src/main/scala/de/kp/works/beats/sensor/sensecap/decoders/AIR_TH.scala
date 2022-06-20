@@ -22,7 +22,14 @@ package de.kp.works.beats.sensor.sensecap.decoders
 import de.kp.works.beats.sensor.sensecap.enums.ScFields.{AirHumidity, AirTemperature}
 
 object AIR_TH extends CommonDecoder {
-
+  /*
+   * SenseCAP Wireless Air Temperature & Humidity Sensor measures temperature and humidity
+   * in the atmosphere at the range of -40° to 85° Celsius and 0 to 100 %RH (non-condensing)
+   * respectively.
+   *
+   * With a high-precision measurement chip, this sensor features stability and reliability,
+   * making it widely applicable in industrial environmental sensing scenarios.
+   */
   override def fields: Seq[String] = {
     Seq(
       AirTemperature,

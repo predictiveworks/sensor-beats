@@ -19,7 +19,7 @@ package de.kp.works.beats.sensor.sensecap.enums
  *
  */
 
-object Measurements {
+object ScMeasurements {
   /**
    * https://sensecap-docs.seeed.cc/sensor_types_list.html
    */

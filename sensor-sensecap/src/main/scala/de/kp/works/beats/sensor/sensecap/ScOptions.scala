@@ -19,13 +19,13 @@ package de.kp.works.beats.sensor.sensecap
  *
  */
 
-import de.kp.works.beats.sensor.BeatOutputs
-import de.kp.works.beats.sensor.BeatOutputs.BeatOutput
 import de.kp.works.beats.sensor.fiware.{Options => FiwareOptions}
-import de.kp.works.beats.sensor.sensecap.enums.ScProducts
+import de.kp.works.beats.sensor.helium.{Options => HeliumOptions}
+import de.kp.works.beats.sensor.loriot.{Options => LoriotOptions}
 import de.kp.works.beats.sensor.sensecap.enums.ScProducts.ScProduct
 import de.kp.works.beats.sensor.thingsboard.{Options => BoardOptions}
-import de.kp.works.beats.sensor.thingsstack.{Options => ThingsOptions}
+import de.kp.works.beats.sensor.thingsstack.{Options => StackOptions}
+import de.kp.works.beats.sensor.{BeatInputs, BeatOutputs}
 
 /**
  * Wrapper for SenseCap sensors specific
@@ -33,24 +33,15 @@ import de.kp.works.beats.sensor.thingsstack.{Options => ThingsOptions}
  */
 class ScOptions(config:ScConf) {
   /**
-   * Channels in the context of a `SensorBeat` are
-   * actors that receive a `BeatSensor` message and
-   * perform specific data operations like sending
-   * to RocksDB, a FIWARE Context Broker and more
+   * Public method to retrieve the field name
+   * mappings for generic decoded fields
    */
-  def getChannels:Seq[BeatOutput] = {
-    try {
-      config.getSinks.map(BeatOutputs.withName)
-
-    } catch {
-      case _:Throwable => Seq.empty[BeatOutput]
-    }
-
-  }
+  def getMappings:Map[String, String] =
+    config.getMappings
   /**
    * Public method to retrieve the supported
-   * SenseCap product name; in case of an
-   * unsupported sensor, an exception is thrown
+   * SenseCap product name; in case of an unsupported
+   * sensor, an exception is thrown
    */
   def getProduct:ScProduct =
     config.getProduct
@@ -63,22 +54,58 @@ class ScOptions(config:ScConf) {
   /**
    * Public wrapper method to retrieve the RocksDB
    * column families that are specified for the
-   * Milesight sensor.
+   * Elsys sensor.
    */
   def getRocksTables:Seq[String] =
     config.getRocksTables
+  /**
+   * Sinks in the context of a `SensorBeat` are
+   * actors that receive a `BeatSensor` message
+   * and perform specific data operations like
+   * sending to RocksDB, a FIWARE Context Broker
+   * and more
+   */
+  def getSinks:Seq[BeatOutputs.Value] = {
+    try {
+      config.getSinks.map(BeatOutputs.withName)
 
+    } catch {
+      case _:Throwable => Seq.empty[BeatOutputs.Value]
+    }
+  }
+  def getSource:BeatInputs.Value = {
+    try {
+      BeatInputs.withName(config.getSource)
+
+    } catch {
+      case _:Throwable => null
+    }
+  }
   def toBoard:BoardOptions[ScConf] =
     new BoardOptions[ScConf](config)
 
   def toFiware:FiwareOptions[ScConf] =
     new FiwareOptions[ScConf](config)
   /**
+   * The Helium configuration to access the Helium
+   * network, which is one of the input channels of
+   * a Sensor Beat
+   */
+  def toHelium:HeliumOptions[ScConf] =
+    new HeliumOptions[ScConf](config)
+  /**
+   * The Loriot configuration to access the Loriot
+   * network, which is one of the input channels of
+   * a Sensor Beat
+   */
+  def toLoriot:LoriotOptions[ScConf] =
+    new LoriotOptions[ScConf](config)
+  /**
    * The ThingsStack configuration to access The Things
    * Network, which is one of the input channels of a
    * Sensor Beat
    */
-  def toThings:ThingsOptions[ScConf] =
-    new ThingsOptions[ScConf](config)
+  def toStack:StackOptions[ScConf] =
+    new StackOptions[ScConf](config)
 
 }
