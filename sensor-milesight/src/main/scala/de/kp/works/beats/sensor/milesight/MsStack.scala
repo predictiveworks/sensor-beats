@@ -26,7 +26,7 @@ import org.eclipse.paho.client.mqttv3.MqttMessage
 
 import scala.collection.JavaConversions.asScalaSet
 
-class MsStack(options: MsOptions) extends Consumer[MsConf](options.toStack) with MsLogging {
+class MsStack(options: MsOptions) extends Consumer[MsConf](options.toStack) with MsTransform with MsLogging {
 
   private val BRAND_NAME = "Milesight"
   /**
@@ -139,25 +139,9 @@ class MsStack(options: MsOptions) extends Consumer[MsConf](options.toStack) with
         case _ => /* Do nothing */
 
       }
-      /*
-       * Apply field mappings and replace those decoded field
-       * names by their aliases that are specified on the
-       * provided mappings
-       */
-      val mappings = options.getMappings
-      if (mappings.nonEmpty) {
-        val fields = sensorReadings.keySet()
-        fields.foreach(name => {
-          if (mappings.contains(name)) {
-            val alias = mappings(name)
-            val property = sensorReadings.remove(name)
 
-            sensorReadings.addProperty(alias, property.getAsDouble)
-          }
-        })
-      }
-
-      send2Sinks(deviceId, BRAND_NAME, product.toString, sensorReadings, sinks)
+      val newReadings = transform(sensorReadings, options.getMappings)
+      send2Sinks(deviceId, BRAND_NAME, product.toString, newReadings, sinks)
 
     } catch {
       case t: Throwable =>
