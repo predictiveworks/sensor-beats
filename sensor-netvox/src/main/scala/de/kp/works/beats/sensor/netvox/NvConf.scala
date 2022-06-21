@@ -23,6 +23,16 @@ import de.kp.works.beats.sensor.BeatConf
 import de.kp.works.beats.sensor.netvox.enums.NvProducts
 import de.kp.works.beats.sensor.netvox.enums.NvProducts.NvProduct
 
+object NvConf {
+
+  private var instance:Option[NvConf] = None
+
+  def getInstance:NvConf = {
+    if (instance.isEmpty) instance = Some(new NvConf())
+    instance.get
+  }
+
+}
 
 class NvConf extends BeatConf {
   /**
