@@ -46,8 +46,11 @@ class Options[T <: BeatConf](config:T) {
    * of a ThingsBoard HTTP & MQTT endpoint
    */
   private val thingsBoardConfig = config.getThingsBoardCfg
-
-  private def getDeviceToken:String = ???
+  /**
+   * The ThingsBoard device token for the supported sensor
+   */
+  private def getDeviceToken:String =
+    thingsBoardConfig.getString("deviceToken")
   /**
    * TCP address of the ThingsBoard MQTT Broker
    */

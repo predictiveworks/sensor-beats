@@ -36,8 +36,7 @@ abstract class Consumer[T <: BeatConf](options:Options[T]) extends SocketConnect
   protected def getLogger:Logger
   /**
    * Public method to subscribe to the Web Socket
-   * server specified (like LORIOT) and publish
-   * incoming events in the RocksDB
+   * server specified (like LORIOT).
    */
   def subscribeAndPublish():Unit = {
     /*

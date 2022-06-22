@@ -88,6 +88,15 @@ abstract class BeatConf {
 
   }
   /**
+   * Eclipse Ditto is one of the output channels of
+   * a `SensorBeat`, and also a higher-level (Thing)
+   * input channel.
+   *
+   * This configuration describes respective access
+   * parameters
+   */
+  def getDittoCfg: Config = getCfg("ditto")
+  /**
    * FIWARE is one of the output channels of a
    * `SensorBeat` and this configuration describes
    * respective access parameters
