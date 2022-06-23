@@ -34,7 +34,6 @@ import org.eclipse.ditto.things.model.ThingId
 class Options[T <: BeatConf](config:T) {
 
   private val ENDPOINT             = "endpoint"
-  private val LIVE_MESSAGES        = "live_messages"
   private val NAMESPACE            = "namespace"
   private val OAUTH_CLIENT_ID      = "oauth_client_id"
   private val OAUTH_CLIENT_SECRET  = "oauth_client_secret"
@@ -50,7 +49,6 @@ class Options[T <: BeatConf](config:T) {
   private val USER_PASS            = "user_pass"
   /*
    * - endpoint
-   * - live_messages
    * - namespace
    * - oauth_client_id
    * - oauth_client_secret
@@ -69,9 +67,6 @@ class Options[T <: BeatConf](config:T) {
 
   private def getEndpoint:String =
     dittoConfig.getString(ENDPOINT)
-
-  def getLiveMessages:Boolean =
-    dittoConfig.getBoolean(LIVE_MESSAGES)
 
   def getNS:String =
     dittoConfig.getString(NAMESPACE)

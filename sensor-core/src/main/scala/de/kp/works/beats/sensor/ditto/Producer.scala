@@ -23,10 +23,7 @@ import de.kp.works.beats.sensor._
 import org.eclipse.ditto.client.messaging.MessagingProvider
 import org.eclipse.ditto.client.twin.TwinThingHandle
 import org.eclipse.ditto.client.{DittoClient, DittoClients}
-import org.eclipse.ditto.json.JsonFactory
 import org.eclipse.ditto.things.model._
-
-import scala.collection.JavaConverters.asJavaIterableConverter
 
 abstract class Producer[T <: BeatConf](options:Options[T]) extends BeatSink {
   /**
@@ -56,7 +53,7 @@ abstract class Producer[T <: BeatConf](options:Options[T]) extends BeatSink {
 
   }
 
-  private def createSensor(sensor:BeatSensor):Boolean = {
+  private def createSensor(sensor: BeatSensor): Boolean = {
 
     if (dittoClient.isEmpty) return false
 
@@ -66,32 +63,9 @@ abstract class Producer[T <: BeatConf](options:Options[T]) extends BeatSink {
 
       /***** CREATE (STATIC) THING ATTRIBUTES *****/
 
-      /*
-       * Build `Thing` identifier from configured
-       * namespace and provided sensor identifier
-       */
-      val thingId = ThingId.of(s"${options.getNS}:${sensor.sensorId}")
-      /*
-       * Leverage the [ThingsModelFactory] to build
-       * a new Ditto `thing`
-       */
-      val thingsBuilder = ThingsModelFactory.newThingBuilder()
-      thingsBuilder.setId(thingId)
-      /*
-       * The parameters sensorBrand, sensorInfo and
-       * sensorType are described as attributes
-       */
-      val sensorBrand = JsonFactory.newPointer("brand")
-      thingsBuilder.setAttribute(sensorBrand, JsonFactory.newValue(sensor.sensorBrand))
-
-      val sensorType = JsonFactory.newPointer("type")
-      thingsBuilder.setAttribute(sensorType, JsonFactory.newValue(sensor.sensorType))
-
-      val sensorInfo = JsonFactory.newPointer("info")
-      thingsBuilder.setAttribute(sensorInfo, JsonFactory.newValue(sensor.sensorInfo.toString))
-
+      val thing = DittoTransform.buildAttributes(sensor, options.getNS)
       twin
-        .create(thingsBuilder.build())
+        .create(thing)
         .toCompletableFuture
         .get
 
@@ -100,7 +74,7 @@ abstract class Producer[T <: BeatConf](options:Options[T]) extends BeatSink {
       updateSensor(sensor)
 
     } catch {
-      case t:Throwable =>
+      case t: Throwable =>
 
         val message = s"Creating Ditto thing failed: ${t.getLocalizedMessage}"
         error(message)
@@ -139,33 +113,8 @@ abstract class Producer[T <: BeatConf](options:Options[T]) extends BeatSink {
 
   private def updateFeatures(handle:TwinThingHandle, sensor:BeatSensor):Unit = {
 
-    val features = buildFeatures(sensor.sensorTime, sensor.sensorAttrs)
+    val features = DittoTransform.buildFeatures(sensor.sensorTime, sensor.sensorAttrs)
     handle.setFeatures(features).toCompletableFuture.get
-
-  }
-
-  private def buildFeatures(sensorTime:Long, sensorAttrs:Seq[BeatAttr]):Features = {
-
-    val features = sensorAttrs.map(sensorAttr => {
-      buildFeature(sensorTime,sensorAttr)
-    }).asJava
-
-    ThingsModelFactory.newFeaturesBuilder(features).build
-
-  }
-
-  private def buildFeature(sensorTime:Long, beatAttr:BeatAttr):Feature = {
-
-    val properties = ThingsModelFactory.newFeaturePropertiesBuilder
-      .set("createdAt", sensorTime)
-      .set("type",      beatAttr.attrType)
-      .set("value",     beatAttr.attrValue.doubleValue())
-      .build
-
-    ThingsModelFactory.newFeatureBuilder()
-      .properties(properties)
-      .withId(beatAttr.attrName)
-      .build
 
   }
 

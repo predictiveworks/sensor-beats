@@ -20,12 +20,10 @@ package de.kp.works.beats.sensor.ditto
  */
 
 import ch.qos.logback.classic.Logger
-import de.kp.works.beats.sensor.{BeatConf, BeatSource}
-import org.eclipse.ditto.base.model.common.HttpStatus
+import de.kp.works.beats.sensor.{BeatConf, BeatSensor, BeatSource}
 import org.eclipse.ditto.client.changes.ThingChange
-import org.eclipse.ditto.client.live.messages.RepliableMessage
-import org.eclipse.ditto.client.{DittoClient, DittoClients}
 import org.eclipse.ditto.client.messaging.MessagingProvider
+import org.eclipse.ditto.client.{DittoClient, DittoClients}
 
 abstract class Consumer[T <: BeatConf](options:Options[T]) extends BeatSource {
   /**
@@ -69,26 +67,17 @@ abstract class Consumer[T <: BeatConf](options:Options[T]) extends BeatSource {
 
     if (dittoClient.isEmpty) return
     /*
-     * This Ditto web socket client subscribes to two protocol commands:
+     * This Ditto web socket client subscribes to twin events:
      *
      * - PROTOCOL_CMD_START_SEND_EVENTS   :: "START-SEND-EVENTS"
-     * - PROTOCOL_CMD_START_SEND_MESSAGES :: "START-SEND-MESSAGES"
      *
      * Subscription to events is based on Ditto's twin implementation
      * and refers to the TwinImpl.CONSUME_TWIN_EVENTS_HANDLER which
      * is initiated in the twin's doStartConsumption method
      *
-     * Subscription to events is based on Ditto's live implementation
-     * and refers to the LiveImpl.CONSUME_LIVE_MESSAGES_HANDLER which
-     * is initiated in the live's doStartConsumption method
-     *
      */
-
     registerForTwinEvents()
-    registerForLiveMessages()
-
-    dittoClient.get.twin.startConsumption.toCompletableFuture.join // EVENTS
-    dittoClient.get.live.startConsumption.toCompletableFuture.join // MESSAGES
+    dittoClient.get.twin.startConsumption.toCompletableFuture.get
 
   }
 
@@ -96,21 +85,11 @@ abstract class Consumer[T <: BeatConf](options:Options[T]) extends BeatSource {
 
     if (dittoClient.isEmpty) return
 
-    /** CHANGE EVENTS * */
-
     val twin = dittoClient.get.twin
     twin.suspendConsumption
 
     if (options.getThingChanges)
       twin.deregister("DITTO_THING_CHANGES")
-
-    /** LIVE MESSAGES * */
-
-    val live = dittoClient.get.live
-    live.suspendConsumption
-
-    if (options.getLiveMessages)
-      live.deregister("DITTO_LIVE_MESSAGES")
 
     dittoClient.get.destroy()
 
@@ -132,9 +111,8 @@ abstract class Consumer[T <: BeatConf](options:Options[T]) extends BeatSource {
     val consumer = new java.util.function.Consumer[ThingChange] {
       override def accept(change:ThingChange):Unit = {
 
-        val gson = DittoGson.thing2Gson(change)
-        // TODO
-        //if (gson != null) store(gson)
+        val sensor = DittoTransform.thing2Sensor(change, options.getNS)
+        if (sensor.nonEmpty) publish(sensor.get)
 
       }
     }
@@ -154,44 +132,6 @@ abstract class Consumer[T <: BeatConf](options:Options[T]) extends BeatSource {
 
   }
 
-  private def registerForLiveMessages() {
-
-    if (!options.getLiveMessages) return
-
-    val live = dittoClient.get.live
-    /*
-     * A single consumer is used for all
-     * live messages
-     */
-    val consumer = new java.util.function.Consumer[RepliableMessage[String, Any]] {
-      override def accept(message:RepliableMessage[String, Any]) {
-
-       val gson = DittoGson.message2Gson(message)
-       if (gson != null) {
-        // TODO
-
-          // store(gson)
-          message.reply().httpStatus(HttpStatus.OK).send()
-
-        } else {
-          message.reply().httpStatus(HttpStatus.NO_CONTENT).send()
-
-        }
-      }
-    }
-
-    val handler = "DITTO_LIVE_MESSAGES"
-
-    val thingIds = options.getThingIds
-    if (thingIds.isEmpty) {
-      live.registerForMessage(handler, "*", classOf[String], consumer)
-
-    } else {
-      thingIds.foreach(thingId => {
-        live.forId(thingId).registerForMessage(handler, "*", classOf[String], consumer)
-      })
-    }
-
-  }
+  protected def publish(sensor:BeatSensor):Unit
 
 }
