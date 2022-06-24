@@ -1,4 +1,4 @@
-package de.kp.works.beats.sensor.sensedge.enums
+package de.kp.works.beats.sensor.sensedge.mappings
 
 /**
  * Copyright (c) 2019 - 2022 Dr. Krusche & Partner PartG. All rights reserved.
@@ -19,20 +19,13 @@ package de.kp.works.beats.sensor.sensedge.enums
  *
  */
 
-object SeTables extends Enumeration {
-
-  type SeTable = Value
-
-  val AirPressure:SeTable  = Value(1, "AirPressure")
-  val BatteryLevel:SeTable = Value(2, "BatteryLevel")
-  val BreathVOC:SeTable    = Value(3, "BreathVOC")
-  val eCO2:SeTable         = Value(4, "eCO2")
-  val Humidity:SeTable     = Value(5, "Humidity")
-  val IAQ:SeTable          = Value(6, "IAQ")
-  val IAQAccuracy:SeTable  = Value(7, "IAQAccuracy")
-  val Movement:SeTable     = Value(8, "Movement")
-  val StaticIAQ:SeTable    = Value(9, "StaticIAQ")
-  val Status:SeTable       = Value(10, "Status")
-  val Temperature: SeTable = Value(11, "Temperature")
-
+object SeMapper {
+  /**
+   * This method harmonizes the Sensedge
+   * specific measurement names
+   */
+  def harmonize(name:String):String = {
+    // TODO
+    name
+  }
 }

@@ -23,7 +23,6 @@ import akka.actor.{ActorRef, Props}
 import akka.routing.RoundRobinPool
 import ch.qos.logback.classic.Logger
 import de.kp.works.beats.sensor.api._
-import de.kp.works.beats.sensor.sensedge.enums.SeTables
 
 /**
  * The [SeAnomActor] supports the re-training
@@ -110,9 +109,6 @@ class SeJobActor(config:SeConf) extends JobActor(config) with SeLogging {
 class SeLearnActor extends LearnActor with SeLogging {
 
   override def getLogger: Logger = logger
-
-  override def validateTable(table: String): Unit =
-    SeTables.withName(table)
 
 }
 

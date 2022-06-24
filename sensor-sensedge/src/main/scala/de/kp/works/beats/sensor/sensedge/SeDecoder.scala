@@ -20,7 +20,7 @@ package de.kp.works.beats.sensor.sensedge
  */
 
 import com.google.gson.JsonObject
-import de.kp.works.beats.sensor.sensedge.enums.{SeProducts, SeTables}
+import de.kp.works.beats.sensor.sensedge.enums.SeProducts
 import de.kp.works.beats.sensor.sensedge.enums.SeProducts.SeProduct
 
 object SeDecoder {
@@ -51,14 +51,7 @@ object SeDecoder {
 
     }
 
-    fields.map(field => {
-
-      val tableName = field.replace(".", "_")
-      val msTable = SeTables.withName(tableName)
-
-      msTable.toString
-
-    })
+    fields
 
   }
 }
