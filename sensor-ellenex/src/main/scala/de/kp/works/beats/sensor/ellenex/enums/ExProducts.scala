@@ -20,13 +20,9 @@ package de.kp.works.beats.sensor.ellenex.enums
  */
 object ExProducts extends Enumeration {
   type ExProduct = Value
-  /*
-   * The Ellenex LoRaWAN level sensor
-   */
+
   val PLS2_L: ExProduct = Value(1, "PLS2_L")
-  /*
-   * The Ellenex LoRaWAN pressure sensor
-   */
+  val PTD2_L: ExProduct = Value(2, "PTD2_L")
   val PTS2_L: ExProduct = Value(2, "PTS2_L")
 
 }

@@ -22,7 +22,10 @@ package de.kp.works.beats.sensor.ellenex.mappings
 import de.kp.works.beats.sensor.BeatMapper
 
 object ExMapper extends BeatMapper {
-
+  /**
+   * The main concept is define alias
+   * names that can be harmonized.
+   */
   override var MAPPINGS: String =
     """
       |[
@@ -40,6 +43,11 @@ object ExMapper extends BeatMapper {
       |   "alias": "pressure_bar",
       |   "name":  "pressure",
       |   "unit":  "bar"
+      | },
+      | {
+      |   "alias": "temperature_celsius",
+      |   "name":  "temperature",
+      |   "unit":  "celsius"
       | }
       |]
       |""".stripMargin

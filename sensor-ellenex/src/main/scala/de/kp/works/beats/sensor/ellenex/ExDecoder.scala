@@ -20,7 +20,7 @@ package de.kp.works.beats.sensor.ellenex
  */
 
 import com.google.gson.JsonObject
-import de.kp.works.beats.sensor.ellenex.enums.ExProducts.{ExProduct, PLS2_L, PTS2_L}
+import de.kp.works.beats.sensor.ellenex.enums.ExProducts._
 
 object ExDecoder {
 
@@ -29,6 +29,9 @@ object ExDecoder {
     val readings = product match {
       case PLS2_L =>
         decoders.PLS2_L.decodeHex(hexstring, fport)
+
+      case PTD2_L =>
+        decoders.PTD2_L.decodeHex(hexstring, fport)
 
       case PTS2_L =>
         decoders.PTS2_L.decodeHex(hexstring, fport)
@@ -44,6 +47,9 @@ object ExDecoder {
     val fields = product match {
       case PLS2_L =>
         decoders.PLS2_L.fields
+
+      case PTD2_L =>
+        decoders.PTD2_L.fields
 
       case PTS2_L =>
         decoders.PTS2_L.fields

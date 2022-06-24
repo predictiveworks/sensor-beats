@@ -20,6 +20,7 @@ package de.kp.works.beats.sensor.ellenex
  */
 
 import ch.qos.logback.classic.Logger
+import de.kp.works.beats.sensor.ellenex.enums.ExProducts
 import de.kp.works.beats.sensor.thingsstack.Consumer
 import org.eclipse.paho.client.mqttv3.MqttMessage
 
@@ -39,12 +40,30 @@ class ExStack(options: ExOptions) extends Consumer[ExConf](options.toStack) with
     try {
 
       val (deviceId, sensorReadings) = unpack(mqttMessage)
-      val newReadings = transform(sensorReadings, options.getMappings)
+      val product = options.getProduct
+      product match {
+        case ExProducts.PTD2_L =>
+
+          if (sensorReadings.has("primarySense")) {
+
+            val value = sensorReadings.remove("primarySense")
+            sensorReadings.add("pressure", value)
+
+          }
+
+          if (sensorReadings.has("secondarySense")) {
+
+            val value = sensorReadings.remove("secondarySense")
+            sensorReadings.add("temperature", value)
+
+          }
+
+      }
       /*
        * Send sensor readings (payload) to the configured data
        * sinks; note, attributes are restricted to [Number] fields.
        */
-      val product = options.getProduct
+      val newReadings = transform(sensorReadings, options.getMappings)
       send2Sinks(deviceId, BRAND_NAME, product.toString, newReadings, sinks)
 
     } catch {

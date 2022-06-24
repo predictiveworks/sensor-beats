@@ -24,7 +24,8 @@ package de.kp.works.beats.sensor.ellenex.enums
 object ExFields {
 
   val batteryVoltage:String = "batteryVoltage"
-  val level: String         = "level"
-  val pressure: String      = "pressure"
+  val level:String          = "level"
+  val pressure:String       = "pressure"
+  val temperature:String    = "temperature"
 
 }
