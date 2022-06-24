@@ -23,7 +23,6 @@ import akka.actor.{ActorRef, Props}
 import akka.routing.RoundRobinPool
 import ch.qos.logback.classic.Logger
 import de.kp.works.beats.sensor.api._
-import de.kp.works.beats.sensor.milesight.enums.MsTables
 
 /**
  * The [MsAnomActor] supports the re-training
@@ -106,9 +105,6 @@ class MsJobActor(config:MsConf) extends JobActor(config) with MsLogging {
 class MsLearnActor extends LearnActor with MsLogging {
 
   override def getLogger: Logger = logger
-
-  override def validateTable(table: String): Unit =
-    MsTables.withName(table)
 
 }
 /**

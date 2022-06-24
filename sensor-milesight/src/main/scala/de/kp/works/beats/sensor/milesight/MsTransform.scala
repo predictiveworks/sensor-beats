@@ -20,6 +20,7 @@ package de.kp.works.beats.sensor.milesight
  */
 
 import com.google.gson.JsonObject
+import de.kp.works.beats.sensor.milesight.mappings.MsMapper
 
 import scala.collection.JavaConversions.asScalaSet
 
@@ -47,31 +48,44 @@ trait MsTransform {
     }
     /*
      * The current implementation of SensorBeat supports
-     * primitive field value
+     * primitive JSON values only and also harmonizes the
+     * respective field names.
+     *
+     * In addition to this internal harmonization, there is
+     * an external mapping supported.
      */
     val fields = newReadings.keySet()
     fields.foreach(name => {
-      val value = newReadings.get(name)
-      if (!value.isJsonPrimitive)
-        newReadings.remove(name)
-    })
-    /*
-     * Apply field mappings and replace those decoded field
-     * names by their aliases that are specified on the
-     * provided mappings
-     */
-    if (mappings.nonEmpty) {
-      fields.foreach(name => {
-        if (mappings.contains(name)) {
-          val alias = mappings(name)
-          val property = newReadings.remove(name)
+      val value = newReadings.remove(name)
+      /*
+       * Check whether the respective field
+       * value is a JSON primitive
+       */
+      if (value.isJsonPrimitive) {
 
-          newReadings.addProperty(alias, property.getAsDouble)
-        }
-      })
-    }
+        val alias =
+          if (mappings.contains(name)) {
+            /*
+             * Apply configured mapping
+             */
+            mappings(name)
+
+          } else {
+            /*
+             * Leverage pre-built internal
+             * field name mapping
+             */
+            MsMapper.harmonize(name)
+          }
+
+        newReadings.addProperty(alias, value.getAsDouble)
+
+      }
+
+    })
 
     newReadings
+
   }
 
 }

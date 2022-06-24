@@ -124,14 +124,7 @@ object MsDecoder {
 
     }
 
-    fields.map(field => {
-
-      val tableName = field.replace(".", "_")
-      val msTable = MsTables.withName(tableName)
-
-      msTable.toString
-
-    })
+    fields
 
   }
 }

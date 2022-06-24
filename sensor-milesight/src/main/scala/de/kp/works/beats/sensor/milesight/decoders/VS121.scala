@@ -63,7 +63,7 @@ object VS121 extends BaseDecoder {
         // CHANNEL
         i += 1
         val channel_id = bytes(i)
-//     val hexstring = "ff 01 01 // ff 08 66 00 b0 94 09 76 // ff 09 01 00 // ff 0a 1f 07 00 4b // 04 c9 03 05 || 00 a1".replace(" ","")
+
         i += 1
         val channel_type = bytes(i)
 
