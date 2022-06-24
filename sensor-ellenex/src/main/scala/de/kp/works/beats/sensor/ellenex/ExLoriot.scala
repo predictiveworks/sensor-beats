@@ -22,14 +22,12 @@ package de.kp.works.beats.sensor.ellenex
 import ch.qos.logback.classic.Logger
 import de.kp.works.beats.sensor.loriot.{Consumer, LoriotUplink}
 
-import scala.collection.JavaConversions.asScalaSet
-
 /**
  * The [ExLoriot] input channel focuses on the
  * extraction of the unique device identifier
  * and the provided sensor readings
  */
-class ExLoriot(options: ExOptions) extends Consumer[ExConf](options.toLoriot) with ExLogging {
+class ExLoriot(options: ExOptions) extends Consumer[ExConf](options.toLoriot) with ExTransform with ExLogging {
 
   private val BRAND_NAME = "Ellenex"
   /**
@@ -65,29 +63,14 @@ class ExLoriot(options: ExOptions) extends Consumer[ExConf](options.toLoriot) wi
        * provided with this project
        */
       val product = options.getProduct
-      val sensorReadings = ExDecoder.decodeHex(product, message.data.get, fport)
-      /*
-       * Apply field mappings and replace those decoded field
-       * names by their aliases that are specified on the
-       * provided mappings
-       */
-      val mappings = options.getMappings
-      if (mappings.nonEmpty) {
-        val fields = sensorReadings.keySet()
-        fields.foreach(name => {
-          if (mappings.contains(name)) {
-            val alias = mappings(name)
-            val property = sensorReadings.remove(name)
 
-            sensorReadings.addProperty(alias, property.getAsDouble)
-          }
-        })
-      }
-      /*
+      val sensorReadings = ExDecoder.decodeHex(product, message.data.get, fport)
+      val newReadings = transform(sensorReadings, options.getMappings)
+       /*
        * Note, the EUI value is used as unique device identifier
        */
       val deviceId = message.EUI
-      send2Sinks(deviceId, BRAND_NAME, product.toString, sensorReadings, sinks)
+      send2Sinks(deviceId, BRAND_NAME, product.toString, newReadings, sinks)
 
     } catch {
       case t: Throwable =>

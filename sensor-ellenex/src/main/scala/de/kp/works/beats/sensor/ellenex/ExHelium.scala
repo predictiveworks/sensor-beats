@@ -23,9 +23,8 @@ import ch.qos.logback.classic.Logger
 import de.kp.works.beats.sensor.helium.{Consumer, HeliumUplink}
 
 import java.util.Base64
-import scala.collection.JavaConversions.asScalaSet
 
-class ExHelium(options: ExOptions) extends Consumer[ExConf](options.toHelium) with ExLogging {
+class ExHelium(options: ExOptions) extends Consumer[ExConf](options.toHelium) with ExTransform with ExLogging {
 
   private val BRAND_NAME = "Ellenex"
   /**
@@ -59,24 +58,9 @@ class ExHelium(options: ExOptions) extends Consumer[ExConf](options.toHelium) wi
        * provided with this project
        */
       val product = options.getProduct
-      val sensorReadings = ExDecoder.decodeHex(product, new String(decodedPayload), fport)
-      /*
-       * Apply field mappings and replace those decoded field
-       * names by their aliases that are specified on the
-       * provided mappings
-       */
-      val mappings = options.getMappings
-      if (mappings.nonEmpty) {
-        val fields = sensorReadings.keySet()
-        fields.foreach(name => {
-          if (mappings.contains(name)) {
-            val alias = mappings(name)
-            val property = sensorReadings.remove(name)
 
-            sensorReadings.addProperty(alias, property.getAsDouble)
-          }
-        })
-      }
+      val sensorReadings = ExDecoder.decodeHex(product, new String(decodedPayload), fport)
+      val newReadings = transform(sensorReadings, options.getMappings)
       /*
        * The `dev_eui` is used as a unique device identifier:
        *
@@ -86,7 +70,7 @@ class ExHelium(options: ExOptions) extends Consumer[ExConf](options.toHelium) wi
        * entire organization
        */
       val deviceId = message.dev_eui
-      send2Sinks(deviceId, BRAND_NAME, product.toString, sensorReadings, sinks)
+      send2Sinks(deviceId, BRAND_NAME, product.toString, newReadings, sinks)
 
     } catch {
       case t: Throwable =>

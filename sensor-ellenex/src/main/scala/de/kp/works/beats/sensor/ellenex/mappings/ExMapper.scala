@@ -1,4 +1,4 @@
-package de.kp.works.beats.sensor.ellenex.enums
+package de.kp.works.beats.sensor.ellenex.mappings
 
 /**
  * Copyright (c) 2019 - 2022 Dr. Krusche & Partner PartG. All rights reserved.
@@ -19,11 +19,13 @@ package de.kp.works.beats.sensor.ellenex.enums
  *
  */
 
-object ExTables extends Enumeration {
-  type ExTable = Value
-
-  val BATTERY: ExTable  = Value(1, "battery")
-  val LEVEL: ExTable    = Value(2, "level")
-  val PRESSURE: ExTable = Value(3, "pressure")
-
+object ExMapper {
+  /**
+   * This method harmonizes the Ellenex
+   * specific measurement names
+   */
+  def harmonize(name:String):String = {
+    // TODO
+    name
+  }
 }

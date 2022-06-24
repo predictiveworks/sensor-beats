@@ -23,7 +23,6 @@ import akka.actor.{ActorRef, Props}
 import akka.routing.RoundRobinPool
 import ch.qos.logback.classic.Logger
 import de.kp.works.beats.sensor.api._
-import de.kp.works.beats.sensor.ellenex.enums.ExTables
 
 /**
  * The [ExAnomActor] supports the re-training
@@ -110,9 +109,6 @@ class ExJobActor(config:ExConf) extends JobActor(config) with ExLogging {
 class ExLearnActor extends LearnActor with ExLogging {
 
   override def getLogger: Logger = logger
-
-  override def validateTable(table: String): Unit =
-    ExTables.withName(table)
 
 }
 
