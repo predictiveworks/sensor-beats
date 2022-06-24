@@ -23,7 +23,6 @@ import akka.actor.{ActorRef, Props}
 import akka.routing.RoundRobinPool
 import ch.qos.logback.classic.Logger
 import de.kp.works.beats.sensor.api._
-import de.kp.works.beats.sensor.elsys.enums.EsTables
 
 /**
  * The [EsAnomActor] supports the re-training
@@ -110,9 +109,6 @@ class EsJobActor(config:EsConf) extends JobActor(config) with EsLogging {
 class EsLearnActor extends LearnActor with EsLogging {
 
   override def getLogger: Logger = logger
-
-  override def validateTable(table: String): Unit =
-    EsTables.withName(table)
 
 }
 

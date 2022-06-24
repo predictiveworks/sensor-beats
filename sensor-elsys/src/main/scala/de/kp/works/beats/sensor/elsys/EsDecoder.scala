@@ -20,7 +20,7 @@ package de.kp.works.beats.sensor.elsys
  */
 
 import com.google.gson.JsonObject
-import de.kp.works.beats.sensor.elsys.enums.{EsProducts, EsTables}
+import de.kp.works.beats.sensor.elsys.enums.EsProducts
 import de.kp.works.beats.sensor.elsys.enums.EsProducts.EsProduct
 
 object EsDecoder {
@@ -123,14 +123,7 @@ object EsDecoder {
 
     }
 
-    fields.map(field => {
-
-      val tableName = field.replace(".", "_")
-      val esTable = EsTables.withName(tableName)
-
-      esTable.toString
-
-    })
+    fields
 
   }
 }
