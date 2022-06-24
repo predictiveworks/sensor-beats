@@ -68,12 +68,21 @@ object A3 extends BaseDecoder {
     val co2 = uint16(bytes(19), bytes(20))
     decoded.addProperty("co2", co2)
 
-    // Formaldehyde CH20 (PPB)
-    val ch20 = uint16(bytes(21), bytes(22))
+    /* Formaldehyde CH20 = PPB (see documentation)
+     *
+     * In order to harmonize the results with the
+     * industrial sensor, formaldehyde is specified
+     * as ppm
+     */
+    val ch20 = uint16(bytes(21), bytes(22)) * 0.001
     decoded.addProperty("ch20", ch20)
 
-    // PPB
-    val o3 = uint16(bytes(23), bytes(24))
+    /* O3 = ppb (see documentation)
+     *
+     * In order to harmonize the results with the
+     * industrial sensor, ozone is specified as ppm
+     */
+    val o3 = uint16(bytes(23), bytes(24)) * 0.001
     decoded.addProperty("o3", o3)
 
     // µg/m3
@@ -100,18 +109,18 @@ object A3 extends BaseDecoder {
 
   override def fields: Seq[String] = {
     Seq(
-      TEMPERATURE,
-      PRESSURE,
-      HUMIDITY,
-      GAS_RESISTANCE,
-      SOUND,
-      CO2,
-      CH20,
-      O3,
-      PM1,
-      PM2_5,
-      PM10,
-      IAQ)
+      temperature,
+      pressure,
+      humidity,
+      gas_resistance,
+      sound,
+      co2,
+      ch20,
+      o3,
+      pm1,
+      pm2_5,
+      pm10,
+      iaq)
   }
 
 }
