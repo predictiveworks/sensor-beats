@@ -21,6 +21,7 @@ package de.kp.works.beats.sensor.sensecap
 
 import com.google.gson.{JsonElement, JsonNull, JsonObject}
 import de.kp.works.beats.sensor.sensecap.enums.ScMeasurements
+import de.kp.works.beats.sensor.sensecap.mappings.ScMapper
 
 import scala.collection.JavaConversions.iterableAsScalaIterable
 
@@ -83,23 +84,43 @@ trait ScTransform {
       }
 
     })
-
-    val fields = newReadings.keySet()
     /*
-     * Apply field mappings and replace those decoded field
-     * names by their aliases that are specified on the
-     * provided mappings
+     * The current implementation of SensorBeat supports
+     * primitive JSON values only and also harmonizes the
+     * respective field names.
+     *
+     * In addition to this internal harmonization, there is
+     * an external mapping supported.
      */
-    if (mappings.nonEmpty) {
-      fields.foreach(name => {
-        if (mappings.contains(name)) {
-          val alias = mappings(name)
-          val property = newReadings.remove(name)
+    val fields = newReadings.keySet()
+    fields.foreach(name => {
+      val value = newReadings.remove(name)
+      /*
+       * Check whether the respective field
+       * value is a JSON primitive
+       */
+      if (value.isJsonPrimitive) {
 
-          newReadings.addProperty(alias, property.getAsDouble)
-        }
-      })
-    }
+        val alias =
+          if (mappings.contains(name)) {
+            /*
+             * Apply configured mapping
+             */
+            mappings(name)
+
+          } else {
+            /*
+             * Leverage pre-built internal
+             * field name mapping
+             */
+            ScMapper.harmonize(name)
+          }
+
+        newReadings.addProperty(alias, value.getAsDouble)
+
+      }
+
+    })
 
     newReadings
 

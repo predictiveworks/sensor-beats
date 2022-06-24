@@ -20,7 +20,7 @@ package de.kp.works.beats.sensor.sensecap
  */
 
 import com.google.gson.JsonObject
-import de.kp.works.beats.sensor.sensecap.enums.{ScProducts, ScTables}
+import de.kp.works.beats.sensor.sensecap.enums.ScProducts
 import de.kp.works.beats.sensor.sensecap.enums.ScProducts.ScProduct
 
 object ScDecoder {
@@ -69,14 +69,7 @@ object ScDecoder {
 
     }
 
-    fields.map(field => {
-
-      val tableName = field.replace(".", "_")
-      val esTable = ScTables.withName(tableName)
-
-      esTable.toString
-
-    })
+    fields
 
   }
 }

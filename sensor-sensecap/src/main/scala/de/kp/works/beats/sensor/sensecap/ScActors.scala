@@ -23,7 +23,6 @@ import akka.actor.{ActorRef, Props}
 import akka.routing.RoundRobinPool
 import ch.qos.logback.classic.Logger
 import de.kp.works.beats.sensor.api._
-import de.kp.works.beats.sensor.sensecap.enums.ScTables
 
 /**
  * The [ScAnomActor] supports the re-training
@@ -110,9 +109,6 @@ class ScJobActor(config:ScConf) extends JobActor(config) with ScLogging {
 class ScLearnActor extends LearnActor with ScLogging {
 
   override def getLogger: Logger = logger
-
-  override def validateTable(table: String): Unit =
-    ScTables.withName(table)
 
 }
 

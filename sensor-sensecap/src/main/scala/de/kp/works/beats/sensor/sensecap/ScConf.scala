@@ -21,7 +21,7 @@ package de.kp.works.beats.sensor.sensecap
 
 import de.kp.works.beats.sensor.BeatConf
 import de.kp.works.beats.sensor.sensecap.enums.ScProducts.ScProduct
-import de.kp.works.beats.sensor.sensecap.enums.{ScProducts, ScTables}
+import de.kp.works.beats.sensor.sensecap.enums.ScProducts
 
 object ScConf {
 
