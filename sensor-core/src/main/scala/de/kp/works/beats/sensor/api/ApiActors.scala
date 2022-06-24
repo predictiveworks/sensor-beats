@@ -184,18 +184,19 @@ abstract class LearnActor extends Actor {
 
     case request:DeepReq =>
       /*
-       * Note, adhoc deep learning tasks are queued, to be in
-       * sync with the scheduled tasks; the current implementation
-       * supports environments where only a small number of DL
-       * tasks can be executed simultaneously.
+       * Note, adhoc deep learning tasks are queued,
+       * to be in sync with the scheduled tasks;
+       *
+       * the current implementation supports environments
+       * where only a small number of DL tasks can be executed
+       * simultaneously.
        */
       try {
         /*
-         * Check whether the provided table name
-         * is defined
-         */
-        validateTable(request.table)
-        /*
+         * __MOD__ Validation of the provided table
+         * name is removed, as this check does not
+         * offer any additional value
+         *
          * Check whether the RocksDB is initialized
          */
         if (!BeatRocks.isInit)
@@ -230,11 +231,6 @@ abstract class LearnActor extends Actor {
   }
 
   def getLogger:Logger
-  /**
-   * Public method to validate whether the externally
-   * provided table is supported.
-   */
-  def validateTable(table:String):Unit
 
 }
 /**
