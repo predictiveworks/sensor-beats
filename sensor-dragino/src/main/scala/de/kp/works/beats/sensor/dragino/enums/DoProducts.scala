@@ -19,8 +19,21 @@ package de.kp.works.beats.sensor.dragino.enums
  *
  */
 
-object DoTables extends Enumeration {
+object DoProducts extends Enumeration {
 
-  type DoTable = Value
+  type DoProduct = Value
+
+  val LDDS04:DoProduct      = Value(7, "LDDS04")
+  val LDDS20:DoProduct      = Value(8, "LDDS20")
+  val LDDS45:DoProduct      = Value(10, "LDDS45")
+  val LHT52:DoProduct       = Value(15, "LHT52")
+  val LHT65:DoProduct       = Value(16, "LHT65")
+  val LLDS12:DoProduct      = Value(18, "LLDS12")
+  val LLMS01:DoProduct      = Value(19, "LLMS01")
+  val LMDS200:DoProduct     = Value(20, "LMDS200")
+  val LSE01:DoProduct       = Value(21, "LSE01")
+  val LSNPK01:DoProduct     = Value(26, "LSNPK01")
+  val LSPH01:DoProduct      = Value(27, "LSPH01")
+  val WSC1_L:DoProduct      = Value(34, "WSC1_L")
 
 }

@@ -23,7 +23,6 @@ import akka.actor.{ActorRef, Props}
 import akka.routing.RoundRobinPool
 import ch.qos.logback.classic.Logger
 import de.kp.works.beats.sensor.api._
-import de.kp.works.beats.sensor.dragino.enums.DoTables
 
 /**
  * The [DoAnomActor] supports the re-training
@@ -110,9 +109,6 @@ class DoJobActor(config:DoConf) extends JobActor(config) with DoLogging {
 class DoLearnActor extends LearnActor with DoLogging {
 
   override def getLogger: Logger = logger
-
-  override def validateTable(table: String): Unit =
-    DoTables.withName(table)
 
 }
 
