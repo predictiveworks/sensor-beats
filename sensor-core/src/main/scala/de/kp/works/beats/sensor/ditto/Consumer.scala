@@ -24,7 +24,12 @@ import de.kp.works.beats.sensor.{BeatConf, BeatSensor, BeatSource}
 import org.eclipse.ditto.client.changes.ThingChange
 import org.eclipse.ditto.client.messaging.MessagingProvider
 import org.eclipse.ditto.client.{DittoClient, DittoClients}
-
+/**
+ * The Eclipse Ditto Consumer is built to acquire
+ * context data from other (configured) things that
+ * are e.g. used as complementary data for anomaly
+ * detection and time series forecasts.
+ */
 abstract class Consumer[T <: BeatConf](options:Options[T]) extends BeatSource {
   /**
    * Build Ditto web socket client
@@ -118,7 +123,12 @@ abstract class Consumer[T <: BeatConf](options:Options[T]) extends BeatSource {
     }
 
     val handler = "DITTO_THING_CHANGES"
-
+    /*
+     * Subscribing to Thing events is controlled
+     * by a list of configured (other) things that
+     * provide complementary information for this
+     * SensorBeat
+     */
     val thingIds = options.getThingIds
     if (thingIds.isEmpty) {
       twin.registerForThingChanges(handler, consumer)
