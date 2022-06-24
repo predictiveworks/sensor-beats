@@ -32,7 +32,18 @@ import de.kp.works.beats.sensor.ellenex.enums.ExFields._
  * https://github.com/TheThingsNetwork/lorawan-devices/tree/master/vendor/ellenex
  */
 object PTS2_L extends BaseDecoder {
-
+  /*
+   * APPLICATIONS:
+   *
+   * - Pump Performance
+   * - Water Pipeline Pressure
+   * - Pressurised System Monitoring
+   * - Chiller and Cooling System
+   * - Hydraulic and Pneumatic Systems
+   * - Liquid Storage Level
+   * - Spraying System
+   * - Air Compressor Monitoring
+   */
   override def decode(bytes: Array[Int], fport:Int): JsonObject = {
 
     if (fport == 1) {
@@ -46,9 +57,10 @@ object PTS2_L extends BaseDecoder {
       val battery = bytes(7).toDouble / 10
 
       val decoded = new JsonObject
-      // BATTERY = VOLTAGE
-      decoded.addProperty("battery", battery)
-      // PRESSURE = BAR
+      // batteryVoltage = VOLTAGE
+      decoded.addProperty("batteryVoltage", battery)
+
+      // pressure = BAR
       decoded.addProperty("pressure", pressure)
 
       decoded
@@ -61,8 +73,8 @@ object PTS2_L extends BaseDecoder {
 
   override def fields: Seq[String] = {
     Seq(
-      BATTERY,
-      PRESSURE
+      batteryVoltage,
+      pressure
     )
 
   }

@@ -19,13 +19,29 @@ package de.kp.works.beats.sensor.ellenex.mappings
  *
  */
 
-object ExMapper {
-  /**
-   * This method harmonizes the Ellenex
-   * specific measurement names
-   */
-  def harmonize(name:String):String = {
-    // TODO
-    name
-  }
+import de.kp.works.beats.sensor.BeatMapper
+
+object ExMapper extends BeatMapper {
+
+  override var MAPPINGS: String =
+    """
+      |[
+      | {
+      |   "alias": "battery_voltage",
+      |   "name":  "batteryVoltage",
+      |   "unit":  "voltage"
+      | },
+      | {
+      |   "alias": "liquid_level_metre",
+      |   "name":  "level",
+      |   "unit":  "metre"
+      | },
+      | {
+      |   "alias": "pressure_bar",
+      |   "name":  "pressure",
+      |   "unit":  "bar"
+      | }
+      |]
+      |""".stripMargin
+
 }

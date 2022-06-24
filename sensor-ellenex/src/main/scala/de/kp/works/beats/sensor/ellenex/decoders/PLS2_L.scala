@@ -46,9 +46,10 @@ object PLS2_L extends BaseDecoder {
       val battery = bytes(7).toDouble / 10
 
       val decoded = new JsonObject
-      // BATTERY = VOLTAGE
-      decoded.addProperty("battery", battery)
-      // LEVEL = M
+      // batteryVoltage = VOLTAGE
+      decoded.addProperty("batteryVoltage", battery)
+
+      // level = M
       decoded.addProperty("level", level)
 
       decoded
@@ -61,8 +62,8 @@ object PLS2_L extends BaseDecoder {
 
   override def fields: Seq[String] = {
     Seq(
-      BATTERY,
-      LEVEL
+      batteryVoltage,
+      level
     )
   }
 }
