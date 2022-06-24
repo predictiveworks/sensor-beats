@@ -20,7 +20,7 @@ package de.kp.works.beats.sensor.netvox
  */
 
 import com.google.gson.JsonObject
-import de.kp.works.beats.sensor.netvox.enums.{NvProducts, NvTables}
+import de.kp.works.beats.sensor.netvox.enums.NvProducts
 import de.kp.works.beats.sensor.netvox.enums.NvProducts.NvProduct
 
 object NvDecoder {
@@ -69,14 +69,7 @@ object NvDecoder {
 
     }
 
-    fields.map(field => {
-
-      val tableName = field.replace(".", "_")
-      val msTable = NvTables.withName(tableName)
-
-      msTable.toString
-
-    })
+    fields
 
   }
 }

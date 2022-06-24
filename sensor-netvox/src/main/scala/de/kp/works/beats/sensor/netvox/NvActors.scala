@@ -23,7 +23,6 @@ import akka.actor.{ActorRef, Props}
 import akka.routing.RoundRobinPool
 import ch.qos.logback.classic.Logger
 import de.kp.works.beats.sensor.api._
-import de.kp.works.beats.sensor.netvox.enums.NvTables
 
 /**
  * The [NvAnomActor] supports the re-training
@@ -110,9 +109,6 @@ class NvJobActor(config:NvConf) extends JobActor(config) with NvLogging {
 class NvLearnActor extends LearnActor with NvLogging {
 
   override def getLogger: Logger = logger
-
-  override def validateTable(table: String): Unit =
-    NvTables.withName(table)
 
 }
 
