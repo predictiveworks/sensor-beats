@@ -20,7 +20,7 @@ package de.kp.works.beats.sensor.uradmonitor
  */
 
 import com.google.gson.JsonObject
-import de.kp.works.beats.sensor.uradmonitor.enums.{UmProducts, UmTables}
+import de.kp.works.beats.sensor.uradmonitor.enums.UmProducts
 import de.kp.works.beats.sensor.uradmonitor.enums.UmProducts.UmProduct
 
 object UmDecoder {
@@ -51,14 +51,7 @@ object UmDecoder {
 
     }
 
-    fields.map(field => {
-
-      val tableName = field.replace(".", "_")
-      val msTable = UmTables.withName(tableName)
-
-      msTable.toString
-
-    })
+    fields
 
   }
 }

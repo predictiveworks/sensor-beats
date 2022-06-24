@@ -23,9 +23,7 @@ import ch.qos.logback.classic.Logger
 import de.kp.works.beats.sensor.thingsstack.Consumer
 import org.eclipse.paho.client.mqttv3.MqttMessage
 
-import scala.collection.JavaConversions.asScalaSet
-
-class UmStack(options: UmOptions) extends Consumer[UmConf](options.toStack) with UmLogging {
+class UmStack(options: UmOptions) extends Consumer[UmConf](options.toStack) with UmTransform with UmLogging {
 
   private val BRAND_NAME = "Uradmonitor"
   /**
@@ -41,42 +39,10 @@ class UmStack(options: UmOptions) extends Consumer[UmConf](options.toStack) with
     try {
 
       val (deviceId, sensorReadings) = unpack(mqttMessage)
-      /*
-       * Remove provided fields that are not relevant
-       * for measurements and computing insights
-       */
-      val excluded = Seq(
-        "firmware_version",
-        "hardware_version",
-        "model"
-      )
-
-      excluded.foreach(exclude =>
-        if (sensorReadings.has(exclude)) sensorReadings.remove(exclude)
-      )
-      /*
-       * Convert decoded sensors that refer to textual values
-       */
       val product = options.getProduct
-      /*
-       * Apply field mappings and replace those decoded field
-       * names by their aliases that are specified on the
-       * provided mappings
-       */
-      val mappings = options.getMappings
-      if (mappings.nonEmpty) {
-        val fields = sensorReadings.keySet()
-        fields.foreach(name => {
-          if (mappings.contains(name)) {
-            val alias = mappings(name)
-            val property = sensorReadings.remove(name)
 
-            sensorReadings.addProperty(alias, property.getAsDouble)
-          }
-        })
-      }
-
-      send2Sinks(deviceId, BRAND_NAME, product.toString, sensorReadings, sinks)
+      val newReadings = transform(sensorReadings, options.getMappings)
+      send2Sinks(deviceId, BRAND_NAME, product.toString, newReadings, sinks)
 
     } catch {
       case t: Throwable =>

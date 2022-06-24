@@ -23,7 +23,6 @@ import akka.actor.{ActorRef, Props}
 import akka.routing.RoundRobinPool
 import ch.qos.logback.classic.Logger
 import de.kp.works.beats.sensor.api._
-import de.kp.works.beats.sensor.uradmonitor.enums.UmTables
 
 /**
  * The [UmAnomActor] supports the re-training
@@ -110,9 +109,6 @@ class UmJobActor(config:UmConf) extends JobActor(config) with UmLogging {
 class UmLearnActor extends LearnActor with UmLogging {
 
   override def getLogger: Logger = logger
-
-  override def validateTable(table: String): Unit =
-    UmTables.withName(table)
 
 }
 
