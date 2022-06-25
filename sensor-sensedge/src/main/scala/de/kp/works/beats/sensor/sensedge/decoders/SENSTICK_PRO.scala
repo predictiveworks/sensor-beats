@@ -69,14 +69,4 @@ object SENSTICK_PRO extends BaseDecoder {
     result
   }
 
-  override def fields: Seq[String] = {
-    Seq(
-      Temperature,
-      Humidity,
-      AirPressure,
-      Movement,
-      BatteryLevel
-    )
-  }
-
 }

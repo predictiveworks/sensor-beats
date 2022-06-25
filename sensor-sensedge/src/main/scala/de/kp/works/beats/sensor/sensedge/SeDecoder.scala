@@ -39,19 +39,4 @@ object SeDecoder {
     readings
 
   }
-
-  def tables(product: SeProduct):Seq[String] = {
-
-    val fields = product match {
-      case SeProducts.SENSTICK_PRO =>
-        decoders.SENSTICK_PRO.fields
-
-      case SeProducts.SENSTICK_PURE =>
-        decoders.SENSTICK_PURE.fields
-
-    }
-
-    fields
-
-  }
 }

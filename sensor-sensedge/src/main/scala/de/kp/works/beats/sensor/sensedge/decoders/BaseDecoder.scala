@@ -38,8 +38,6 @@ trait BaseDecoder {
 
   def decode(bytes: Array[Int], fport:Int): JsonObject
 
-  def fields:Seq[String]
-
   def int2Double(integer:Int):Double = {
 
     if (integer > 32767) {

@@ -62,17 +62,4 @@ object SENSTICK_PURE extends BaseDecoder {
 
   }
 
-  override def fields: Seq[String] = {
-    Seq(
-      Temperature,
-      Humidity,
-      AirPressure,
-      IAQ,
-      StaticIAQ,
-      eCO2,
-      BreathVOC,
-      IAQAccuracy
-    )
-  }
-
 }

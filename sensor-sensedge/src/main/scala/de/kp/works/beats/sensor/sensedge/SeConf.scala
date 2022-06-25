@@ -69,24 +69,15 @@ class SeConf extends BeatConf {
      */
     val product = getProduct
     val monitoring = {
-      /*
-       * Retrieve those tables that are statically
-       * assigned to a certain product
-       */
-      val statics = SeDecoder.tables(product)
-      /*
-       * Join static tables with optionally configured
-       * measurements
-       */
+
       val measurements = getMeasurements
-      val joined = (statics ++ measurements).distinct
       /*
        * Finally apply optionally configured mappings
        */
       val mappings = getMappings
-      if (mappings.isEmpty) joined
+      if (mappings.isEmpty) measurements
       else {
-        joined.map(name => {
+        measurements.map(name => {
           if (mappings.contains(name)) mappings(name) else name
         })
       }

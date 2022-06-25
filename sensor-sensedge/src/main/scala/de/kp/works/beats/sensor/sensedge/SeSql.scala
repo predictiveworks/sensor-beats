@@ -23,7 +23,7 @@ import de.kp.works.beats.sensor._
 import org.apache.spark.sql.BeatSession
 
 /**
- * [MsSql] supports the `Sensor as a Table` concept,
+ * [SeSql] supports the `Sensor as a Table` concept,
  * that is taken from Osquery.
  */
 class SeSql extends SeLogging {

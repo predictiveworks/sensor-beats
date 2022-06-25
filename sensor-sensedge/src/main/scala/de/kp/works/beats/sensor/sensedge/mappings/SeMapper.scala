@@ -1,5 +1,4 @@
 package de.kp.works.beats.sensor.sensedge.mappings
-
 /**
  * Copyright (c) 2019 - 2022 Dr. Krusche & Partner PartG. All rights reserved.
  *
@@ -19,13 +18,49 @@ package de.kp.works.beats.sensor.sensedge.mappings
  *
  */
 
-object SeMapper {
-  /**
-   * This method harmonizes the Sensedge
-   * specific measurement names
-   */
-  def harmonize(name:String):String = {
-    // TODO
-    name
-  }
+import de.kp.works.beats.sensor.BeatMapper
+
+object SeMapper extends BeatMapper {
+
+  override var MAPPINGS: String =
+    """
+      |[
+      | {
+      |   "alias": "battery_percentage",
+      |   "name":  "BatteryLevel",
+      |   "unit":  "percentage"
+      | },
+      | {
+      |   "alias": "co2_ppm",
+      |   "name":  "eCO2",
+      |   "unit":  "ppm"
+      | },
+      | {
+      |   "alias": "humidity_percentage",
+      |   "name":  "Humidity",
+      |   "unit":  "percentage"
+      | },
+      | {
+      |   "alias": "iaq",
+      |   "name":  "IAQ",
+      |   "unit":  ""
+      | },
+      | {
+      |   "alias": "pressure_hpa",
+      |   "name":  "AirPressure",
+      |   "unit":  "hpa"
+      | },
+      | {
+      |   "alias": "temperature_celsius",
+      |   "name":  "Temperature",
+      |   "unit":  "celsius"
+      | },
+      | {
+      |   "alias": "tvoc_mg_m3",
+      |   "name":  "BreathVOC",
+      |   "unit":  "mg_m3"
+      | }
+      |]
+      |""".stripMargin
+
 }
