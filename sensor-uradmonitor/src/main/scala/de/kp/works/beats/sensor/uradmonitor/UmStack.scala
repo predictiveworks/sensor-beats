@@ -21,6 +21,7 @@ package de.kp.works.beats.sensor.uradmonitor
 
 import ch.qos.logback.classic.Logger
 import de.kp.works.beats.sensor.thingsstack.Consumer
+import de.kp.works.beats.sensor.uradmonitor.enums.UmProducts
 import org.eclipse.paho.client.mqttv3.MqttMessage
 
 class UmStack(options: UmOptions) extends Consumer[UmConf](options.toStack) with UmTransform with UmLogging {
@@ -39,7 +40,32 @@ class UmStack(options: UmOptions) extends Consumer[UmConf](options.toStack) with
     try {
 
       val (deviceId, sensorReadings) = unpack(mqttMessage)
+
       val product = options.getProduct
+      product match {
+        case UmProducts.A3 =>
+          /*
+           * uRADMonitor A3 provides formaldehyde and
+           * ozone in parts per billion (ppb).
+           *
+           * The decoder used for Helium and LORIOT
+           * harmonizes these values to ppm
+           */
+
+          // Formaldehyde
+          val ch20 = sensorReadings.remove("ch20")
+            .getAsNumber.doubleValue() * 0.001
+
+          sensorReadings.addProperty("ch20", ch20)
+
+          // Ozone
+          val o3 = sensorReadings.remove("o3")
+            .getAsNumber.doubleValue() * 0.001
+
+          sensorReadings.addProperty("o3", o3)
+
+        case _ => /* Do nothing */
+      }
 
       val newReadings = transform(sensorReadings, options.getMappings)
       send2Sinks(deviceId, BRAND_NAME, product.toString, newReadings, sinks)
