@@ -39,19 +39,4 @@ object UmDecoder {
     readings
 
   }
-
-  def tables(product: UmProduct):Seq[String] = {
-
-    val fields = product match {
-      case UmProducts.A3 =>
-        decoders.A3.fields
-
-      case UmProducts.INDUSTRIAL =>
-        decoders.INDUSTRIAL.fields
-
-    }
-
-    fields
-
-  }
 }

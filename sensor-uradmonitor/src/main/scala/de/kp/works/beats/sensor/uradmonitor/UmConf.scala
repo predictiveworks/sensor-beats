@@ -53,19 +53,23 @@ class UmConf extends BeatConf {
     }
 
   }
-  /**
-   * Retrieve the sensor specific table names of
-   * the `SensorBeat` database; these are coded
-   * within `UmTables`.
-   */
+
   def getRocksTables: Seq[String] = {
-    /*
-     * Retrieve the correct product or sensor name
-     * and determine the associated hard-coded table
-     * names.
-     */
-    val product = getProduct
-    val monitoring = UmDecoder.tables(product)
+
+    val monitoring = {
+
+      val measurements = getMeasurements
+      /*
+       * Finally apply optionally configured mappings
+       */
+      val mappings = getMappings
+      if (mappings.isEmpty) measurements
+      else {
+        measurements.map(name => {
+          if (mappings.contains(name)) mappings(name) else name
+        })
+      }
+    }
     /*
      * SensorBeat supports anomaly detection and
      * timeseries forecasting for all the selected

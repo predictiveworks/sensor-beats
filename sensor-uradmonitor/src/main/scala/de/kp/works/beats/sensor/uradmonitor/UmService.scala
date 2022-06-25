@@ -180,7 +180,7 @@ class UmService(config:UmConf) extends BeatService[UmConf](config) with UmLoggin
         /*
          * Build Fiware specific output channel
          */
-        val props = Props(new MsFiware(options))
+        val props = Props(new UmFiware(options))
         BeatSinks.registerChannel(channel, props)
 
       case channel@ROCKS_DB =>
@@ -189,7 +189,7 @@ class UmService(config:UmConf) extends BeatService[UmConf](config) with UmLoggin
          * note, the storage should be initialized
          * at this stage already
          */
-        val props = Props(new MsRocks(options))
+        val props = Props(new UmRocks(options))
         BeatSinks.registerChannel(channel, props)
 
       case channel@SSE =>

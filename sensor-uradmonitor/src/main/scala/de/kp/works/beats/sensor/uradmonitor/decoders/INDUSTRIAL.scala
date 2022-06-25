@@ -131,27 +131,4 @@ object INDUSTRIAL extends BaseDecoder {
 
   }
 
-  override def fields: Seq[String] = {
-    Seq(
-      temperature,
-      pressure,
-      humidity,
-      gas_resistance,
-      sound,
-      /* ORGANIC FIELDS */
-      o3,
-      so2,
-      no2,
-      co,
-      h2s,
-      nh3,
-      cl2,
-      /* AIR QUALITY */
-      pm1,
-      pm2_5,
-      pm10,
-      iaq
-    )
-  }
-
 }

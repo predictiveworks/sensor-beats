@@ -107,20 +107,4 @@ object A3 extends BaseDecoder {
 
   }
 
-  override def fields: Seq[String] = {
-    Seq(
-      temperature,
-      pressure,
-      humidity,
-      gas_resistance,
-      sound,
-      co2,
-      ch20,
-      o3,
-      pm1,
-      pm2_5,
-      pm10,
-      iaq)
-  }
-
 }

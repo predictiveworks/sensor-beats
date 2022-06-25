@@ -68,7 +68,5 @@ trait BaseDecoder {
 
   }
 
-  def fields:Seq[String]
-
 }
 
