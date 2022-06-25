@@ -1,6 +1,4 @@
 package de.kp.works.beats.sensor.ellenex.decoders
-import com.google.gson.JsonObject
-import de.kp.works.beats.sensor.ellenex.enums.ExFields.{batteryVoltage, pressure, temperature}
 
 /**
  * Copyright (c) 2019 - 2022 Dr. Krusche & Partner PartG. All rights reserved.
@@ -20,6 +18,7 @@ import de.kp.works.beats.sensor.ellenex.enums.ExFields.{batteryVoltage, pressure
  * @author Stefan Krusche, Dr. Krusche & Partner PartG
  *
  */
+import com.google.gson.JsonObject
 
 object PTD2_L extends BaseDecoder {
 
@@ -54,12 +53,5 @@ object PTD2_L extends BaseDecoder {
       throw new Exception(s"Please use `fport` = 1")
 
   }
-
-  override def fields: Seq[String] =
-    Seq(
-      batteryVoltage,
-      pressure,
-      temperature
-    )
 
 }

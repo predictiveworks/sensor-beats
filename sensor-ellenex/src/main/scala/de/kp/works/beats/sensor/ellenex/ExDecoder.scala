@@ -42,22 +42,4 @@ object ExDecoder {
 
   }
 
-  def tables(product: ExProduct):Seq[String] = {
-
-    val fields = product match {
-      case PLS2_L =>
-        decoders.PLS2_L.fields
-
-      case PTD2_L =>
-        decoders.PTD2_L.fields
-
-      case PTS2_L =>
-        decoders.PTS2_L.fields
-
-    }
-
-    fields
-
-  }
-
 }

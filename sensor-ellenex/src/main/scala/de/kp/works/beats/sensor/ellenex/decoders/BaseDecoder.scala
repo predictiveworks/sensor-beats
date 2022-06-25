@@ -62,6 +62,4 @@ trait BaseDecoder {
     if (ref > 0x7fff) ref - 0x10000 else ref
   }
 
-  def fields:Seq[String]
-
 }

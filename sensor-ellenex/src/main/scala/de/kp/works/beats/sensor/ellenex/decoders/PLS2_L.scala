@@ -20,7 +20,6 @@ package de.kp.works.beats.sensor.ellenex.decoders
  */
 
 import com.google.gson.JsonObject
-import de.kp.works.beats.sensor.ellenex.enums.ExFields._
 
 /**
  * Payload Decoder for Ellenex PLS2-L:
@@ -60,10 +59,4 @@ object PLS2_L extends BaseDecoder {
 
   }
 
-  override def fields: Seq[String] = {
-    Seq(
-      batteryVoltage,
-      level
-    )
-  }
 }
