@@ -38,7 +38,7 @@ object EntsoeClient extends HttpConnect {
 
   def main(args:Array[String]):Unit = {
 
-    getLoad()
+    loadRequest()
     System.exit(0)
   }
 
@@ -52,23 +52,160 @@ object EntsoeClient extends HttpConnect {
     GET /api?securityToken=TOKEN (other parameters omitted)
      */
   }
-
-  def getLoad(domain:String="10Y1001A1001A83F", mode:String="realized"):Unit = {
+  /**
+   * Public method to retrieve the actual aggregated
+   * electricity
+   */
+  def productionRequest(domain:String, productionUnit:Option[String]):Unit = {
     /*
-     * Documentation for request parameters:
+     * For most of the data items in the generation domain,
+     * the PsrType parameter is optional. When this parameter
+     * is not used, the API returns all available data for each
+     * production type for the queried interval and area.
      *
-     * https://transparency.entsoe.eu/content/static_content/download?path=/Static%20content/web%20api/RestfulAPI_IG.pdf
+     * If the parameter is used, data will be returned only for
+     * the specific production type requested.
      */
-    val documentType = "A65"
-    val processType = mode match {
-      case "dayahead"   => "A01"
-      case "realized"   => "A16" // actual load or consumption
-      case "weekahead"  => "A31"
-      case "monthahead" => "A32"
-      case "yearahead"  => "A33"
-      case _ =>
-        throw new Exception(s"Load request mode `$mode` is not supported.")
+    val (periodStart, periodEnd) = buildPeriod()
+
+    val params = if (productionUnit.isEmpty) {
+      /*
+       * Aggregated generation for each type = A75
+       * Referring to the implementation guideline,
+       * the `processType` is fixed = A16
+       */
+      val documentType = "A75"
+      val processType  = "A16"
+
+      Map(
+        "documentType"  -> documentType,
+        "processType"   -> processType,
+        "in_Domain"     -> domain,
+        "PeriodStart"   -> periodStart,
+        "PeriodEnd"     -> periodEnd,
+        "securityToken" -> SECURITY_TOKEN)
+
     }
+    else {
+      /*
+       * Aggregated generation for each type = A73
+       * Referring to the implementation guideline,
+       * the `processType` is fixed = A16
+       */
+      val documentType = "A73"
+      val processType  = "A16"
+
+      Map(
+        "documentType"  -> documentType,
+        "processType"   -> processType,
+        "in_Domain"     -> domain,
+        "psrType"       -> productionUnit.get,
+        "PeriodStart"   -> periodStart,
+        "PeriodEnd"     -> periodEnd,
+        "securityToken" -> SECURITY_TOKEN)
+
+    }
+
+    val endpoint = EntsoeDefs.ENTSOE_ENDPOINT + "?" + params.map{case(k,v) => s"$k=$v"}.mkString("&")
+    println(endpoint)
+
+  }
+
+  def dayAheadProductRequest(domain:String):Unit = {
+    /*
+     * Generation forecast = A71. Referring to the
+     * implementation guideline, the `processType`
+     * is fixed = A01.
+     *
+     * Production units are not supported
+     */
+    val documentType = "A71"
+    val processType  = "A01"
+
+    val (periodStart, periodEnd) = buildPeriod()
+
+    val params = Map(
+      "documentType"  -> documentType,
+      "processType"   -> processType,
+      "in_Domain"     -> domain,
+      "PeriodStart"   -> periodStart,
+      "PeriodEnd"     -> periodEnd,
+      "securityToken" -> SECURITY_TOKEN)
+
+    val endpoint = EntsoeDefs.ENTSOE_ENDPOINT + "?" + params.map{case(k,v) => s"$k=$v"}.mkString("&")
+    println(endpoint)
+
+  }
+
+  def loadRequest(domain:String="10Y1001A1001A83F", mode:String="realized"):Unit = {
+
+    val documentType = "A65"
+    val processType  = "A16"
+
+    val (periodStart, periodEnd) = buildPeriod(mode)
+
+    val params = Map(
+      "documentType"          -> documentType,
+      "processType"           -> processType,
+      "outBiddingZone_Domain" -> domain,
+      "PeriodStart"           -> periodStart,
+      "PeriodEnd"             -> periodEnd,
+      "securityToken"         -> SECURITY_TOKEN)
+
+    val endpoint = EntsoeDefs.ENTSOE_ENDPOINT + "?" + params.map{case(k,v) => s"$k=$v"}.mkString("&")
+    println(endpoint)
+
+  }
+  /**
+   * Public method to retrieve the physical flow between
+   * two countries
+   */
+  def exchangeRequest(inDomain:String, outDomain:String):Unit = {
+    /*
+     * Physical flows have a fixed document type = A11,
+     * and no process type is used
+     */
+    val documentType = "A11"
+
+    val (periodStart, periodEnd) = buildPeriod()
+
+    val params = Map(
+      "documentType"  -> documentType,
+      "in_Domain"     -> inDomain,
+      "out_Domain"    -> outDomain,
+      "PeriodStart"   -> periodStart,
+      "PeriodEnd"     -> periodEnd,
+      "securityToken" -> SECURITY_TOKEN)
+
+    val endpoint = EntsoeDefs.ENTSOE_ENDPOINT + "?" + params.map{case(k,v) => s"$k=$v"}.mkString("&")
+    println(endpoint)
+
+  }
+
+  def dayAheadExchange(inDomain:String, outDomain:String):Unit = {
+    /*
+      * Day ahead commercial exchange has a fixed
+      * document type = A11, and no process type
+      * is used
+      */
+    val documentType = "A09"
+
+    val (periodStart, periodEnd) = buildPeriod()
+
+    val params = Map(
+      "documentType"  -> documentType,
+      "in_Domain"     -> inDomain,
+      "out_Domain"    -> outDomain,
+      "PeriodStart"   -> periodStart,
+      "PeriodEnd"     -> periodEnd,
+      "securityToken" -> SECURITY_TOKEN)
+
+    val endpoint = EntsoeDefs.ENTSOE_ENDPOINT + "?" + params.map{case(k,v) => s"$k=$v"}.mkString("&")
+    println(endpoint)
+
+  }
+
+  private def buildPeriod(mode:String = "realized"):(String,String) = {
 
     val now = Instant.now().atZone(ZONE_ID)
     /*
@@ -112,38 +249,8 @@ object EntsoeClient extends HttpConnect {
 
     }
 
-/*
-    """
-    Makes a standard query to the ENTSOE API with a modifiable set of parameters.
-    Allows an existing session to be passed.
-    Raises an exception if no API token is found.
-    Returns a request object.
-    """
-    if target_datetime is None:
-        target_datetime = arrow.utcnow()
-    else:
-        # make sure we have an arrow object
-        target_datetime = arrow.get(target_datetime)
-    params["periodStart"] = target_datetime.shift(hours=span[0]).format("YYYYMMDDHH00")
-    params["periodEnd"] = target_datetime.shift(hours=span[1]).format("YYYYMMDDHH00")
+    (periodStart, periodEnd)
 
-    # Due to rate limiting, we need to spread our requests across different tokens
-    tokens = get_token("ENTSOE_TOKEN").split(",")
-
-    params["securityToken"] = np.random.choice(tokens)
-    return session.get(ENTSOE_ENDPOINT, params=params)
-
- */
-    val params = Map(
-      "documentType"          -> documentType,
-      "processType"           -> processType,
-      "outBiddingZone_Domain" -> domain,
-      "PeriodStart"           -> periodStart,
-      "PeriodEnd"             -> periodEnd,
-      "securityToken"         -> SECURITY_TOKEN)
-
-    val endpoint = EntsoeDefs.ENTSOE_ENDPOINT + "?" + params.map{case(k,v) => s"$k=$v"}.mkString("&")
-    println(endpoint)
   }
 }
 /*
@@ -593,85 +700,6 @@ def query_ENTSOE(session, params, target_datetime=None, span=(-48, 24)):
     return session.get(ENTSOE_ENDPOINT, params=params)
 
 
-def query_consumption(domain, session, target_datetime=None) -> Union[str, None]:
-
-    params = {
-        "documentType": "A65",
-        "processType": "A16",
-        "outBiddingZone_Domain": domain,
-    }
-    response = query_ENTSOE(session, params, target_datetime=target_datetime)
-    if response.ok:
-        return response.text
-    else:
-        check_response(response, query_consumption.__name__)
-
-
-def query_production(in_domain, session, target_datetime=None) -> Union[str, None]:
-    params = {
-        "documentType": "A75",
-        "processType": "A16",  # Realised
-        "in_Domain": in_domain,
-    }
-    response = query_ENTSOE(
-        session, params, target_datetime=target_datetime, span=(-48, 0)
-    )
-    if response.ok:
-        return response.text
-    else:
-        check_response(response, query_production.__name__)
-
-
-def query_production_per_units(
-    psr_type, domain, session, target_datetime=None
-) -> Union[str, None]:
-
-    params = {
-        "documentType": "A73",
-        "processType": "A16",
-        "psrType": psr_type,
-        "in_Domain": domain,
-    }
-    # Note: ENTSOE only supports 1d queries for this type
-    response = query_ENTSOE(session, params, target_datetime, span=(-24, 0))
-    if response.ok:
-        return response.text
-    else:
-        check_response(response, query_production_per_units.__name__)
-
-
-def query_exchange(
-    in_domain, out_domain, session, target_datetime=None
-) -> Union[str, None]:
-
-    params = {
-        "documentType": "A11",
-        "in_Domain": in_domain,
-        "out_Domain": out_domain,
-    }
-    response = query_ENTSOE(session, params, target_datetime=target_datetime)
-    if response.ok:
-        return response.text
-    else:
-        check_response(response, query_exchange.__name__)
-
-
-def query_exchange_forecast(
-    in_domain, out_domain, session, target_datetime=None
-) -> Union[str, None]:
-    """Gets exchange forecast for 48 hours ahead and previous 24 hours."""
-
-    params = {
-        "documentType": "A09",  # Finalised schedule
-        "in_Domain": in_domain,
-        "out_Domain": out_domain,
-    }
-    response = query_ENTSOE(session, params, target_datetime=target_datetime)
-    if response.ok:
-        return response.text
-    else:
-        check_response(response, query_exchange_forecast.__name__)
-
 
 def query_price(domain, session, target_datetime=None) -> Union[str, None]:
 
@@ -685,42 +713,6 @@ def query_price(domain, session, target_datetime=None) -> Union[str, None]:
         return response.text
     else:
         check_response(response, query_price.__name__)
-
-
-def query_generation_forecast(
-    in_domain, session, target_datetime=None
-) -> Union[str, None]:
-    """Gets generation forecast for 48 hours ahead and previous 24 hours."""
-
-    # Note: this does not give a breakdown of the production
-    params = {
-        "documentType": "A71",  # Generation Forecast
-        "processType": "A01",  # Realised
-        "in_Domain": in_domain,
-    }
-    response = query_ENTSOE(session, params, target_datetime=target_datetime)
-    if response.ok:
-        return response.text
-    else:
-        check_response(response, query_generation_forecast.__name__)
-
-
-def query_consumption_forecast(
-    in_domain, session, target_datetime=None
-) -> Union[str, None]:
-    """Gets consumption forecast for 48 hours ahead and previous 24 hours."""
-
-    params = {
-        "documentType": "A65",  # Load Forecast
-        "processType": "A01",
-        "outBiddingZone_Domain": in_domain,
-    }
-    response = query_ENTSOE(session, params, target_datetime=target_datetime)
-    if response.ok:
-        return response.text
-    else:
-        check_response(response, query_generation_forecast.__name__)
-
 
 def query_wind_solar_production_forecast(
     in_domain, session, target_datetime=None

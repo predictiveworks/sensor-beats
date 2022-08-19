@@ -1,9 +1,7 @@
 package de.kp.works.beats.sensor.entsoe
 
-import java.text.SimpleDateFormat
-import java.time.{Instant, ZoneId, ZonedDateTime}
-import java.time.format.DateTimeFormatter
-import java.util.{Calendar, Date, TimeZone}
+import java.time.Instant
+import java.util.Calendar
 import scala.collection.mutable
 import scala.xml.{Elem, XML}
 
@@ -299,10 +297,10 @@ object EntsoeXML {
       |""".stripMargin
 
   def main(args:Array[String]):Unit = {
-    getLoadSeries(loadSample)
+    getSeries(loadSample)
   }
 
-  def getLoadSeries(document:String):EntsoeSeries = {
+  def getSeries(document:String):EntsoeSeries = {
     val xml = XML.loadString(document)
     getTimeSeries(xml)
   }
