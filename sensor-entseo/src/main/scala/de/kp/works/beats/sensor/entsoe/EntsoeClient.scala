@@ -30,7 +30,7 @@ object EntsoeSession {
  */
 object EntsoeClient extends HttpConnect {
 
-  private val SECURITY_TOKEN = "92e50768-5e2f-46dc-9179-0be66ed386ba"
+  private val SECURITY_TOKEN = ""
   /**
    * The ENTSOE API leverages UTC time
    */
