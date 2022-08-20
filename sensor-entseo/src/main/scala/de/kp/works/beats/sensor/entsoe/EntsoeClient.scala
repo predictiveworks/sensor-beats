@@ -2,7 +2,8 @@ package de.kp.works.beats.sensor.entsoe
 
 import de.kp.works.beats.sensor.http.HttpConnect
 
-import java.time.{Instant, ZoneId}
+import java.time.{Instant, ZoneId, ZonedDateTime}
+import java.util.Calendar
 
 object EntsoeSession {
 
@@ -38,19 +39,22 @@ object EntsoeClient extends HttpConnect {
 
   def main(args:Array[String]):Unit = {
 
-    loadRequest()
+    val domain = "10Y1001A1001A83F" // DE
+    println(dayAheadLoadRequest(domain))
+
     System.exit(0)
   }
-
   /**
-   * Makes a standard query to the ENTSOE API with a modifiable
-   * set of parameters.
+   * This is the main method to retrieve a certain
+   * time series from the ENTSOE API
    */
+  def getRequest(endpoint:String):EntsoeSeries = {
 
-  def getRequest():Unit = {
-    /*
-    GET /api?securityToken=TOKEN (other parameters omitted)
-     */
+    val source = get(endpoint)
+    val document = extractTextBody(source)
+
+    EntsoeXML.getSeries(document)
+
   }
   /**
    * Public method to retrieve the actual aggregated
@@ -66,7 +70,7 @@ object EntsoeClient extends HttpConnect {
      * If the parameter is used, data will be returned only for
      * the specific production type requested.
      */
-    val (periodStart, periodEnd) = buildPeriod()
+    val (periodStart, periodEnd) = buildPeriod(mode="realized")
 
     val params = if (productionUnit.isEmpty) {
       /*
@@ -111,7 +115,7 @@ object EntsoeClient extends HttpConnect {
 
   }
 
-  def dayAheadProductRequest(domain:String):Unit = {
+  def dayAheadProductionRequest(domain:String):Unit = {
     /*
      * Generation forecast = A71. Referring to the
      * implementation guideline, the `processType`
@@ -122,7 +126,7 @@ object EntsoeClient extends HttpConnect {
     val documentType = "A71"
     val processType  = "A01"
 
-    val (periodStart, periodEnd) = buildPeriod()
+    val (periodStart, periodEnd) = buildPeriod(mode="dayahead")
 
     val params = Map(
       "documentType"  -> documentType,
@@ -136,13 +140,16 @@ object EntsoeClient extends HttpConnect {
     println(endpoint)
 
   }
-
-  def loadRequest(domain:String="10Y1001A1001A83F", mode:String="realized"):Unit = {
+  /**
+   * Public method to retrieve load or consumption
+   * data from the ENTSOE API
+   */
+  def loadRequest(domain:String="10Y1001A1001A83F"):Unit = {
 
     val documentType = "A65"
     val processType  = "A16"
 
-    val (periodStart, periodEnd) = buildPeriod(mode)
+    val (periodStart, periodEnd) = buildPeriod(mode="realized")
 
     val params = Map(
       "documentType"          -> documentType,
@@ -153,9 +160,31 @@ object EntsoeClient extends HttpConnect {
       "securityToken"         -> SECURITY_TOKEN)
 
     val endpoint = EntsoeDefs.ENTSOE_ENDPOINT + "?" + params.map{case(k,v) => s"$k=$v"}.mkString("&")
+
     println(endpoint)
 
   }
+
+  def dayAheadLoadRequest(domain:String):EntsoeSeries = {
+
+    val documentType = "A65"
+    val processType  = "A01"
+
+    val (periodStart, periodEnd) = buildPeriod(mode="dayahead")
+
+    val params = Map(
+      "documentType"          -> documentType,
+      "processType"           -> processType,
+      "outBiddingZone_Domain" -> domain,
+      "PeriodStart"           -> periodStart,
+      "PeriodEnd"             -> periodEnd,
+      "securityToken"         -> SECURITY_TOKEN)
+
+    val endpoint = EntsoeDefs.ENTSOE_ENDPOINT + "?" + params.map{case(k,v) => s"$k=$v"}.mkString("&")
+    getRequest(endpoint)
+
+  }
+
   /**
    * Public method to retrieve the physical flow between
    * two countries
@@ -167,7 +196,7 @@ object EntsoeClient extends HttpConnect {
      */
     val documentType = "A11"
 
-    val (periodStart, periodEnd) = buildPeriod()
+    val (periodStart, periodEnd) = buildPeriod(mode="realized")
 
     val params = Map(
       "documentType"  -> documentType,
@@ -182,7 +211,7 @@ object EntsoeClient extends HttpConnect {
 
   }
 
-  def dayAheadExchange(inDomain:String, outDomain:String):Unit = {
+  def dayAheadExchangeRequest(inDomain:String, outDomain:String):Unit = {
     /*
       * Day ahead commercial exchange has a fixed
       * document type = A11, and no process type
@@ -190,7 +219,7 @@ object EntsoeClient extends HttpConnect {
       */
     val documentType = "A09"
 
-    val (periodStart, periodEnd) = buildPeriod()
+    val (periodStart, periodEnd) = buildPeriod(mode="dayahead")
 
     val params = Map(
       "documentType"  -> documentType,
@@ -205,15 +234,69 @@ object EntsoeClient extends HttpConnect {
 
   }
 
-  private def buildPeriod(mode:String = "realized"):(String,String) = {
+  def dayAheadPriceRequest(domain:String):Unit = {
+    /*
+      * Day ahead price request has a fixed
+      * document type = A44, and no process type
+      * is used
+      */
+    val documentType = "A44"
+    /*
+     * For day ahead requests, `periodStart` and
+     * `periodEnd` must be provided. However, the
+     * result is independent of this input and
+     * describes the entire UTC (current) day.
+     *
+     * The interpretation of the result is:
+     *
+     * At this time interval of today, the forecasted
+     * value for the same interval tomorrow is ...
+     */
+    val (periodStart, periodEnd) = buildPeriod(mode="dayahead")
 
+    val params = Map(
+      "documentType"  -> documentType,
+      "in_Domain"     -> domain,
+      "out_Domain"    -> domain,
+      "PeriodStart"   -> periodStart,
+      "PeriodEnd"     -> periodEnd,
+      "securityToken" -> SECURITY_TOKEN)
+
+    val endpoint = EntsoeDefs.ENTSOE_ENDPOINT + "?" + params.map{case(k,v) => s"$k=$v"}.mkString("&")
+    println(endpoint)
+
+  }
+  /**
+   * This method builds a time period from
+   * current timestamp to the begin of the
+   * day in UTC time zone.
+   */
+  private def buildPeriod(mode:String):(String,String) = {
+    /*
+     * The ENTSOE API uses UTC time zone, i.e., the day of July 5 2022 in CET
+     * is during summer time and using UTC this day is considered to start at
+     * 2022-07-04 at 22:00 and end at 2022-07-05 at 22:00.
+     */
     val now = Instant.now().atZone(ZONE_ID)
     /*
      * The format of the periodStart = YYYYMMDDHH00
      */
     val (periodStart, periodEnd) = mode match {
       case "dayahead"   =>
-        throw new Exception("No supported yet")
+
+        val startTime = now.toInstant.toEpochMilli
+
+        val cal = Calendar.getInstance()
+        cal.setTimeInMillis(startTime)
+
+        cal.add(Calendar.HOUR, 24)
+        val endTime = Instant.ofEpochMilli(cal.getTimeInMillis).atZone(ZONE_ID)
+
+        val start = formatTime(now)
+        val end   = formatTime(endTime)
+
+        (start, end)
+
       case "realized" =>
 
         val year  = now.getYear
@@ -250,6 +333,28 @@ object EntsoeClient extends HttpConnect {
     }
 
     (periodStart, periodEnd)
+
+  }
+
+  private def formatTime(time:ZonedDateTime):String = {
+
+    val year  = time.getYear
+    val month = {
+      val value = time.getMonthValue
+      if (value < 10) s"0$value" else s"$value"
+    }
+
+    val day  = {
+      val value = time.getDayOfMonth
+      if (value < 10) s"0$value" else s"$value"
+    }
+
+    val hour = {
+      val value = time.getHour
+      if (value < 10) s"0$value" else s"$value"
+    }
+
+    s"$year$month$day${hour}00"
 
   }
 }
@@ -305,79 +410,7 @@ ENTSOE_PARAMETER_BY_GROUP = {
 ENTSOE_STORAGE_PARAMETERS = list(
     itertools.chain.from_iterable(ENTSOE_PARAMETER_GROUPS["storage"].values())
 )
-# Define all ENTSOE zone_key <-> domain mapping
-# see https://transparency.entsoe.eu/content/static_content/Static%20content/web%20api/Guide.html
-ENTSOE_DOMAIN_MAPPINGS: Dict[str, str] = {
-    "AL": "10YAL-KESH-----5",
-    "AT": "10YAT-APG------L",
-    "AZ": "10Y1001A1001B05V",
-    "BA": "10YBA-JPCC-----D",
-    "BE": "10YBE----------2",
-    "BG": "10YCA-BULGARIA-R",
-    "BY": "10Y1001A1001A51S",
-    "CH": "10YCH-SWISSGRIDZ",
-    "CZ": "10YCZ-CEPS-----N",
-    "DE": "10Y1001A1001A83F",
-    "DE-LU": "10Y1001A1001A82H",
-    "DK": "10Y1001A1001A65H",
-    "DK-DK1": "10YDK-1--------W",
-    "DK-DK2": "10YDK-2--------M",
-    "EE": "10Y1001A1001A39I",
-    "ES": "10YES-REE------0",
-    "FI": "10YFI-1--------U",
-    "FR": "10YFR-RTE------C",
-    "GB": "10YGB----------A",
-    "GB-NIR": "10Y1001A1001A016",
-    "GE": "10Y1001A1001B012",
-    "GR": "10YGR-HTSO-----Y",
-    "HR": "10YHR-HEP------M",
-    "HU": "10YHU-MAVIR----U",
-    "IE": "10YIE-1001A00010",
-    "IE(SEM)": "10Y1001A1001A59C",
-    "IT": "10YIT-GRTN-----B",
-    "IT-BR": "10Y1001A1001A699",
-    "IT-CA": "10Y1001C--00096J",
-    "IT-CNO": "10Y1001A1001A70O",
-    "IT-CSO": "10Y1001A1001A71M",
-    "IT-FO": "10Y1001A1001A72K",
-    "IT-NO": "10Y1001A1001A73I",
-    "IT-PR": "10Y1001A1001A76C",
-    "IT-SACOAC": "10Y1001A1001A885",
-    "IT-SACODC": "10Y1001A1001A893",
-    "IT-SAR": "10Y1001A1001A74G",
-    "IT-SIC": "10Y1001A1001A75E",
-    "IT-SO": "10Y1001A1001A788",
-    "LT": "10YLT-1001A0008Q",
-    "LU": "10YLU-CEGEDEL-NQ",
-    "LV": "10YLV-1001A00074",
-    # 'MD': 'MD',
-    "ME": "10YCS-CG-TSO---S",
-    "MK": "10YMK-MEPSO----8",
-    "MT": "10Y1001A1001A93C",
-    "NL": "10YNL----------L",
-    "NO": "10YNO-0--------C",
-    "NO-NO1": "10YNO-1--------2",
-    "NO-NO2": "10YNO-2--------T",
-    "NO-NO3": "10YNO-3--------J",
-    "NO-NO4": "10YNO-4--------9",
-    "NO-NO5": "10Y1001A1001A48H",
-    "PL": "10YPL-AREA-----S",
-    "PT": "10YPT-REN------W",
-    "RO": "10YRO-TEL------P",
-    "RS": "10YCS-SERBIATSOV",
-    "RU": "10Y1001A1001A49F",
-    "RU-KGD": "10Y1001A1001A50U",
-    "SE": "10YSE-1--------K",
-    "SE-SE1": "10Y1001A1001A44P",
-    "SE-SE2": "10Y1001A1001A45N",
-    "SE-SE3": "10Y1001A1001A46L",
-    "SE-SE4": "10Y1001A1001A47J",
-    "SI": "10YSI-ELES-----O",
-    "SK": "10YSK-SEPS-----K",
-    "TR": "10YTR-TEIAS----W",
-    "UA": "10YUA-WEPS-----0",
-    "XK": "10Y1001C--00100H",
-}
+
 
 # Generation per unit can only be obtained at EIC (Control Area) level
 ENTSOE_EIC_MAPPING: Dict[str, str] = {
@@ -398,35 +431,6 @@ ZONE_KEY_AGGREGATES: Dict[str, List[str]] = {
     "SE": ["SE-SE1", "SE-SE2", "SE-SE3", "SE-SE4"],
 }
 
-# Some exchanges require specific domains
-ENTSOE_EXCHANGE_DOMAIN_OVERRIDE: Dict[str, List[str]] = {
-    "AT->IT-NO": [ENTSOE_DOMAIN_MAPPINGS["AT"], ENTSOE_DOMAIN_MAPPINGS["IT"]],
-    "BY->UA": [ENTSOE_DOMAIN_MAPPINGS["BY"], "10Y1001C--00003F"],
-    "DE->DK-DK1": [ENTSOE_DOMAIN_MAPPINGS["DE-LU"], ENTSOE_DOMAIN_MAPPINGS["DK-DK1"]],
-    "DE->DK-DK2": [ENTSOE_DOMAIN_MAPPINGS["DE-LU"], ENTSOE_DOMAIN_MAPPINGS["DK-DK2"]],
-    "DE->NO-NO2": [ENTSOE_DOMAIN_MAPPINGS["DE-LU"], ENTSOE_DOMAIN_MAPPINGS["NO-NO2"]],
-    "DE->SE-SE4": [ENTSOE_DOMAIN_MAPPINGS["DE-LU"], ENTSOE_DOMAIN_MAPPINGS["SE-SE4"]],
-    "FR-COR->IT-CNO": [
-        ENTSOE_DOMAIN_MAPPINGS["IT-SACODC"],
-        ENTSOE_DOMAIN_MAPPINGS["IT-CNO"],
-    ],
-    "GE->RU-1": [ENTSOE_DOMAIN_MAPPINGS["GE"], ENTSOE_DOMAIN_MAPPINGS["RU"]],
-    "GR->IT-SO": [ENTSOE_DOMAIN_MAPPINGS["GR"], ENTSOE_DOMAIN_MAPPINGS["IT-SO"]],
-    "IT-CSO->ME": [ENTSOE_DOMAIN_MAPPINGS["IT"], ENTSOE_DOMAIN_MAPPINGS["ME"]],
-    "PL->UA": [ENTSOE_DOMAIN_MAPPINGS["PL"], "10Y1001A1001A869"],
-    "IT-SIC->IT-SO": [
-        ENTSOE_DOMAIN_MAPPINGS["IT-SIC"],
-        ENTSOE_DOMAIN_MAPPINGS["IT-CA"],
-    ],
-    "FR-COR-AC->IT-SAR": [
-        ENTSOE_DOMAIN_MAPPINGS["IT-SACOAC"],
-        ENTSOE_DOMAIN_MAPPINGS["IT-SAR"],
-    ],
-    "FR-COR-DC->IT-SAR": [
-        ENTSOE_DOMAIN_MAPPINGS["IT-SACODC"],
-        ENTSOE_DOMAIN_MAPPINGS["IT-SAR"],
-    ],
-}
 # Some zone_keys are part of bidding zone domains for price data
 ENTSOE_PRICE_DOMAIN_OVERRIDE: Dict[str, str] = {
     "AX": ENTSOE_DOMAIN_MAPPINGS["SE-SE3"],
@@ -677,42 +681,6 @@ def check_response(response, function_name):
                     function_name, response.text
                 )
             )
-
-def query_ENTSOE(session, params, target_datetime=None, span=(-48, 24)):
-    """
-    Makes a standard query to the ENTSOE API with a modifiable set of parameters.
-    Allows an existing session to be passed.
-    Raises an exception if no API token is found.
-    Returns a request object.
-    """
-    if target_datetime is None:
-        target_datetime = arrow.utcnow()
-    else:
-        # make sure we have an arrow object
-        target_datetime = arrow.get(target_datetime)
-    params["periodStart"] = target_datetime.shift(hours=span[0]).format("YYYYMMDDHH00")
-    params["periodEnd"] = target_datetime.shift(hours=span[1]).format("YYYYMMDDHH00")
-
-    # Due to rate limiting, we need to spread our requests across different tokens
-    tokens = get_token("ENTSOE_TOKEN").split(",")
-
-    params["securityToken"] = np.random.choice(tokens)
-    return session.get(ENTSOE_ENDPOINT, params=params)
-
-
-
-def query_price(domain, session, target_datetime=None) -> Union[str, None]:
-
-    params = {
-        "documentType": "A44",
-        "in_Domain": domain,
-        "out_Domain": domain,
-    }
-    response = query_ENTSOE(session, params, target_datetime=target_datetime)
-    if response.ok:
-        return response.text
-    else:
-        check_response(response, query_price.__name__)
 
 def query_wind_solar_production_forecast(
     in_domain, session, target_datetime=None

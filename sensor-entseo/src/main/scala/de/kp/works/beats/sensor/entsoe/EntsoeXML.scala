@@ -414,7 +414,7 @@ object EntsoeXML {
       val endTs   = timeseriesList.last.endTs
 
       var dots = Seq.empty[EntsoeDot]
-      var timeseries = EntsoeSeries(
+      val timeseries = EntsoeSeries(
         startTs, endTs, resolution, unitOfMeasure, dots)
 
       var i = 0
