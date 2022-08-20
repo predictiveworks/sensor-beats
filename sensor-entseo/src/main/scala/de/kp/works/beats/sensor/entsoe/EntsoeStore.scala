@@ -19,27 +19,13 @@ package de.kp.works.beats.sensor.entsoe
  *
  */
 
-case class EntsoeDot(
-  startTs:Long,
-  endTs:Long,
-  quantity:Int)
-
 /**
- * The EntsoeRequest is registered to access
- * already available request data without the
- * need to perform a HTTP request.
- *
- * This mechanism is introduced to cope with
- * the request limit of the ENTSOE API.
+ * The [EntsoeStore] is an (in-memory) database for
+ * timeseries sharing among multiple requests.
  */
-case class EntsoeRequest(
-  timestamp:Long,
-  params: Map[String,String]
-)
+object EntsoeStore {
 
-case class EntsoeSeries(
-  startTs:Long,
-  endTs:Long,
-  resolution:String,
-  unitOfMeasure:String,
-  dots:Seq[EntsoeDot])
+  def register(sessionKey:String, timeSeries:EntsoeSeries):Unit = {
+
+  }
+}
