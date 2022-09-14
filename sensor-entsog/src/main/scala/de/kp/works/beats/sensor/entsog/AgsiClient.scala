@@ -59,7 +59,7 @@ object AgsiClient extends BaseClient {
 //    val ds = getCountry("EU", from,to)
 //    ds.show
 
-    val ds = getSnapshot(true)
+    val ds = getSnapshot(reload = true)
     ds.show
 
     println(ds.count)
@@ -343,7 +343,7 @@ object AgsiClient extends BaseClient {
    */
   def getCompany(country:String, company:String, from:String,to:String):DataFrame = {
 
-    val basePath = s"${folder}asgi.facility.${country.toLowerCase}.$company.eu"
+    val basePath = s"${folder}asgi.company.${country.toLowerCase}.$company"
     val oldMeta = getMetadata(s"$basePath.metadata")
 
     val (request, reqFrom, reqTo) = computeInterval(from, to, oldMeta)
@@ -388,7 +388,7 @@ object AgsiClient extends BaseClient {
    */
   def getFacility(country:String, company:String, facility:String,from:String,to:String):DataFrame = {
 
-    val basePath = s"${folder}asgi.facility.${country.toLowerCase}.$company.$facility.eu"
+    val basePath = s"${folder}asgi.facility.${country.toLowerCase}.$company.$facility"
     val oldMeta = getMetadata(s"$basePath.metadata")
 
     val (request, reqFrom, reqTo) = computeInterval(from, to, oldMeta)
@@ -626,74 +626,6 @@ object AgsiClient extends BaseClient {
     }
 
     stored
-
-  }
-
-  private def computeInterval(from:String, to:String, meta:JsonObject):(Boolean, String,String) = {
-
-    var request = true
-
-    var reqFrom = from
-    var reqTo   = to
-
-    if (meta.size() > 0) {
-      /*
-       * Determine the correct request parameters
-       * with respect to `from` and `to`
-       */
-      val from_old = DATE_FORMAT.parse(meta.get("from").getAsString)
-      val from_new = DATE_FORMAT.parse(from)
-
-      val from_cmp = from_new.compareTo(from_old)
-
-      val to_old = DATE_FORMAT.parse(meta.get("to").getAsString)
-      val to_new = DATE_FORMAT.parse(to)
-
-      val to_cmp = to_new.compareTo(to_old)
-
-      if (from_cmp >= 0 && to_cmp <= 0) {
-        /*
-         * The current request is completely
-         * covered by the previous request
-         */
-        request = false
-      }
-      if (from_cmp >= 0 && to_cmp > 0) {
-        /*
-         * The current request retrieves the
-         * delta between the previous and
-         * current request.
-         *
-         * In this case the `from` parameter
-         * is not consider to ensure a seamless
-         * dataset
-         */
-        reqFrom = meta.get("to").getAsString
-        reqTo   = to
-      }
-      if (from_cmp < 0 && to_cmp <= 0) {
-        /*
-         * The current request retrieves the
-         * delta between the previous and
-         * current request
-         */
-        reqFrom = meta.get("from").getAsString
-        reqTo   = from
-      }
-      if (from_cmp < 0 && to_cmp > 0) {
-        /*
-         * The current request encloses the
-         * previous request and the current
-         * implementation initiates another
-         * API request
-         */
-        reqFrom = from
-        reqTo   = to
-      }
-
-    }
-
-    (request, reqFrom, reqTo)
 
   }
 

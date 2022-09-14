@@ -36,6 +36,74 @@ trait BaseClient extends HttpConnect {
   val session: SparkSession = BeatSession.getSession
   import session.implicits._
 
+  def computeInterval(from:String, to:String, meta:JsonObject):(Boolean, String,String) = {
+
+    var request = true
+
+    var reqFrom = from
+    var reqTo   = to
+
+    if (meta.size() > 0) {
+      /*
+       * Determine the correct request parameters
+       * with respect to `from` and `to`
+       */
+      val from_old = DATE_FORMAT.parse(meta.get("from").getAsString)
+      val from_new = DATE_FORMAT.parse(from)
+
+      val from_cmp = from_new.compareTo(from_old)
+
+      val to_old = DATE_FORMAT.parse(meta.get("to").getAsString)
+      val to_new = DATE_FORMAT.parse(to)
+
+      val to_cmp = to_new.compareTo(to_old)
+
+      if (from_cmp >= 0 && to_cmp <= 0) {
+        /*
+         * The current request is completely
+         * covered by the previous request
+         */
+        request = false
+      }
+      if (from_cmp >= 0 && to_cmp > 0) {
+        /*
+         * The current request retrieves the
+         * delta between the previous and
+         * current request.
+         *
+         * In this case the `from` parameter
+         * is not consider to ensure a seamless
+         * dataset
+         */
+        reqFrom = meta.get("to").getAsString
+        reqTo   = to
+      }
+      if (from_cmp < 0 && to_cmp <= 0) {
+        /*
+         * The current request retrieves the
+         * delta between the previous and
+         * current request
+         */
+        reqFrom = meta.get("from").getAsString
+        reqTo   = from
+      }
+      if (from_cmp < 0 && to_cmp > 0) {
+        /*
+         * The current request encloses the
+         * previous request and the current
+         * implementation initiates another
+         * API request
+         */
+        reqFrom = from
+        reqTo   = to
+      }
+
+    }
+
+    (request, reqFrom, reqTo)
+
+  }
+
   def extractDots(json:JsonElement, field:Option[String] = None):List[String] = {
 
     val jsonArray =
